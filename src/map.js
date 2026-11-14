@@ -61,6 +61,24 @@ export class GameMap {
   }
   floorHeightAt() { return 0; }
 
+  // (x, z) 处玩家脚下可站立的最高平面高度（不考虑 maxY 以上的面）。
+  // maxY 由调用方决定含义：
+  //   · 站在地面上时传 pos.y + stepHeight —— 于是不高于台阶的沿儿能直接迈上去
+  //   · 空中时传 pos.y —— 只有已经低于脚面的面才会接住玩家（不会被"吸"上去）
+  // 墙体 / 石墩的顶面是 WALL_H，永远进不来。
+  supportHeightAt(x, z, r, maxY) {
+    let best = 0;                       // 地图地面恒为 0
+    const cols = this.colliders;
+    for (let i = 0; i < cols.length; i++) {
+      const b = cols[i];
+      if (b.y1 > maxY || b.y1 <= best) continue;
+      if (x + r <= b.x0 || x - r >= b.x1) continue;
+      if (z + r <= b.z0 || z - r >= b.z1) continue;
+      best = b.y1;
+    }
+    return best;
+  }
+
   // ---------- 构建 ----------
   _build() {
     this._rasterize();

@@ -115,7 +115,8 @@ export class Round {
         reward += reason === 'bomb' ? RULES.winBombReward : RULES.winReward;
         this.lossStreak[p.team] = 0;
       } else {
-        const streak = this.lossStreak[p.team] = Math.min(4, this.lossStreak[p.team] + 1);
+        // 连败奖励五档：1400 / 1900 / 2400 / 2900 / 3400（RULES.lossMax）
+        const streak = this.lossStreak[p.team] = Math.min(5, this.lossStreak[p.team] + 1);
         reward += Math.min(RULES.lossMax, RULES.lossBase + (streak - 1) * RULES.lossStep);
         if (p.team === 'T' && bombPlanted) reward += RULES.plantBonus;
       }
@@ -130,6 +131,7 @@ export class Round {
     }[reason] || `${winner} 获胜`;
 
     this.game.hud.roundEnd(winner, text, this.scoreCT, this.scoreT);
+    this.game.hud.setProgress(null, 0);
   }
 
   nextRound() {
@@ -154,14 +156,21 @@ export class Round {
       p.money = RULES.startMoney;
       p.resetInventory();
       p.giveWeapon(p.team === 'T' ? 'glock18' : 'usp45');
+      // 阵营换了，外观要重建成对面的材质；重建前必须先回收旧网格和贴地阴影，
+      // 否则阴影会一份份堆在场景里。
       if (p.mesh) {
         this.game.scene.remove(p.mesh);
+        if (p._shadow) {
+          this.game.scene.remove(p._shadow);
+          p._shadow.geometry.dispose();
+          p._shadow.material.dispose();
+          p._shadow = null;
+        }
         p.buildMesh(this.game.scene);
       }
-      if (p.bot) p.bot.constructor = p.bot.constructor; // no-op
     }
-    // 交换比分归属（分数跟随阵营）
-    const tmp = this.scoreCT; this.scoreCT = this.scoreT; this.scoreT = tmp;
+    // 比分跟随「阵营」，不跟随玩家。半场只是玩家换边，
+    // 所以 scoreCT / scoreT 原样保留，绝对不能对调。
     this.lossStreak = { CT: 0, T: 0 };
     this.game.hud.announce('半场结束 · 交换阵营');
     this.startRound();
@@ -198,8 +207,14 @@ export class Round {
     }
   }
 
+  // 安放 / 拆除的进度条只属于本地玩家。
+  // BOT 也在同一个循环里推进各自进度，但绝不能写进 HUD ——
+  // 否则玩家在出生点站着不动也会看到屏幕中央弹出"正在安放 C4"。
   updateObjectives(dt) {
     const g = this.game;
+    const lp = g.localPlayer;
+    let bar = null;   // { label, ratio }
+
     // 安放
     for (const p of g.players) {
       if (!p.alive) { p.plantProgress = 0; continue; }
@@ -207,14 +222,15 @@ export class Round {
         const site = g.map.siteAt(p.pos.x, p.pos.z);
         if (site && this.bomb.state === 'carried') {
           p.plantProgress += dt;
-          g.hud.setProgress('正在安放 C4', p.plantProgress / RULES.plantTime);
           if (p.plantProgress >= RULES.plantTime) {
             this.plantBomb(p, site);
+            continue;
           }
+          if (p === lp) bar = { label: '正在安放 C4', ratio: p.plantProgress / RULES.plantTime };
           continue;
         }
       }
-      if (p.plantProgress > 0 && !p.wantUse) p.plantProgress = 0;
+      if (!p.wantUse) p.plantProgress = 0;
     }
 
     // 拆除
@@ -225,10 +241,15 @@ export class Round {
         if (p.wantUse && d < 70) {
           const dur = p.hasKit ? RULES.defuseKitTime : RULES.defuseTime;
           p.defuseProgress += dt;
-          g.hud.setProgress(p.hasKit ? '正在拆除（拆弹器）' : '正在拆除 C4', p.defuseProgress / dur);
           if (p.defuseProgress >= dur) {
             this.defuseBomb(p);
             return;
+          }
+          if (p === lp) {
+            bar = {
+              label: p.hasKit ? '正在拆除（拆弹器）' : '正在拆除 C4',
+              ratio: p.defuseProgress / dur,
+            };
           }
         } else if (!p.wantUse) {
           p.defuseProgress = 0;
@@ -237,6 +258,9 @@ export class Round {
     } else {
       for (const p of g.players) p.defuseProgress = 0;
     }
+
+    // 每帧都显式设置，避免松手后进度条残留
+    g.hud.setProgress(bar ? bar.label : null, bar ? bar.ratio : 0);
   }
 
   plantBomb(p, site) {

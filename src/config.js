@@ -70,7 +70,8 @@ export const HITGROUP = {
 // spread   : 站立静止基础散布（度）
 // moveSpread: 满速移动时额外散布（度）
 // kick     : 单发视角后坐（度）
-// pen      : 有甲时的伤害保留系数
+// pen      : 护甲穿透率，即 1.6 武器脚本里的 ArmorRatio
+//            （护甲吸收伤害后，身体实际承受 dmg × pen）
 // kill     : 击杀奖励
 // speed    : 持枪最大移动速度
 export const WEAPONS = {
@@ -107,7 +108,7 @@ export const WEAPONS = {
   m4a1: {
     id: 'm4a1', name: 'M4A1', cn: 'M4A1 卡宾枪', cls: 'rifle', slot: 1, price: 3100,
     dmg: 33, rpm: 666, mag: 30, res: 90, reload: 3.1, spread: 0.3, moveSpread: 1.1,
-    kick: 1.7, pen: 0.77, kill: 300, speed: 225, sound: 'm4a1', auto: true,
+    kick: 1.7, pen: 0.70, kill: 300, speed: 225, sound: 'm4a1', auto: true,
   },
   p90: {
     id: 'p90', name: 'P90', cn: 'P90', cls: 'smg', slot: 1, price: 2350,
@@ -132,7 +133,7 @@ export const WEAPONS = {
   awp: {
     id: 'awp', name: 'AWP', cn: 'AWP 狙击枪', cls: 'sniper', slot: 1, price: 4750,
     dmg: 115, rpm: 41, mag: 10, res: 30, reload: 2.9, spread: 0.12, moveSpread: 6.0,
-    kick: 4.5, pen: 0.9, kill: 100, speed: 210, sound: 'awp', auto: false, scope: [0.55, 0.18],
+    kick: 4.5, pen: 0.975, kill: 100, speed: 210, sound: 'awp', auto: false, scope: [0.55, 0.18],
   },
 };
 

@@ -55,7 +55,10 @@ body {
   position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 40;
   background: #fff;
 }
-#scope-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 25; background: #000; }
+/* 注意：这一层不能有 background —— 圆内的"洞"是靠 .scope-ring 的
+   box-shadow 涂黑圆外实现的。父层一旦铺满黑色，透明圆的中心就会露出
+   父层的黑，开镜直接全屏黑。 */
+#scope-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 25; }
 #scope-overlay .scope-ring {
   position: absolute; left: 50%; top: 50%; width: 92vh; height: 92vh;
   margin: -46vh 0 0 -46vh; border-radius: 50%;

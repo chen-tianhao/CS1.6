@@ -13,6 +13,7 @@ export class HUD {
     this.buyOpen = false;
     this.buyCat = 'rifles';
     this.announceTimer = 0;
+    this.bannerTimer = 0;
     this.toasts = [];
     this.kf = [];
     this.radarStatic = null;
@@ -126,8 +127,10 @@ export class HUD {
     const p = g.localPlayer;
     const r = g.round;
 
-    // 计时
-    const t = r.phase === 'freeze' ? RULES.roundTime : Math.max(0, r.time);
+    // 计时：冻结期显示 freezetime 倒计时，交战期显示回合剩余时间。
+    // （原来冻结期直接显示 1:55 且一分钟都不动，看起来像卡住了）
+    const ticking = r.phase === 'freeze' || r.phase === 'live';
+    const t = ticking ? Math.max(0, r.time) : 0;
     const mm = Math.floor(t / 60);
     const ss = Math.floor(t % 60);
     this.el.timer.textContent = `${mm}:${ss.toString().padStart(2, '0')}`;
@@ -186,6 +189,10 @@ export class HUD {
     if (this.announceTimer > 0) {
       this.announceTimer -= dt;
       if (this.announceTimer <= 0) this.el.announce.classList.remove('show');
+    }
+    if (this.bannerTimer > 0) {
+      this.bannerTimer -= dt;
+      if (this.bannerTimer <= 0) this.hideBanner();
     }
 
     this.updateToasts(dt);
@@ -359,11 +366,20 @@ export class HUD {
     this.el.rbCT.textContent = ct;
     this.el.rbT.textContent = t;
     this.el.announce.classList.remove('show');
-    setTimeout(() => this.el.banner.classList.add('hidden'), RULES.roundEndDelay * 1000 - 600);
+    // 用游戏内计时器而不是 setTimeout —— 暂停 / 切后台 / 重开时
+    // setTimeout 会继续走（或者被冻结），横幅就会残留在画面上。
+    this.bannerTimer = RULES.roundEndDelay - 0.6;
     this.setProgress(null, 0);
   }
 
+  hideBanner() {
+    this.bannerTimer = 0;
+    this.el.banner.classList.add('hidden');
+  }
+
   matchEnd(winner, ct, t) {
+    // 比赛结束时横幅要一直留着，先掐掉上一回合的自动隐藏
+    this.bannerTimer = 0;
     this.el.banner.classList.remove('hidden');
     this.el.result.textContent = winner === 'CT' ? '反恐精英 获得比赛胜利' : '恐怖分子 获得比赛胜利';
     this.el.result.className = winner === 'CT' ? 'ct' : 't';

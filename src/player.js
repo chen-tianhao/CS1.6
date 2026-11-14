@@ -46,6 +46,7 @@ export class Player {
     this.punchYaw = 0;
     this.eyeHeight = PHYS.eyeStand;
     this.onGround = true;
+    this.groundY = 0;          // 脚下支撑面高度（贴地阴影要用）
     this.ducking = false;
     this.duckAmount = 0;
 
@@ -104,6 +105,7 @@ export class Player {
     this.alive = true;
     this.health = 100;
     this.onGround = true;
+    this.groundY = 0;
     this.ducking = false;
     this.duckAmount = 0;
     this.zoom = 0;
@@ -268,46 +270,47 @@ export class Player {
     }
 
     this.integrate(dt);
-
-    // 落地
-    if (this.pos.y <= 0 && this.onGround === false) {
-      if (this.vel.y < -260) {
-        // 高处落地：CS1.6 无落地伤害（除非摔落），这里仅做音效
-        Sfx.playFootstep(this.pos, this.game.listenerPos(), true);
-      }
-      this.pos.y = 0;
-      this.vel.y = 0;
-      this.onGround = true;
-    }
-    if (this.onGround && this.pos.y > 0) this.pos.y = Math.max(0, this.pos.y);
+    // 落地判定（含落地音效）现在由 integrate 统一处理
   }
 
   integrate(dt) {
     const map = this.game.map;
     const r = PHYS.radius;
-    const height = PHYS.standHeight;
+    const hull = this.ducking ? PHYS.duckHeight : PHYS.standHeight;
 
-    // X 轴
+    // ---- 水平：先移动，再沿轴推出 ----
     this.pos.x += this.vel.x * dt;
-    this.resolveAxis('x', r, height);
-
-    // Z 轴
+    this.resolveAxis('x', r, hull);
     this.pos.z += this.vel.z * dt;
-    this.resolveAxis('z', r, height);
+    this.resolveAxis('z', r, hull);
 
-    // 地面吸附
-    if (this.onGround) {
-      if (map.isFloorAt(this.pos.x, this.pos.z)) this.pos.y = 0;
-      else this.onGround = false;
-    }
+    // ---- 脚下的支撑面 ----
+    // 站在地面上时容忍 stepHeight 的台阶（能迈上去），
+    // 空中只认不高于脚面的面（不会被"吸"到箱子上）。
+    const stepUp = this.onGround ? PHYS.stepHeight : 0;
+    const support = map.supportHeightAt(this.pos.x, this.pos.z, r, this.pos.y + stepUp);
+    // 记录脚下的地面高度：贴地阴影要靠它，跳跃时也不能跟着人一起飞
+    this.groundY = support;
 
-    // 竖直
+    // ---- 竖直 ----
     this.pos.y += this.vel.y * dt;
-    if (this.pos.y < 0) {
-      if (map.isFloorAt(this.pos.x, this.pos.z)) {
-        this.pos.y = 0;
+
+    if (this.vel.y <= 0 && this.pos.y <= support) {
+      // 落到支撑面上：地面 / 箱顶 / 台阶
+      if (!this.onGround && this.vel.y < -260) {
+        // 高处落地：CS1.6 没有落地伤害，这里只给一声
+        Sfx.playFootstep(this.pos, this.game.listenerPos(), true);
+      }
+      this.pos.y = support;
+      this.vel.y = 0;
+      this.onGround = true;
+    } else if (this.onGround) {
+      // 站着，但脚下的支撑面掉了：小落差贴地跟随，大落差转为自由下落
+      if (this.pos.y - support <= PHYS.stepHeight) {
+        this.pos.y = support;
         this.vel.y = 0;
-        this.onGround = true;
+      } else {
+        this.onGround = false;
       }
     }
 
@@ -336,24 +339,29 @@ export class Player {
     return null;
   }
 
-  resolveAxis(axis, r, height) {
+  // hull 由调用方按蹲/站算好传进来
+  resolveAxis(axis, r, hull) {
     const cols = this.game.map.colliders;
     const px = this.pos.x, pz = this.pos.z;
     const py = this.pos.y;
-    const h = this.ducking ? PHYS.duckHeight : height;
+    // 顶面不高于台阶的碰撞体可以迈上去，不该挡住水平移动；
+    // 同理，已经站在它上面（脚面不高于它的顶面）时也不该被推开。
+    const stepUp = this.onGround ? PHYS.stepHeight : 0;
     for (let i = 0; i < cols.length; i++) {
       const b = cols[i];
-      if (b.y0 > py + h || b.y1 < py + 2) continue;
+      if (b.y1 <= py + stepUp) continue;
+      if (b.y0 > py + hull || b.y1 < py + 2) continue;
       if (px + r <= b.x0 || px - r >= b.x1) continue;
       if (pz + r <= b.z0 || pz - r >= b.z1) continue;
-      // 重叠 → 沿轴推出
+      // 重叠 → 沿轴推到最近的一侧。
+      // 不能用"速度方向"决定推哪边：一旦角色已经和碰撞体重叠
+      // （出生点压在道具上、单帧位移过大），按速度方向会把人推到
+      // 另一侧，等于瞬间穿过箱子。
       if (axis === 'x') {
-        if (this.vel.x > 0) this.pos.x = b.x0 - r - 0.01;
-        else if (this.vel.x < 0) this.pos.x = b.x1 + r + 0.01;
+        this.pos.x = (px - (b.x0 - r)) <= ((b.x1 + r) - px) ? b.x0 - r - 0.01 : b.x1 + r + 0.01;
         this.vel.x = 0;
       } else {
-        if (this.vel.z > 0) this.pos.z = b.z0 - r - 0.01;
-        else if (this.vel.z < 0) this.pos.z = b.z1 + r + 0.01;
+        this.pos.z = (pz - (b.z0 - r)) <= ((b.z1 + r) - pz) ? b.z0 - r - 0.01 : b.z1 + r + 0.01;
         this.vel.z = 0;
       }
       return;
@@ -469,7 +477,7 @@ export class Player {
     const origin = new THREE.Vector3(this.pos.x, this.eyeY(), this.pos.z);
     const dir = this.aimDir();
     const hit = this.game.tracePlayers(origin, dir, def.range, this);
-    if (hit) {
+    if (hit && !hit.friendly) {
       const dmg = def.dmg;
       applyDamage(this.game, hit.player, this, dmg, 'chest', def);
       fx.blood(hit.point, 6);
@@ -553,15 +561,29 @@ export class Player {
   }
 
   // ---------- 伤害 ----------
+  // 护甲结算按 CS 1.6 的模型：护甲按「该武器的装甲穿透率」吸收伤害，
+  // 自身承受 (1 - ratio) 的一半作为护甲损耗；护甲见底时剩余伤害回到身体。
+  // 没戴头盔的头部命中完全无视护甲。
   takeDamage(dmg, attacker, group, weaponId) {
     if (!this.alive) return 0;
     let d = dmg;
-    if (this.armor > 0 && group !== 'leg') {
-      const pen = 0.72;
-      d *= pen;
-      this.armor = Math.max(0, this.armor - d * 0.55);
+    const def = WEAPONS[weaponId];
+    // 摔落 / C4 这类没有武器定义的伤害退化到一个中庸值
+    const ratio = def && def.pen != null ? def.pen : 0.72;
+    const armorApplies = this.armor > 0 && group !== 'leg' && !(group === 'head' && !this.helmet);
+    if (armorApplies) {
+      const reduced = d * ratio;
+      let armorLoss = (d - reduced) * 0.5;
+      if (armorLoss > this.armor) {
+        // 护甲被打空：按穿透率反推还能吃掉多少伤害，其余落到身体上
+        armorLoss = this.armor / ratio;
+        d = Math.max(0, d - armorLoss);
+        this.armor = 0;
+      } else {
+        this.armor -= armorLoss;
+        d = reduced;
+      }
     }
-    if (group === 'head' && this.helmet) d *= 0.72;
     d = Math.round(d);
     this.health -= d;
     this.lastDamageTime = this.game.time;
@@ -622,14 +644,15 @@ export class Player {
     const crouch = this.duckAmount;
     this.mesh.scale.y = 1 - crouch * 0.34;
 
-    // 阴影跟随：离地越高越小越淡，跳跃时给一点视觉高度参考
+    // 阴影跟随：贴在脚下的支撑面上，离地越高越小越淡
     if (this._shadow) {
       const vis = this.alive && !this.isLocal;
       this._shadow.visible = vis;
       if (vis) {
-        const h = Math.max(0, this.pos.y);
+        const groundY = this.groundY || 0;
+        const h = Math.max(0, this.pos.y - groundY);
         const k = Math.max(0.3, 1 - h / 240);
-        this._shadow.position.set(this.pos.x, 1.2, this.pos.z);
+        this._shadow.position.set(this.pos.x, groundY + 1.2, this.pos.z);
         this._shadow.scale.setScalar(48 * k);
         this._shadow.material.opacity = 0.5 * k;
       }

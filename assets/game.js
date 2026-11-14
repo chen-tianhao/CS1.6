@@ -21131,7 +21131,7 @@
       spread: 0.3,
       moveSpread: 1.1,
       kick: 1.7,
-      pen: 0.77,
+      pen: 0.7,
       kill: 300,
       speed: 225,
       sound: "m4a1",
@@ -21239,7 +21239,7 @@
       spread: 0.12,
       moveSpread: 6,
       kick: 4.5,
-      pen: 0.9,
+      pen: 0.975,
       kill: 100,
       speed: 210,
       sound: "awp",
@@ -21897,6 +21897,23 @@
     floorHeightAt() {
       return 0;
     }
+    // (x, z) 处玩家脚下可站立的最高平面高度（不考虑 maxY 以上的面）。
+    // maxY 由调用方决定含义：
+    //   · 站在地面上时传 pos.y + stepHeight —— 于是不高于台阶的沿儿能直接迈上去
+    //   · 空中时传 pos.y —— 只有已经低于脚面的面才会接住玩家（不会被"吸"上去）
+    // 墙体 / 石墩的顶面是 WALL_H，永远进不来。
+    supportHeightAt(x, z, r, maxY) {
+      let best = 0;
+      const cols = this.colliders;
+      for (let i = 0; i < cols.length; i++) {
+        const b2 = cols[i];
+        if (b2.y1 > maxY || b2.y1 <= best) continue;
+        if (x + r <= b2.x0 || x - r >= b2.x1) continue;
+        if (z + r <= b2.z0 || z - r >= b2.z1) continue;
+        best = b2.y1;
+      }
+      return best;
+    }
     // ---------- 构建 ----------
     _build() {
       this._rasterize();
@@ -22533,33 +22550,40 @@
     // ---- 道具 ----
     // t: crate(木箱) / barrel(油桶) / box(任意盒体) / blocker(整格石墩)
     // mat: crate | concrete | metalRed | metalBlue | metalGreen
+    //
+    // 木箱高度只分三档，它们直接对应 GoldSrc 的移动能力，别随手改：
+    //   h: 32  台阶箱 —— 跳跃高度 45（268²/2·800）> 32，从地面能直接跳上去；
+    //          但 32 > stepHeight 18，所以不能"走"上去，必须真的跳。
+    //   h: 64  架点箱 —— 45 < 64，地面跳不上去，得先踩 32 的箱子再跳（32+45=77）。
+    //   h: 110+ 纯掩体 / 远景，不用想着上去。
+    // 想让人能上高点，就把一个 32 和一个 64 挨着摆（缝隙别超过 10 单位）。
     props: [
-      // A 点箱堆
-      { t: "crate", x: 1150, z: -700, s: 120, h: 120 },
+      // A 点箱堆：两组 32 → 64 台阶，外加两个高箱当远景掩体
+      { t: "crate", x: 1150, z: -700, s: 120, h: 64 },
       { t: "crate", x: 1270, z: -700, s: 120, h: 120 },
-      { t: "crate", x: 1150, z: -580, s: 100, h: 100 },
-      { t: "crate", x: 1450, z: -820, s: 110, h: 110 },
-      { t: "crate", x: 1560, z: -800, s: 110, h: 110 },
+      { t: "crate", x: 1150, z: -580, s: 100, h: 32 },
+      { t: "crate", x: 1450, z: -820, s: 110, h: 64 },
+      { t: "crate", x: 1560, z: -800, s: 110, h: 32 },
       { t: "crate", x: 1500, z: -620, s: 120, h: 120 },
-      // B 点箱堆与集装箱
-      { t: "crate", x: -1450, z: -700, s: 120, h: 120 },
-      { t: "crate", x: -1330, z: -700, s: 120, h: 120 },
+      // B 点箱堆与集装箱：门口一组 32 → 64
+      { t: "crate", x: -1450, z: -700, s: 120, h: 64 },
+      { t: "crate", x: -1330, z: -700, s: 120, h: 32 },
       { t: "crate", x: -1450, z: -560, s: 110, h: 110 },
-      { t: "crate", x: -1120, z: -800, s: 120, h: 120 },
-      { t: "crate", x: -1e3, z: -640, s: 110, h: 110 },
+      { t: "crate", x: -1120, z: -800, s: 120, h: 64 },
+      { t: "crate", x: -1e3, z: -640, s: 110, h: 32 },
       { t: "box", x: -1250, y: 125, z: -430, w: 340, h: 250, d: 120, mat: "metalBlue" },
       { t: "box", x: -960, y: 125, z: -600, w: 120, h: 250, d: 300, mat: "metalGreen" },
-      // T 出生点
-      { t: "crate", x: 300, z: 1500, s: 110, h: 110 },
-      { t: "crate", x: 300, z: 1610, s: 110, h: 110 },
+      // T 出生点：32 → 64 的箱子台阶
+      { t: "crate", x: 300, z: 1500, s: 110, h: 32 },
+      { t: "crate", x: 300, z: 1610, s: 110, h: 64 },
       { t: "box", x: -300, y: 60, z: 1700, w: 200, h: 120, d: 90, mat: "concrete" },
       { t: "barrel", x: -420, z: 1350 },
       { t: "barrel", x: -380, z: 1420 },
       // Long A 掩体（长通道上的车）
       { t: "box", x: 1120, y: 45, z: 980, w: 200, h: 90, d: 110, mat: "metalBlue" },
       { t: "box", x: 1120, y: 125, z: 980, w: 130, h: 70, d: 108, mat: "metalBlue" },
-      { t: "crate", x: 1010, z: 460, s: 100, h: 100 },
-      { t: "crate", x: 1180, z: -100, s: 100, h: 100 },
+      { t: "crate", x: 1010, z: 460, s: 100, h: 32 },
+      { t: "crate", x: 1180, z: -100, s: 100, h: 64 },
       // Long 大门（双门框 + 横梁）
       { t: "box", x: 900, y: 220, z: 620, w: 24, h: 440, d: 90, mat: "concrete" },
       { t: "box", x: 1280, y: 220, z: 620, w: 24, h: 440, d: 90, mat: "concrete" },
@@ -22572,31 +22596,31 @@
       { t: "box", x: -160, y: 220, z: 300, w: 30, h: 440, d: 100, mat: "concrete" },
       { t: "box", x: 160, y: 220, z: 300, w: 30, h: 440, d: 100, mat: "concrete" },
       { t: "box", x: 0, y: 410, z: 300, w: 360, h: 60, d: 30, mat: "concrete" },
-      { t: "crate", x: 120, z: 180, s: 100, h: 100 },
+      { t: "crate", x: 120, z: 180, s: 100, h: 64 },
       // Top mid / CT mid
-      { t: "crate", x: -240, z: -400, s: 110, h: 110 },
-      { t: "crate", x: 240, z: -420, s: 110, h: 110 },
+      { t: "crate", x: -240, z: -400, s: 110, h: 64 },
+      { t: "crate", x: 240, z: -420, s: 110, h: 32 },
       { t: "barrel", x: 180, z: -820 },
       // CT 出生点
       { t: "box", x: -450, y: 65, z: -1e3, w: 240, h: 130, d: 110, mat: "concrete" },
       { t: "box", x: 250, y: 45, z: -1050, w: 180, h: 90, d: 100, mat: "concrete" },
       { t: "barrel", x: -560, z: -1400 },
-      { t: "crate", x: 120, z: -1300, s: 100, h: 100 },
+      { t: "crate", x: 120, z: -1300, s: 100, h: 64 },
       // B 通道
-      { t: "crate", x: -1180, z: 900, s: 100, h: 100 },
-      { t: "crate", x: -1e3, z: 300, s: 100, h: 100 },
+      { t: "crate", x: -1180, z: 900, s: 100, h: 32 },
+      { t: "crate", x: -1e3, z: 300, s: 100, h: 64 },
       { t: "barrel", x: -1220, z: 1400 },
       { t: "barrel", x: -1180, z: 1450 },
       // Lower tunnel
-      { t: "crate", x: -500, z: 830, s: 100, h: 100 },
+      { t: "crate", x: -500, z: 830, s: 100, h: 32 },
       // CT 上 A 坡道
-      { t: "crate", x: 520, z: -940, s: 100, h: 100 },
-      { t: "crate", x: 760, z: -1050, s: 110, h: 110 },
+      { t: "crate", x: 520, z: -940, s: 100, h: 32 },
+      { t: "crate", x: 760, z: -1050, s: 110, h: 64 },
       // B 门
       { t: "box", x: -1150, y: 220, z: -1e3, w: 30, h: 440, d: 110, mat: "concrete" },
       { t: "box", x: -700, y: 220, z: -1e3, w: 30, h: 440, d: 110, mat: "concrete" },
-      { t: "crate", x: -1e3, z: -1120, s: 100, h: 100 },
-      { t: "crate", x: -620, z: -1140, s: 100, h: 100 }
+      { t: "crate", x: -1e3, z: -1120, s: 100, h: 32 },
+      { t: "crate", x: -620, z: -1140, s: 100, h: 64 }
     ],
     // ---- 无碰撞装饰 ----
     decor: [
@@ -23529,7 +23553,6 @@
     let best = null;
     for (const p of game.players) {
       if (!p.alive || p === shooter) continue;
-      if (p.team === shooter.team) continue;
       for (const hb of p.hitboxes()) {
         const b2 = {
           x0: p.pos.x - hb.r,
@@ -23541,7 +23564,12 @@
         };
         const t = rayAABB(origin, dir, b2);
         if (t !== null && t > 0 && t < maxDist && (!best || t < best.dist)) {
-          best = { player: p, dist: t, group: hb.group };
+          best = {
+            player: p,
+            dist: t,
+            group: hb.group,
+            friendly: !!(shooter && p.team === shooter.team)
+          };
         }
       }
     }
@@ -23582,11 +23610,14 @@
     const muzzle = origin.clone().addScaledVector(dir, 24);
     if (Math.random() < 0.75) fx.tracer(muzzle, end);
     if (ph) {
-      applyDamage(game, ph.player, shooter, def.dmg, ph.group, def, ph.dist);
-      fx.blood(ph.point, ph.group === "head" ? 8 : 4);
-      if (shooter === game.localPlayer) {
-        playHit(ph.group === "head");
-        game.hud.hitMarker(ph.group === "head");
+      if (ph.friendly) {
+      } else {
+        applyDamage(game, ph.player, shooter, def.dmg, ph.group, def, ph.dist);
+        fx.blood(ph.point, ph.group === "head" ? 8 : 4);
+        if (shooter === game.localPlayer) {
+          playHit(ph.group === "head");
+          game.hud.hitMarker(ph.group === "head");
+        }
       }
     } else if (wallHit) {
       const p = origin.clone().addScaledVector(dir, wallHit.dist - 0.6);
@@ -24086,6 +24117,7 @@
       this.punchYaw = 0;
       this.eyeHeight = PHYS.eyeStand;
       this.onGround = true;
+      this.groundY = 0;
       this.ducking = false;
       this.duckAmount = 0;
       this.health = 100;
@@ -24136,6 +24168,7 @@
       this.alive = true;
       this.health = 100;
       this.onGround = true;
+      this.groundY = 0;
       this.ducking = false;
       this.duckAmount = 0;
       this.zoom = 0;
@@ -24274,34 +24307,32 @@
         if (this.vel.y < -2e3) this.vel.y = -2e3;
       }
       this.integrate(dt);
-      if (this.pos.y <= 0 && this.onGround === false) {
-        if (this.vel.y < -260) {
-          playFootstep(this.pos, this.game.listenerPos(), true);
-        }
-        this.pos.y = 0;
-        this.vel.y = 0;
-        this.onGround = true;
-      }
-      if (this.onGround && this.pos.y > 0) this.pos.y = Math.max(0, this.pos.y);
     }
     integrate(dt) {
       const map = this.game.map;
       const r = PHYS.radius;
-      const height = PHYS.standHeight;
+      const hull = this.ducking ? PHYS.duckHeight : PHYS.standHeight;
       this.pos.x += this.vel.x * dt;
-      this.resolveAxis("x", r, height);
+      this.resolveAxis("x", r, hull);
       this.pos.z += this.vel.z * dt;
-      this.resolveAxis("z", r, height);
-      if (this.onGround) {
-        if (map.isFloorAt(this.pos.x, this.pos.z)) this.pos.y = 0;
-        else this.onGround = false;
-      }
+      this.resolveAxis("z", r, hull);
+      const stepUp = this.onGround ? PHYS.stepHeight : 0;
+      const support = map.supportHeightAt(this.pos.x, this.pos.z, r, this.pos.y + stepUp);
+      this.groundY = support;
       this.pos.y += this.vel.y * dt;
-      if (this.pos.y < 0) {
-        if (map.isFloorAt(this.pos.x, this.pos.z)) {
-          this.pos.y = 0;
+      if (this.vel.y <= 0 && this.pos.y <= support) {
+        if (!this.onGround && this.vel.y < -260) {
+          playFootstep(this.pos, this.game.listenerPos(), true);
+        }
+        this.pos.y = support;
+        this.vel.y = 0;
+        this.onGround = true;
+      } else if (this.onGround) {
+        if (this.pos.y - support <= PHYS.stepHeight) {
+          this.pos.y = support;
           this.vel.y = 0;
-          this.onGround = true;
+        } else {
+          this.onGround = false;
         }
       }
       if (!map.isFloorAt(this.pos.x, this.pos.z)) {
@@ -24327,23 +24358,23 @@
       }
       return null;
     }
-    resolveAxis(axis, r, height) {
+    // hull 由调用方按蹲/站算好传进来
+    resolveAxis(axis, r, hull) {
       const cols = this.game.map.colliders;
       const px2 = this.pos.x, pz2 = this.pos.z;
       const py2 = this.pos.y;
-      const h = this.ducking ? PHYS.duckHeight : height;
+      const stepUp = this.onGround ? PHYS.stepHeight : 0;
       for (let i = 0; i < cols.length; i++) {
         const b2 = cols[i];
-        if (b2.y0 > py2 + h || b2.y1 < py2 + 2) continue;
+        if (b2.y1 <= py2 + stepUp) continue;
+        if (b2.y0 > py2 + hull || b2.y1 < py2 + 2) continue;
         if (px2 + r <= b2.x0 || px2 - r >= b2.x1) continue;
         if (pz2 + r <= b2.z0 || pz2 - r >= b2.z1) continue;
         if (axis === "x") {
-          if (this.vel.x > 0) this.pos.x = b2.x0 - r - 0.01;
-          else if (this.vel.x < 0) this.pos.x = b2.x1 + r + 0.01;
+          this.pos.x = px2 - (b2.x0 - r) <= b2.x1 + r - px2 ? b2.x0 - r - 0.01 : b2.x1 + r + 0.01;
           this.vel.x = 0;
         } else {
-          if (this.vel.z > 0) this.pos.z = b2.z0 - r - 0.01;
-          else if (this.vel.z < 0) this.pos.z = b2.z1 + r + 0.01;
+          this.pos.z = pz2 - (b2.z0 - r) <= b2.z1 + r - pz2 ? b2.z0 - r - 0.01 : b2.z1 + r + 0.01;
           this.vel.z = 0;
         }
         return;
@@ -24441,7 +24472,7 @@
       const origin = new Vector3(this.pos.x, this.eyeY(), this.pos.z);
       const dir = this.aimDir();
       const hit = this.game.tracePlayers(origin, dir, def.range, this);
-      if (hit) {
+      if (hit && !hit.friendly) {
         const dmg = def.dmg;
         applyDamage(this.game, hit.player, this, dmg, "chest", def);
         fx.blood(hit.point, 6);
@@ -24518,15 +24549,27 @@
       playPickup();
     }
     // ---------- 伤害 ----------
+    // 护甲结算按 CS 1.6 的模型：护甲按「该武器的装甲穿透率」吸收伤害，
+    // 自身承受 (1 - ratio) 的一半作为护甲损耗；护甲见底时剩余伤害回到身体。
+    // 没戴头盔的头部命中完全无视护甲。
     takeDamage(dmg, attacker, group, weaponId) {
       if (!this.alive) return 0;
       let d = dmg;
-      if (this.armor > 0 && group !== "leg") {
-        const pen = 0.72;
-        d *= pen;
-        this.armor = Math.max(0, this.armor - d * 0.55);
+      const def = WEAPONS[weaponId];
+      const ratio = def && def.pen != null ? def.pen : 0.72;
+      const armorApplies = this.armor > 0 && group !== "leg" && !(group === "head" && !this.helmet);
+      if (armorApplies) {
+        const reduced = d * ratio;
+        let armorLoss = (d - reduced) * 0.5;
+        if (armorLoss > this.armor) {
+          armorLoss = this.armor / ratio;
+          d = Math.max(0, d - armorLoss);
+          this.armor = 0;
+        } else {
+          this.armor -= armorLoss;
+          d = reduced;
+        }
       }
-      if (group === "head" && this.helmet) d *= 0.72;
       d = Math.round(d);
       this.health -= d;
       this.lastDamageTime = this.game.time;
@@ -24587,9 +24630,10 @@
         const vis = this.alive && !this.isLocal;
         this._shadow.visible = vis;
         if (vis) {
-          const h = Math.max(0, this.pos.y);
+          const groundY = this.groundY || 0;
+          const h = Math.max(0, this.pos.y - groundY);
           const k = Math.max(0.3, 1 - h / 240);
-          this._shadow.position.set(this.pos.x, 1.2, this.pos.z);
+          this._shadow.position.set(this.pos.x, groundY + 1.2, this.pos.z);
           this._shadow.scale.setScalar(48 * k);
           this._shadow.material.opacity = 0.5 * k;
         }
@@ -25099,7 +25143,7 @@
           reward += reason === "bomb" ? RULES.winBombReward : RULES.winReward;
           this.lossStreak[p.team] = 0;
         } else {
-          const streak = this.lossStreak[p.team] = Math.min(4, this.lossStreak[p.team] + 1);
+          const streak = this.lossStreak[p.team] = Math.min(5, this.lossStreak[p.team] + 1);
           reward += Math.min(RULES.lossMax, RULES.lossBase + (streak - 1) * RULES.lossStep);
           if (p.team === "T" && bombPlanted) reward += RULES.plantBonus;
         }
@@ -25112,6 +25156,7 @@
         "time": "\u53CD\u6050\u7CBE\u82F1\u83B7\u80DC \xB7 \u65F6\u95F4\u8017\u5C3D"
       }[reason] || `${winner} \u83B7\u80DC`;
       this.game.hud.roundEnd(winner, text, this.scoreCT, this.scoreT);
+      this.game.hud.setProgress(null, 0);
     }
     nextRound() {
       if (this.scoreCT >= RULES.winRounds || this.scoreT >= RULES.winRounds || this.roundNum >= RULES.maxRounds) {
@@ -25135,13 +25180,15 @@
         p.giveWeapon(p.team === "T" ? "glock18" : "usp45");
         if (p.mesh) {
           this.game.scene.remove(p.mesh);
+          if (p._shadow) {
+            this.game.scene.remove(p._shadow);
+            p._shadow.geometry.dispose();
+            p._shadow.material.dispose();
+            p._shadow = null;
+          }
           p.buildMesh(this.game.scene);
         }
-        if (p.bot) p.bot.constructor = p.bot.constructor;
       }
-      const tmp2 = this.scoreCT;
-      this.scoreCT = this.scoreT;
-      this.scoreT = tmp2;
       this.lossStreak = { CT: 0, T: 0 };
       this.game.hud.announce("\u534A\u573A\u7ED3\u675F \xB7 \u4EA4\u6362\u9635\u8425");
       this.startRound();
@@ -25173,8 +25220,13 @@
         if (this.time <= 0) this.nextRound();
       }
     }
+    // 安放 / 拆除的进度条只属于本地玩家。
+    // BOT 也在同一个循环里推进各自进度，但绝不能写进 HUD ——
+    // 否则玩家在出生点站着不动也会看到屏幕中央弹出"正在安放 C4"。
     updateObjectives(dt) {
       const g = this.game;
+      const lp = g.localPlayer;
+      let bar = null;
       for (const p of g.players) {
         if (!p.alive) {
           p.plantProgress = 0;
@@ -25184,14 +25236,15 @@
           const site = g.map.siteAt(p.pos.x, p.pos.z);
           if (site && this.bomb.state === "carried") {
             p.plantProgress += dt;
-            g.hud.setProgress("\u6B63\u5728\u5B89\u653E C4", p.plantProgress / RULES.plantTime);
             if (p.plantProgress >= RULES.plantTime) {
               this.plantBomb(p, site);
+              continue;
             }
+            if (p === lp) bar = { label: "\u6B63\u5728\u5B89\u653E C4", ratio: p.plantProgress / RULES.plantTime };
             continue;
           }
         }
-        if (p.plantProgress > 0 && !p.wantUse) p.plantProgress = 0;
+        if (!p.wantUse) p.plantProgress = 0;
       }
       if (this.bomb.state === "planted") {
         for (const p of g.players) {
@@ -25203,10 +25256,15 @@
           if (p.wantUse && d < 70) {
             const dur = p.hasKit ? RULES.defuseKitTime : RULES.defuseTime;
             p.defuseProgress += dt;
-            g.hud.setProgress(p.hasKit ? "\u6B63\u5728\u62C6\u9664\uFF08\u62C6\u5F39\u5668\uFF09" : "\u6B63\u5728\u62C6\u9664 C4", p.defuseProgress / dur);
             if (p.defuseProgress >= dur) {
               this.defuseBomb(p);
               return;
+            }
+            if (p === lp) {
+              bar = {
+                label: p.hasKit ? "\u6B63\u5728\u62C6\u9664\uFF08\u62C6\u5F39\u5668\uFF09" : "\u6B63\u5728\u62C6\u9664 C4",
+                ratio: p.defuseProgress / dur
+              };
             }
           } else if (!p.wantUse) {
             p.defuseProgress = 0;
@@ -25215,6 +25273,7 @@
       } else {
         for (const p of g.players) p.defuseProgress = 0;
       }
+      g.hud.setProgress(bar ? bar.label : null, bar ? bar.ratio : 0);
     }
     plantBomb(p, site) {
       this.bomb.state = "planted";
@@ -25388,6 +25447,7 @@
       this.buyOpen = false;
       this.buyCat = "rifles";
       this.announceTimer = 0;
+      this.bannerTimer = 0;
       this.toasts = [];
       this.kf = [];
       this.radarStatic = null;
@@ -25542,7 +25602,8 @@
       const g = this.game;
       const p = g.localPlayer;
       const r = g.round;
-      const t = r.phase === "freeze" ? RULES.roundTime : Math.max(0, r.time);
+      const ticking = r.phase === "freeze" || r.phase === "live";
+      const t = ticking ? Math.max(0, r.time) : 0;
       const mm = Math.floor(t / 60);
       const ss = Math.floor(t % 60);
       this.el.timer.textContent = `${mm}:${ss.toString().padStart(2, "0")}`;
@@ -25585,6 +25646,10 @@
       if (this.announceTimer > 0) {
         this.announceTimer -= dt;
         if (this.announceTimer <= 0) this.el.announce.classList.remove("show");
+      }
+      if (this.bannerTimer > 0) {
+        this.bannerTimer -= dt;
+        if (this.bannerTimer <= 0) this.hideBanner();
       }
       this.updateToasts(dt);
       this.drawRadar();
@@ -25758,10 +25823,15 @@
       this.el.rbCT.textContent = ct;
       this.el.rbT.textContent = t;
       this.el.announce.classList.remove("show");
-      setTimeout(() => this.el.banner.classList.add("hidden"), RULES.roundEndDelay * 1e3 - 600);
+      this.bannerTimer = RULES.roundEndDelay - 0.6;
       this.setProgress(null, 0);
     }
+    hideBanner() {
+      this.bannerTimer = 0;
+      this.el.banner.classList.add("hidden");
+    }
     matchEnd(winner, ct, t) {
+      this.bannerTimer = 0;
       this.el.banner.classList.remove("hidden");
       this.el.result.textContent = winner === "CT" ? "\u53CD\u6050\u7CBE\u82F1 \u83B7\u5F97\u6BD4\u8D5B\u80DC\u5229" : "\u6050\u6016\u5206\u5B50 \u83B7\u5F97\u6BD4\u8D5B\u80DC\u5229";
       this.el.result.className = winner === "CT" ? "ct" : "t";
@@ -26140,6 +26210,7 @@
       document.getElementById("hud").classList.remove("hidden");
       document.getElementById("pause").classList.add("hidden");
       this.hud.hideDeath();
+      this.hud.hideBanner();
       this.hud.toggleScoreboard(false);
       this.spectating = null;
       initAudio();

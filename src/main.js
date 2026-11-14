@@ -181,6 +181,7 @@ class Game {
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('pause').classList.add('hidden');
     this.hud.hideDeath();
+    this.hud.hideBanner();
     this.hud.toggleScoreboard(false);
     this.spectating = null;
     Sfx.initAudio();

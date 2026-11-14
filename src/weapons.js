@@ -11,12 +11,13 @@ export function makeWeaponInstance(id) {
   return { id, def, ammo: def.mag, reserve: def.res };
 }
 
-// 射线检测玩家命中盒
+// 射线检测玩家命中盒。
+// 队友同样会挡子弹 —— 1.6 里「友伤关闭」只是不结算伤害，子弹不会穿人。
+// 所以这里不做阵营过滤，命中结果带 friendly 标记，由调用方决定怎么处理。
 export function tracePlayers(game, origin, dir, maxDist, shooter) {
   let best = null;
   for (const p of game.players) {
     if (!p.alive || p === shooter) continue;
-    if (p.team === shooter.team) continue;
     for (const hb of p.hitboxes()) {
       const b = {
         x0: p.pos.x - hb.r, x1: p.pos.x + hb.r,
@@ -25,7 +26,10 @@ export function tracePlayers(game, origin, dir, maxDist, shooter) {
       };
       const t = rayAABB(origin, dir, b);
       if (t !== null && t > 0 && t < maxDist && (!best || t < best.dist)) {
-        best = { player: p, dist: t, group: hb.group };
+        best = {
+          player: p, dist: t, group: hb.group,
+          friendly: !!(shooter && p.team === shooter.team),
+        };
       }
     }
   }
@@ -67,11 +71,16 @@ export function traceBullet(game, shooter, origin, dir, def) {
   if (Math.random() < 0.75) fx.tracer(muzzle, end);
 
   if (ph) {
-    applyDamage(game, ph.player, shooter, def.dmg, ph.group, def, ph.dist);
-    fx.blood(ph.point, ph.group === 'head' ? 8 : 4);
-    if (shooter === game.localPlayer) {
-      Sfx.playHit(ph.group === 'head');
-      game.hud.hitMarker(ph.group === 'head');
+    if (ph.friendly) {
+      // 挡在枪口上的队友：子弹停在队友身上，不结算伤害、不喷血、不出命中提示
+      // （视角的曳光弹本身已经按 ph.dist 截断）
+    } else {
+      applyDamage(game, ph.player, shooter, def.dmg, ph.group, def, ph.dist);
+      fx.blood(ph.point, ph.group === 'head' ? 8 : 4);
+      if (shooter === game.localPlayer) {
+        Sfx.playHit(ph.group === 'head');
+        game.hud.hitMarker(ph.group === 'head');
+      }
     }
   } else if (wallHit) {
     const p = origin.clone().addScaledVector(dir, wallHit.dist - 0.6);
