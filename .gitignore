@@ -1,0 +1,65 @@
+# ---- 依赖与包管理缓存 ----
+node_modules/
+.npmcache/
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/install-state.gz
+
+# 说明：package-lock.json 不忽略 —— 本项目的 esbuild / three 版本需要锁定，
+# 否则不同机器 rebuild 出的 assets/game.js 会有差异。
+
+# ---- 构建产物 ----
+# assets/game.js 是 esbuild 的 bundle 输出，但同时也是静态站点的运行文件
+# （index.html 直接引用它，clone 后无需构建即可打开）。因此**保留入库**。
+# 源码映射与临时构建目录仍忽略：
+*.map
+dist/
+build/
+.tmp/
+temp/
+
+# ---- 测试与截图产物 ----
+# test/*.mjs 通过 puppeteer-core 输出到 shots/，单张 0.5–1.3MB，不入库
+shots/
+*.test.png
+coverage/
+
+# ---- 运行时缓存（puppeteer 下载的 Chromium 等）----
+.cache/
+.puppeteer/
+
+# ---- 环境变量与密钥 ----
+.env
+.env.*
+!.env.example
+
+# ---- 日志 ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 操作系统 ----
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---- 编辑器 / IDE ----
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+.workbuddy/

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS 1.6 · WEB EDITION</title>
+<link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div id="crosshair">
+      <i class="ch up"></i><i class="ch down"></i><i class="ch left"></i><i class="ch right"></i>
+      <i class="ch dot"></i>
+    </div>
+    <div id="hitmarker"></div>
+    <div id="damage-vignette"></div>
+    <div id="flash-overlay"></div>
+    <div id="scope-overlay" class="hidden">
+      <div class="scope-ring"></div>
+      <div class="scope-cross-h"></div>
+      <div class="scope-cross-v"></div>
+    </div>
+
+    <div class="radar-wrap">
+      <canvas id="radar" width="200" height="200"></canvas>
+      <div class="radar-label">DE_OUTPOST</div>
+    </div>
+
+    <div class="topbar">
+      <div class="team-score t" id="score-t">0</div>
+      <div class="timebox">
+        <div id="round-timer">1:55</div>
+        <div id="round-phase">准备</div>
+      </div>
+      <div class="team-score ct" id="score-ct">0</div>
+    </div>
+
+    <div class="alive-strip">
+      <div class="alive t" id="alive-t"></div>
+      <div class="alive ct" id="alive-ct"></div>
+    </div>
+
+    <div class="bottom-left">
+      <div class="stat-row">
+        <span class="icon hp">✚</span>
+        <span id="health">100</span>
+      </div>
+      <div class="stat-row">
+        <span class="icon ar">◈</span>
+        <span id="armor">0</span>
+      </div>
+      <div class="money-row"><span id="money">$800</span></div>
+      <div class="gear-row" id="gear-row"></div>
+    </div>
+
+    <div class="bottom-right">
+      <div class="wname" id="weapon-name">USP-45</div>
+      <div class="ammo">
+        <span id="ammo">12</span><span class="sep">/</span><span id="reserve">100</span>
+      </div>
+      <div class="wname dim" id="weapon-switch"></div>
+    </div>
+
+    <div id="killfeed"></div>
+    <div id="toasts"></div>
+    <div id="announce"></div>
+    <div id="progress-wrap" class="hidden">
+      <div id="progress-label">正在安放 C4</div>
+      <div id="progress-bar"><i></i></div>
+    </div>
+    <div id="round-banner" class="hidden">
+      <div id="round-result">CT 获胜</div>
+      <div id="round-reason">全歼敌人</div>
+      <div class="scoreline"><span id="rb-ct">0</span> : <span id="rb-t">0</span></div>
+    </div>
+    <div id="deathnotify" class="hidden">
+      <div class="d-title">你已阵亡</div>
+      <div class="d-sub" id="death-sub"></div>
+      <div class="d-hint">鼠标左键切换观察视角 · R 重新开始本局</div>
+    </div>
+    <div id="fps"></div>
+    <div id="hint-bar"></div>
+  </div>
+
+  <!-- ============ 购买菜单 ============ -->
+  <div id="buymenu" class="hidden">
+    <div class="buy-head">
+      <span class="buy-title">购买装备</span>
+      <span class="buy-timer" id="buy-timer">18</span>
+      <span class="buy-money" id="buy-money">$800</span>
+    </div>
+    <div class="buy-body">
+      <div class="buy-cats" id="buy-cats"></div>
+      <div class="buy-items" id="buy-items"></div>
+    </div>
+    <div class="buy-foot">数字键选择 · ESC / B 关闭 · 需在出生区购买</div>
+  </div>
+
+  <!-- ============ 计分板 ============ -->
+  <div id="scoreboard" class="hidden">
+    <div class="sb-head">
+      <div class="sb-map">de_outpost</div>
+      <div class="sb-score"><span id="sb-ct">0</span><em>CT</em><b>:</b><em>T</em><span id="sb-t">0</span></div>
+    </div>
+    <div class="sb-cols">名字<span>击杀</span><span>死亡</span><span>伤害</span><span>资金</span></div>
+    <div class="sb-team" id="sb-ct-list"></div>
+    <div class="sb-team" id="sb-t-list"></div>
+  </div>
+
+  <!-- ============ 主菜单 ============ -->
+  <div id="mainmenu">
+    <div class="mm-bg"></div>
+    <div class="mm-inner">
+      <div class="mm-logo">
+        <h1>COUNTER-STRIKE</h1>
+        <div class="mm-sub">1.6 · WEB EDITION · 单机对战</div>
+      </div>
+      <div class="mm-panel">
+        <div class="mm-row">
+          <label>难度</label>
+          <div class="seg" id="seg-diff">
+            <button data-v="easy">简单</button>
+            <button data-v="normal" class="on">普通</button>
+            <button data-v="hard">困难</button>
+            <button data-v="expert">专家</button>
+          </div>
+        </div>
+        <div class="mm-row">
+          <label>队友 / 敌人</label>
+          <div class="seg" id="seg-size">
+            <button data-v="2">1v2</button>
+            <button data-v="3" class="on">2v3</button>
+            <button data-v="5">4v5</button>
+          </div>
+        </div>
+        <div class="mm-row">
+          <label>灵敏度</label>
+          <input id="set-sens" type="range" min="0.2" max="3" step="0.05" value="1" />
+          <span id="sens-val">1.00</span>
+        </div>
+        <div class="mm-row">
+          <label>音量</label>
+          <input id="set-vol" type="range" min="0" max="1" step="0.02" value="0.7" />
+          <span id="vol-val">0.70</span>
+        </div>
+        <button id="btn-start" class="mm-start">进入战场</button>
+        <div class="mm-help">
+          <b>WASD</b> 移动 · <b>空格</b> 跳跃 · <b>Shift</b> 静步 · <b>Ctrl</b> 下蹲 ·
+          <b>鼠标左键</b> 射击 · <b>R</b> 换弹 · <b>1/2/3/4</b> 切换武器 ·
+          <b>B</b> 购买 · <b>E</b> 安放/拆弹 · <b>TAB</b> 计分板 · <b>ESC</b> 暂停
+        </div>
+        <div class="mm-note">粉丝自制的规则复刻版本，全部贴图/音效为程序化生成，不含任何原版素材。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 暂停 ============ -->
+  <div id="pause" class="hidden">
+    <div class="pause-box">
+      <h2>已暂停</h2>
+      <button id="btn-resume">继续游戏</button>
+      <button id="btn-restart">重新开始</button>
+      <div class="pause-hint">点击画面锁定鼠标</div>
+    </div>
+  </div>
+
+  <div id="loading">正在构建地图…</div>
+</div>
+<script src="./assets/game.js"></script>
+</body>
+</html>
