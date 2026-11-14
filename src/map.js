@@ -10,6 +10,13 @@ import { getTextures, makeSkyTexture } from './textures.js';
 const WALL_H = 440;
 const WALL_T = 24;
 
+// 太阳方向（指向太阳），与 _buildAtmosphere 里那盏 DirectionalLight 保持一致：
+// (-900, 1500, 700) 归一化。顶点烘焙和实时光必须同向，否则会出现"两个太阳"。
+const SUN_DIR = { x: -0.478, y: 0.796, z: 0.372 };
+const SUN_GAIN = 0.45;
+const HEMI_GAIN = 0.20;
+const SHADE_BASE = 0.62;
+
 export class GameMap {
   // def 来自 src/maps/*.js：纯数据，渲染与碰撞全部由此推导
   constructor(scene, def) {
@@ -22,6 +29,7 @@ export class GameMap {
     this.ceilingZones = [];
     this.grid = new Uint8Array(GRID * GRID); // 0 = 实心, 1 = 地面
     this.blocked = new Uint8Array(GRID * GRID); // 1 = 道具占位（不可通行）
+    this.propTop = new Float32Array(GRID * GRID); // 每格上道具的最高顶面（烘焙阴影用）
     this.spawns = { T: [], CT: [] };
     this.sites = def.sites;
     this.label = def.label || def.id || '';
@@ -68,6 +76,7 @@ export class GameMap {
   // 墙体 / 石墩的顶面是 WALL_H，永远进不来。
   supportHeightAt(x, z, r, maxY) {
     let best = 0;                       // 地图地面恒为 0
+    let mat = 'sand';
     const cols = this.colliders;
     for (let i = 0; i < cols.length; i++) {
       const b = cols[i];
@@ -75,18 +84,21 @@ export class GameMap {
       if (x + r <= b.x0 || x - r >= b.x1) continue;
       if (z + r <= b.z0 || z - r >= b.z1) continue;
       best = b.y1;
+      mat = b.mat || 'stone';
     }
-    return best;
+    return { y: best, mat };
   }
 
   // ---------- 构建 ----------
   _build() {
     this._rasterize();
     this._buildAtmosphere();
-    this._buildFloor();
-    this._buildWalls();
+    // 道具要先建：烘焙光照需要知道每格上箱子/集装箱的实际高度（propTop），
+    // 否则 32 高的木箱会投出一条 140 高的假阴影。
     this._buildProps();
     this._markPropTiles();
+    this._buildFloor();
+    this._buildWalls();
     this._buildSpawns();
     this._buildCeilings();
     this._buildLabels();
@@ -111,15 +123,16 @@ export class GameMap {
     scene.fog = new THREE.Fog(0xd8c9ab, 1800, 5000);
     scene.background = new THREE.Color(0x9fb6cc);
 
-    // 光强比原实现略低：顶点 AO 只压暗不加亮，整体太亮会让开阔地面过曝
-    const hemi = new THREE.HemisphereLight(0xcfe2f2, 0x9c8055, 0.9);
+    // 顶点色里已经烘了一层太阳（受光 ≈1.05 / 背光 ≈0.72），
+    // 所以实时光要相应压低，否则受光面会双重叠加过曝。
+    const hemi = new THREE.HemisphereLight(0xcfe2f2, 0x9c8055, 0.82);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(0xfff3d6, 1.3);
+    const sun = new THREE.DirectionalLight(0xfff3d6, 1.05);
     sun.position.set(-900, 1500, 700);
     scene.add(sun);
 
-    const fill = new THREE.DirectionalLight(0x8fa8c8, 0.4);
+    const fill = new THREE.DirectionalLight(0x8fa8c8, 0.30);
     fill.position.set(1200, 600, -1400);
     scene.add(fill);
 
@@ -160,7 +173,7 @@ export class GameMap {
     return g;
   }
 
-  _addSolid(geo, mat, x, y, z, collide = true, rotY = 0) {
+  _addSolid(geo, mat, x, y, z, collide = true, rotY = 0, surf = 'stone') {
     const m = new THREE.Mesh(geo, mat);
     m.position.set(x, y, z);
     if (rotY) m.rotation.y = rotY;
@@ -171,13 +184,14 @@ export class GameMap {
         x0: x - geo.parameters.width / 2, x1: x + geo.parameters.width / 2,
         y0: y - geo.parameters.height / 2, y1: y + geo.parameters.height / 2,
         z0: z - geo.parameters.depth / 2, z1: z + geo.parameters.depth / 2,
+        mat: surf,
       });
     }
     return m;
   }
 
   // ---------- 顶点级环境光遮蔽 ----------
-  // GoldSrc 的纵深来自每面独立的 lightmap；这里用栅格近似等价信息：
+  // GoldSrc 的纵深来自每面墙独立的 lightmap；这里用栅格近似等价信息：
   // 逐顶点采样周围空间是否被墙体/道具/顶盖占据，把结果写进顶点色。
   // 成本是 O(顶点数)，纯查表，不需要射线。
   _openAt(x, y, z) {
@@ -187,7 +201,9 @@ export class GameMap {
     if (!this.inBounds(cx, cz)) return false;
     const i = cz * GRID + cx;
     if (this.grid[i] !== 1) return false;              // 实心墙
-    if (this.blocked[i] === 1 && y < 140) return false; // 箱体/集装箱
+    // 道具只挡到它的实际高度。原来一刀切写成 y < 140，
+    // 结果是 32 高的木箱也会在地面上投出一条 140 高的假阴影。
+    if (this.blocked[i] === 1 && y < this.propTop[i] - 1) return false;
     if (y > WALL_H - 46 && this._hasCeiling(x, z)) return false;
     return true;
   }
@@ -239,20 +255,50 @@ export class GameMap {
     return Math.max(0.34, 1 - ratio * strength);
   }
 
-  _applyAO(geo) {
+  // 沿太阳方向做一次可见性步进：被挡住就是背光面。
+  // 高过墙顶 / 走出地图都当作天空，否则贴边的墙会被自己的地图边界判成阴影。
+  _sunVisible(x, y, z) {
+    const d = SUN_DIR;
+    for (let k = 1; k <= 7; k++) {
+      const t = k * 46;
+      const px = x + d.x * t, py = y + d.y * t, pz = z + d.z * t;
+      if (py > WALL_H - 12) return 1;
+      const { cx, cz } = this.worldToTile(px, pz);
+      if (!this.inBounds(cx, cz)) return 1;
+      if (!this._openAt(px, py, pz)) return 0;
+    }
+    return 1;
+  }
+
+  // 把「遮蔽 × 太阳可见性 × 半球权重」烘进顶点色 RGB。
+  // 顶点色会乘在整个光照结果上，所以受光面 ≈1.2、背光面 ≈0.45、
+  // 背光又蔽塞的角落再压一档 —— 这就是 1.6 那种"一面亮一面暗"的来路。
+  _applyLighting(geo) {
     const pos = geo.attributes.position;
     const nor = geo.attributes.normal;
     if (!pos || !nor) return geo;
     const n = pos.count;
     const colors = new Float32Array(n * 3);
+    const d = SUN_DIR;
     for (let i = 0; i < n; i++) {
-      const a = this._aoFactor(
-        pos.getX(i), pos.getY(i), pos.getZ(i),
-        nor.getX(i), nor.getY(i), nor.getZ(i),
-      );
-      colors[i * 3] = a;
-      colors[i * 3 + 1] = a;
-      colors[i * 3 + 2] = a;
+      const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+      const nx = nor.getX(i), ny = nor.getY(i), nz = nor.getZ(i);
+      const occl = this._aoFactor(vx, vy, vz, nx, ny, nz);
+      const facing = nx * d.x + ny * d.y + nz * d.z;
+      let sun = 0;
+      // 顶盖下（隧道里）永远见不到太阳
+      if (facing > 0.02 && !(vy < WALL_H - 16 && this._hasCeiling(vx, vz))) {
+        sun = facing * this._sunVisible(vx, vy, vz);
+      }
+      const hemi = 0.5 + 0.5 * ny;               // 1 = 朝天，0 = 朝地
+      // 基准 0.62 → 受光面约 1.05、背光面约 0.72，再乘上遮蔽。
+      // 平均值接近 1，所以整体曝光不变，变的是"明暗差"。
+      const shade = SHADE_BASE + HEMI_GAIN * hemi + SUN_GAIN * sun;
+      const k = Math.max(0.16, occl * shade);
+      // 受光偏暖、背光偏冷 —— 色温差本身就是"有阳光"的线索
+      colors[i * 3] = Math.min(1.45, k * (1 + 0.10 * sun));
+      colors[i * 3 + 1] = Math.min(1.45, k);
+      colors[i * 3 + 2] = Math.min(1.45, k * (1 - 0.15 * sun));
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     return geo;
@@ -278,7 +324,7 @@ export class GameMap {
     if (!geos.length) return;
     const merged = mergeGeometries(geos, false);
     geos.forEach((g) => g.dispose());
-    this._applyAO(merged);
+    this._applyLighting(merged);
     const mat = new THREE.MeshLambertMaterial({ map: this.tex.floor, vertexColors: true });
     const mesh = new THREE.Mesh(merged, mat);
     mesh.position.y = 0;
@@ -319,7 +365,7 @@ export class GameMap {
     if (!geos.length) return;
     const merged = mergeGeometries(geos, false);
     geos.forEach((g) => g.dispose());
-    this._applyAO(merged);
+    this._applyLighting(merged);
     const mat = new THREE.MeshLambertMaterial({ map: this.tex.sand, vertexColors: true });
     const mesh = new THREE.Mesh(merged, mat);
     this.scene.add(mesh);
@@ -342,12 +388,14 @@ export class GameMap {
               x0: x - half, x1: x + half,
               y0: 0, y1: WALL_H,
               z0: z + e.dz * half, z1: z + e.dz * (half + WALL_T),
+              mat: 'stone',
             });
           } else {
             this.colliders.push({
               x0: x + e.dx * half, x1: x + e.dx * (half + WALL_T),
               y0: 0, y1: WALL_H,
               z0: z - half, z1: z + half,
+              mat: 'stone',
             });
           }
         }
@@ -357,8 +405,9 @@ export class GameMap {
 
   _addTileBlocker(cx, cz, mat) {
     const { x, z } = this.tileToWorld(cx, cz);
-    this._addSolid(this._boxGeo(TILE - 6, WALL_H, TILE - 6, 140), mat, x, WALL_H / 2, z, true);
+    this._addSolid(this._boxGeo(TILE - 6, WALL_H, TILE - 6, 140), mat, x, WALL_H / 2, z, true, 0, 'stone');
     this.blocked[cz * GRID + cx] = 1;
+    this.propTop[cz * GRID + cx] = WALL_H;
   }
 
   _prop(cx, cz, kind) {
@@ -376,6 +425,8 @@ export class GameMap {
       metalGreen: new THREE.MeshLambertMaterial({ map: this.tex.metalGreen }),
     };
     const pick = (name) => mats[name] || mats.concrete;
+    // 弹着点/脚步要用的面材
+    const surfOf = (name) => (name && name.indexOf('metal') === 0 ? 'metal' : 'stone');
 
     for (const p of this.def.props || []) {
       switch (p.t) {
@@ -384,7 +435,7 @@ export class GameMap {
           const h = p.h ?? size;
           // 确定性微抖动：同一张地图每次生成的摆放角度一致
           const rot = p.rot ?? (((p.x * 13 + p.z * 7) % 100) / 1000 - 0.05);
-          this._addSolid(this._boxGeo(size, h, size, 96), pick('crate'), p.x, h / 2, p.z, true, rot);
+          this._addSolid(this._boxGeo(size, h, size, 96), pick('crate'), p.x, h / 2, p.z, true, rot, 'wood');
           const top = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({
             color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false,
           }));
@@ -400,12 +451,12 @@ export class GameMap {
           m.position.set(p.x, h / 2, p.z);
           this.scene.add(m);
           this.solids.push(m);
-          this.colliders.push({ x0: p.x - r, x1: p.x + r, y0: 0, y1: h, z0: p.z - r, z1: p.z + r });
+          this.colliders.push({ x0: p.x - r, x1: p.x + r, y0: 0, y1: h, z0: p.z - r, z1: p.z + r, mat: 'metal' });
           break;
         }
         case 'box': {
           const g = this._boxGeo(p.w, p.h, p.d, p.uv ?? 128);
-          this._addSolid(g, pick(p.mat), p.x, p.y ?? p.h / 2, p.z, p.solid !== false, p.rot || 0);
+          this._addSolid(g, pick(p.mat), p.x, p.y ?? p.h / 2, p.z, p.solid !== false, p.rot || 0, surfOf(p.mat));
           break;
         }
         case 'blocker':
@@ -442,7 +493,10 @@ export class GameMap {
           const p = this.tileToWorld(c, r);
           const margin = 26;
           if (p.x > b.x0 - margin && p.x < b.x1 + margin && p.z > b.z0 - margin && p.z < b.z1 + margin) {
-            this.blocked[r * GRID + c] = 1;
+            const i = r * GRID + c;
+            this.blocked[i] = 1;
+            // 记录这一格上道具的实际最高点，烘焙阴影和遮挡采样都要用
+            if (b.y1 > this.propTop[i]) this.propTop[i] = b.y1;
           }
         }
       }
@@ -467,9 +521,15 @@ export class GameMap {
   }
 
   _buildCeilings() {
-    // 隧道顶：压暗一档，配合地面 AO 表达"见不到天"的空间
+    // 隧道顶：朝下的法线只能拿到半球光里的"地面色"，纯 Lambert 会黑成一整块。
+    // 所以底色提亮 + 加一点自发光，保证"暗但看得见"，再配一盏吊灯给光池。
     const mat = new THREE.MeshLambertMaterial({
-      map: this.tex.concrete, side: THREE.DoubleSide, color: 0x6f6c66,
+      map: this.tex.concrete, side: THREE.DoubleSide,
+      color: 0xa39c90, emissive: 0x1b1916,
+    });
+    const lampShadeMat = new THREE.MeshBasicMaterial({
+      color: 0xffe0b0, transparent: true, opacity: 0.55, depthWrite: false,
+      side: THREE.DoubleSide,
     });
     for (const zn of (this.def.ceilings || [])) {
       const w = zn.x1 - zn.x0, d = zn.z1 - zn.z0;
@@ -478,6 +538,18 @@ export class GameMap {
       m.position.set((zn.x0 + zn.x1) / 2, WALL_H - 15, (zn.z0 + zn.z1) / 2);
       this.scene.add(m);
       this.ceilingZones.push(zn);
+
+      // 每条隧道一盏吊灯（限制数量：点光源会抬高所有 Lambert 的逐片元成本）
+      const lx = (zn.x0 + zn.x1) / 2;
+      const lz = (zn.z0 + zn.z1) / 2;
+      const lamp = new THREE.PointLight(0xffcb92, 0.85, 1100, 1.6);
+      lamp.position.set(lx, WALL_H - 70, lz);
+      this.scene.add(lamp);
+
+      const shade = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), lampShadeMat);
+      shade.rotation.x = Math.PI / 2;
+      shade.position.set(lx, WALL_H - 34, lz);
+      this.scene.add(shade);
     }
   }
 
@@ -553,7 +625,21 @@ export class GameMap {
           nx: nAxis === 0 ? nSign : 0,
           ny: nAxis === 1 ? nSign : 0,
           nz: nAxis === 2 ? nSign : 0,
+          mat: b.mat || 'stone',
         };
+      }
+    }
+
+    // 地面：碰撞体里没有地板，单独做一次 y = 0 的平面求交。
+    // 缺这一步的话，打在地上既没有弹孔也没有声音。
+    if (dir.y < -1e-6) {
+      const t = -origin.y / dir.y;
+      if (t > 0 && t < best) {
+        const px = origin.x + dir.x * t;
+        const pz = origin.z + dir.z * t;
+        if (this.isFloorAt(px, pz)) {
+          hit = { dist: t, nx: 0, ny: 1, nz: 0, mat: 'sand' };
+        }
       }
     }
     return hit;

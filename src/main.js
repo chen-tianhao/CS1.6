@@ -20,9 +20,13 @@ import * as Sfx from './audio.js';
 const D2R = Math.PI / 180;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+// 键名带 v2：sensitivity 的语义从"倍率"改成了 1.6 的 m_yaw × sensitivity，
+// 旧存档里的 1.0 如果直接沿用会慢一半以上，所以干脆不复用旧键。
+const SETTINGS_KEY = 'cs16web.settings.v2';
+
 function loadSettings() {
   try {
-    const raw = localStorage.getItem('cs16web.settings');
+    const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) return { ...SETTINGS_DEFAULT, ...JSON.parse(raw) };
   } catch (e) { /* ignore */ }
   return { ...SETTINGS_DEFAULT };
@@ -217,7 +221,9 @@ class Game {
       if (this.hud.buyOpen) return;
       const p = this.localPlayer;
       if (!p) return;
-      const sens = this.settings.sensitivity * 0.0022;
+      // 1.6 的鼠标换算：每计数转过的角度 = m_yaw(0.022°) × sensitivity。
+      // 这样 sens=3 就和 1.6 默认完全一致，老玩家不用重新适应。
+      const sens = this.settings.sensitivity * 0.022 * D2R;
       p.yaw -= e.movementX * sens;
       p.pitch -= e.movementY * sens * (this.settings.invertY ? -1 : 1);
       p.pitch = clamp(p.pitch, -89 * D2R, 89 * D2R);
@@ -328,7 +334,7 @@ class Game {
 
   saveSettings() {
     try {
-      localStorage.setItem('cs16web.settings', JSON.stringify(this.settings));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
     } catch (e) { /* ignore */ }
   }
 

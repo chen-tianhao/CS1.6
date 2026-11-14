@@ -10,7 +10,7 @@
 //    2. 卷积混响 —— 补上空间尾音，室外 0.17，室内可上调
 //    3. 分层合成 —— 爆裂 / 枪身 / 胸腔 / 机械，四层各管一段频率
 // ============================================================
-import { SETTINGS_DEFAULT } from './config.js';
+import { SETTINGS_DEFAULT, WEAPONS } from './config.js';
 
 let ctx = null;
 let master = null;      // 总音量，setVolume 控制这里
@@ -21,8 +21,10 @@ let conv = null;
 let noiseBuf = null;
 export let volume = SETTINGS_DEFAULT.volume;
 
-// 室外混响比例（半开放地图的折中值；纯室内可上调到 0.3+）
-const OUTDOOR_WET = 0.17;
+// 室外混响比例。
+// 1.6 的枪声是"干、硬、尾巴短"：近处几乎没有空间感，远处的尾音也不到 0.4 秒。
+// 之前 0.17 + 1.25s 的卷积会把每一发都糊上一层混响，听起来像在礼堂里打枪。
+const OUTDOOR_WET = 0.075;
 
 // 各武器四层合成的参数表
 const GUN = {
@@ -36,7 +38,7 @@ const GUN = {
 };
 
 // 程序化脉冲响应：指数衰减噪声 + 高频加速衰减 + 稀疏早期反射
-function buildImpulse(seconds = 1.25, decay = 3.1) {
+function buildImpulse(seconds = 0.62, decay = 2.6) {
   const rate = ctx.sampleRate;
   const len = Math.max(1, Math.floor(rate * seconds));
   const buf = ctx.createBuffer(2, len, rate);
@@ -275,29 +277,106 @@ export function playShot(kind, pos, listener) {
   gunshot(dest, t, kind);
 }
 
-export function playFootstep(pos, listener, onSand = true) {
+// 脚步声按脚下材质分：沙地闷、石头脆、木头空、金属亮
+const STEP = {
+  sand: { freq: 900, gain: 0.17, decay: 0.065, q: 1.4, type: 'lowpass', grit: 5200, gritGain: 0.05 },
+  stone: { freq: 1900, gain: 0.15, decay: 0.045, q: 2.2, type: 'bandpass', grit: 4200, gritGain: 0.03 },
+  wood: { freq: 620, gain: 0.16, decay: 0.075, q: 3.0, type: 'bandpass', grit: 0, gritGain: 0 },
+  metal: { freq: 2600, gain: 0.13, decay: 0.060, q: 5.0, type: 'bandpass', grit: 0, gritGain: 0 },
+};
+
+export function playFootstep(pos, listener, surface = 'sand') {
   if (!ctx) return;
+  const S = STEP[surface] || STEP.sand;
   const t = now();
   const dest = spatial(pos, listener);
   const jitter = 0.92 + Math.random() * 0.18;
   burst(dest, t, {
-    freq: (onSand ? 900 : 1500) * jitter, gain: 0.17, decay: 0.065,
-    type: 'lowpass', q: 1.4, attack: 0.003,
+    freq: S.freq * jitter, gain: S.gain, decay: S.decay,
+    type: S.type, q: S.q, attack: 0.003,
   });
-  // 沙地上再加一点细碎的摩擦高频
-  if (onSand) burst(dest, t + 0.006, { freq: 5200, gain: 0.05, decay: 0.04, type: 'highpass' });
+  if (S.grit) burst(dest, t + 0.006, { freq: S.grit, gain: S.gritGain, decay: 0.04, type: 'highpass' });
 }
 
-export function playReload() {
+// 换弹的时序与音色按武器类别分 —— 1.6 里每把枪的换弹声都不一样，
+// 这是"听声辨枪"最重要的一环。
+// out / seat / bolt 是占 reload 总时长的比例：弹匣脱出 → 新弹匣到位 → 上膛。
+const RELOAD = {
+  rifle: { out: 0.06, seat: 0.44, bolt: 0.74, magHz: 250, metalHz: 3100, boltGain: 0.22 },
+  smg: { out: 0.05, seat: 0.46, bolt: 0.76, magHz: 300, metalHz: 3400, boltGain: 0.20 },
+  pistol: { out: 0.05, seat: 0.45, bolt: 0.76, magHz: 430, metalHz: 2500, boltGain: 0.24 },
+  sniper: { out: 0.04, seat: 0.40, bolt: 0.60, magHz: 230, metalHz: 2100, boltGain: 0.26 },
+};
+
+export function playReload(weaponId) {
+  if (!ctx) return;
+  const def = WEAPONS[weaponId];
+  const dur = def && def.reload ? def.reload : 2.2;
+  const P = RELOAD[(def && def.cls) || 'rifle'] || RELOAD.rifle;
+  const t = now();
+  const dest = spatial(null, null);
+
+  // 1) 按下弹匣扣，弹匣脱出
+  click(dest, t + dur * 0.015, P.metalHz * 0.80, 0.16);
+  click(dest, t + dur * P.out, P.metalHz, 0.20);
+  burst(dest, t + dur * P.out + 0.012, { freq: 900, gain: 0.07, decay: 0.06, type: 'lowpass' });
+  // 2) 新弹匣滑入，卡榫咬合
+  burst(dest, t + Math.max(0.01, dur * P.seat - 0.06), { freq: 1400, gain: 0.05, decay: 0.07, type: 'bandpass', q: 2 });
+  click(dest, t + dur * P.seat, P.metalHz * 0.72, 0.26);
+  thump(dest, t + dur * P.seat, P.magHz, 0.08, 0.18);
+  // 3) 拉机柄 / 套筒复位
+  click(dest, t + dur * P.bolt, P.metalHz * 1.25, P.boltGain);
+  burst(dest, t + dur * P.bolt + 0.02, { freq: 2600, gain: 0.04, decay: 0.05, type: 'bandpass', q: 3 });
+}
+
+// 拔枪 / 切枪：枪背带摩擦 + 金属轻碰
+export function playDeploy(weaponId) {
+  if (!ctx) return;
+  const def = WEAPONS[weaponId];
+  const cls = def ? def.cls : 'rifle';
+  const t = now();
+  const dest = spatial(null, null);
+  burst(dest, t, { freq: 1200, gain: 0.07, decay: 0.09, type: 'bandpass', q: 1.2, attack: 0.006 });
+  click(dest, t + 0.02, cls === 'sniper' ? 2100 : 3000, 0.13);
+  burst(dest, t + 0.05, { freq: 700, gain: 0.05, decay: 0.06, type: 'lowpass' });
+}
+
+// 开镜 / 退镜：1.6 是一声很干脆的机械"咔"
+export function playZoom(inScope = true) {
   if (!ctx) return;
   const t = now();
   const dest = spatial(null, null);
-  // 弹匣脱出 → 插入 → 拉机柄，三段机械动作
-  click(dest, t, 2600, 0.20);
-  burst(dest, t + 0.02, { freq: 900, gain: 0.10, decay: 0.07, type: 'lowpass' });
-  click(dest, t + 0.34, 1800, 0.26);
-  thump(dest, t + 0.34, 240, 0.07, 0.16);
-  click(dest, t + 0.52, 3200, 0.18);
+  click(dest, t, inScope ? 1450 : 1050, 0.17);
+  burst(dest, t + 0.008, { freq: 900, gain: 0.03, decay: 0.04, type: 'lowpass' });
+}
+
+// 弹着点按材质分：沙扬、石脆、木闷、金亮
+const IMPACT = {
+  sand: { freq: 850, q: 0.8, gain: 0.15, decay: 0.085, type: 'lowpass' },
+  stone: { freq: 2500, q: 1.8, gain: 0.19, decay: 0.060, type: 'bandpass' },
+  wood: { freq: 720, q: 3.4, gain: 0.17, decay: 0.100, type: 'bandpass' },
+  metal: { freq: 3400, q: 7.0, gain: 0.14, decay: 0.140, type: 'bandpass' },
+};
+
+export function playImpact(surface, pos, listener) {
+  if (!ctx) return;
+  const S = IMPACT[surface] || IMPACT.stone;
+  const t = now();
+  const dest = spatial(pos, listener);
+  burst(dest, t, { freq: S.freq, gain: S.gain, decay: S.decay, type: S.type, q: S.q, attack: 0.001 });
+  if (surface === 'metal') {
+    // 金属被打中的那一串余振，是"打到铁皮"最直接的线索
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(2400, t);
+    o.frequency.exponentialRampToValueAtTime(1450, t + 0.16);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + 0.18);
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + 0.2);
+  }
 }
 
 export function playHit(headshot = false) {

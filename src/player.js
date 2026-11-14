@@ -2,7 +2,7 @@
 //  player.js — 玩家实体：GoldSrc 移动物理 / 视角 / 命中盒 / 武器持有
 // ============================================================
 import * as THREE from 'three';
-import { PHYS, HITGROUP, WEAPONS, RULES } from './config.js';
+import { PHYS, HITGROUP, WEAPONS, RULES, recoilPattern } from './config.js';
 import { traceBullet, applyDamage, makeWeaponInstance } from './weapons.js';
 import { fx, Grenade } from './fx.js';
 import * as Sfx from './audio.js';
@@ -47,6 +47,8 @@ export class Player {
     this.eyeHeight = PHYS.eyeStand;
     this.onGround = true;
     this.groundY = 0;          // 脚下支撑面高度（贴地阴影要用）
+    this.groundMat = 'sand';   // 脚下材质（脚步声 / 弹着点用）
+    this.walking = false;      // 静步中：不发出脚步声
     this.ducking = false;
     this.duckAmount = 0;
 
@@ -140,6 +142,7 @@ export class Player {
     this.deployTime = 0.4;
     this.reloadEnd = 0;
     this.zoom = 0;
+    Sfx.playDeploy(id);
   }
 
   get weapon() {
@@ -194,13 +197,14 @@ export class Player {
     if (Math.abs(this.punchPitch) < 0.01) this.punchPitch = 0;
     if (Math.abs(this.punchYaw) < 0.01) this.punchYaw = 0;
 
-    // 脚步声
+    // 脚步声。静步（Shift）必须完全无声 —— 这是 1.6 潜行体系的地基；
+    // 蹲行速度 250×0.34 = 85 本来就落在阈值以下，不用额外判断。
     const hspeed = Math.hypot(this.vel.x, this.vel.z);
-    if (this.onGround && hspeed > 90) {
+    if (this.onGround && hspeed > 90 && !this.walking) {
       this.footTimer -= dt * (hspeed / 250);
       if (this.footTimer <= 0) {
         this.footTimer = 0.42;
-        Sfx.playFootstep(this.pos, this.game.listenerPos(), true);
+        Sfx.playFootstep(this.pos, this.game.listenerPos(), this.groundMat || 'sand');
       }
     } else {
       this.footTimer = Math.min(this.footTimer, 0.2);
@@ -218,6 +222,7 @@ export class Player {
     const fwd = cmd.forward || 0;
     const side = cmd.side || 0;
     this.ducking = !!cmd.duck;
+    this.walking = !!cmd.walk;
 
     // 期望方向（水平）
     const sinY = Math.sin(this.yaw), cosY = Math.cos(this.yaw);
@@ -288,7 +293,9 @@ export class Player {
     // 站在地面上时容忍 stepHeight 的台阶（能迈上去），
     // 空中只认不高于脚面的面（不会被"吸"到箱子上）。
     const stepUp = this.onGround ? PHYS.stepHeight : 0;
-    const support = map.supportHeightAt(this.pos.x, this.pos.z, r, this.pos.y + stepUp);
+    const sup = map.supportHeightAt(this.pos.x, this.pos.z, r, this.pos.y + stepUp);
+    const support = sup.y;
+    this.groundMat = sup.mat;
     // 记录脚下的地面高度：贴地阴影要靠它，跳跃时也不能跟着人一起飞
     this.groundY = support;
 
@@ -299,7 +306,7 @@ export class Player {
       // 落到支撑面上：地面 / 箱顶 / 台阶
       if (!this.onGround && this.vel.y < -260) {
         // 高处落地：CS1.6 没有落地伤害，这里只给一声
-        Sfx.playFootstep(this.pos, this.game.listenerPos(), true);
+        Sfx.playFootstep(this.pos, this.game.listenerPos(), this.groundMat || 'sand');
       }
       this.pos.y = support;
       this.vel.y = 0;
@@ -424,10 +431,11 @@ export class Player {
     this.lastShotTime = this.game.time;
     this.shotCount++;
 
-    // 后坐：视角上抬 + 水平摆动（近似 CS 弹道）
-    const pattern = recoilPattern(def, this.shotCount);
-    this.punchPitch += def.kick * (0.85 + Math.random() * 0.3);
-    this.punchYaw += pattern;
+    // 后坐：固定弹道（config.js 的 RECOIL 表），没有随机数，可以背下来压枪。
+    // yaw 增大是向左转，所以"右偏"要取负。
+    const [up, right] = recoilPattern(def, this.shotCount);
+    this.punchPitch += up;
+    this.punchYaw -= right;
 
     // 弹道
     const origin = new THREE.Vector3(this.pos.x, this.eyeY(), this.pos.z);
@@ -443,7 +451,7 @@ export class Player {
     Sfx.playShot(def.sound, this.pos, this.game.listenerPos());
 
     // 狙击开镜后自动退镜
-    if (def.scope && this.zoom > 0) this.zoom = 0;
+    if (def.scope && this.zoom > 0) { this.zoom = 0; Sfx.playZoom(false); }
 
     if (w.ammo === 0 && w.reserve > 0 && this.game.settings.autoReload) {
       this.reload();
@@ -493,7 +501,7 @@ export class Player {
     if (w.ammo >= def.mag || w.reserve <= 0) return;
     this.reloadEnd = this.game.time + def.reload;
     this.zoom = 0;
-    Sfx.playReload();
+    Sfx.playReload(w.id);
   }
 
   finishReload() {
@@ -519,6 +527,7 @@ export class Player {
       this.curSlot = 'grenade';
       this.deployTime = 0.35;
       this.zoom = 0;
+      Sfx.playDeploy(null);
       return;
     }
     if (this.curSlot === slot) return;
@@ -526,12 +535,14 @@ export class Player {
     this.deployTime = 0.4;
     this.reloadEnd = 0;
     this.zoom = 0;
+    Sfx.playDeploy(this.weaponDef ? this.weaponDef.id : null);
   }
 
   toggleZoom() {
     const def = this.weaponDef;
     if (!def || !def.scope) return;
     this.zoom = (this.zoom + 1) % 3;
+    Sfx.playZoom(this.zoom > 0);
   }
 
   throwGrenade() {
@@ -700,27 +711,7 @@ function accelerate(p, wx, wz, wishSpeed, accel, dt) {
   p.vel.z += wz * accelspeed;
 }
 
-// 近似 CS1.6 各枪的散布/后坐摆动规律
-function recoilPattern(def, shot) {
-  const t = shot;
-  switch (def.id) {
-    case 'ak47':
-      if (t < 4) return (Math.random() - 0.5) * 0.35;
-      if (t < 10) return 0.55 + (Math.random() - 0.5) * 0.5;
-      if (t < 18) return -0.85 + (Math.random() - 0.5) * 0.6;
-      return 0.75 + (Math.random() - 0.5) * 0.9;
-    case 'm4a1':
-      if (t < 5) return (Math.random() - 0.5) * 0.25;
-      if (t < 12) return 0.35 + (Math.random() - 0.5) * 0.35;
-      return -0.45 + (Math.random() - 0.5) * 0.5;
-    case 'mp5navy':
-      return (Math.random() - 0.5) * 0.55;
-    case 'awp':
-      return (Math.random() - 0.5) * 0.2;
-    default:
-      return (Math.random() - 0.5) * 0.7;
-  }
-}
+// 近似 CS1.6 各枪的散布/后坐摆动规律 → 已移到 config.js 的 RECOIL 表（固定弹道）
 
 function applySpread(dir, spreadRad) {
   if (spreadRad <= 0) return dir.clone();

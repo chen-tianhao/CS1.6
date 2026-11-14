@@ -213,7 +213,7 @@ export const fx = {
     t.m.opacity = 0.55;
   },
 
-  impact(point, normal) {
+  impact(point, normal, surface = 'stone') {
     // 弹孔：环形覆盖，数量恒为 64
     const d = this._decals[this._decalCursor];
     this._decalCursor = (this._decalCursor + 1) % this._decals.length;
@@ -231,11 +231,15 @@ export const fx = {
       );
       this._sprite(0xffc060, point, { size: 6 + Math.random() * 8, life: 0.28, kind: 'spark', v });
     }
-    // 灰尘
+    // 灰尘：沙地/石面偏土黄，木头偏棕，金属不扬尘
     const dustPos = point.clone().addScaledVector(n, 4);
-    this._sprite(0xbfa884, dustPos, {
-      size: 14, life: 0.5, kind: 'grow', grow: 30, blending: THREE.NormalBlending,
-    });
+    if (surface !== 'metal') {
+      const dustColor = surface === 'wood' ? 0x9a7a52 : 0xbfa884;
+      this._sprite(dustColor, dustPos, {
+        size: 14, life: 0.5, kind: 'grow', grow: 30, blending: THREE.NormalBlending,
+      });
+    }
+    Sfx.playImpact(surface, point, this.game.listenerPos());
   },
 
   blood(point, n = 5) {

@@ -84,7 +84,7 @@ export function traceBullet(game, shooter, origin, dir, def) {
     }
   } else if (wallHit) {
     const p = origin.clone().addScaledVector(dir, wallHit.dist - 0.6);
-    fx.impact(p, { x: wallHit.nx, y: wallHit.ny, z: wallHit.nz });
+    fx.impact(p, { x: wallHit.nx, y: wallHit.ny, z: wallHit.nz }, wallHit.mat);
   }
   return { end, hitPlayer: !!ph };
 }

@@ -24,9 +24,10 @@ const W = {
   wood: new THREE.MeshLambertMaterial({ map: WT.wood, color: 0xd2ac82 }),
   woodDark: new THREE.MeshLambertMaterial({ map: WT.wood, color: 0x8a6a48 }),
   accent: new THREE.MeshLambertMaterial({ color: 0x8d8b80 }),
-  glass: new THREE.MeshLambertMaterial({ color: 0x11303c }),
-  glove: new THREE.MeshLambertMaterial({ color: 0x33332b }),
-  sleeve: new THREE.MeshLambertMaterial({ color: 0x3b4034 }),
+  glass: new THREE.MeshLambertMaterial({ color: 0x1d4f63 }),
+  // 手套比袖口亮一档：两者同色时整条小臂会糊成一块，看不出在握枪
+  glove: new THREE.MeshLambertMaterial({ color: 0x6b6550 }),
+  sleeve: new THREE.MeshLambertMaterial({ color: 0x33372a }),
   skin: new THREE.MeshLambertMaterial({ color: 0xb8825a }),
   skinDark: new THREE.MeshLambertMaterial({ color: 0x8f6242 }),
 };
@@ -293,11 +294,25 @@ function curvedMag(m, { segs = 4, w = 3.4, h = 3.0, d = 4.4, y = -2.6, z = -4, c
   return g;
 }
 
-// 手与手套：第一人称只看得到手套和袖口，不要露出肉色前臂
-function glovedHand(mirror = 1) {
+// 手与手套：第一人称只看得到手套和袖口，不要露出肉色前臂。
+// 尺寸要贴着枪 —— 比枪还大一圈的方块手会立刻出戏。
+// scale 让手枪用更小一号的握持手。
+function glovedHand(mirror = 1, scale = 1) {
   const g = new THREE.Group();
-  g.add(b(4.4, 5.6, 5.8, W.glove, 0, 0, 0));
-  g.add(b(4.0, 4.6, 9.5, W.sleeve, mirror * 1.4, -0.8, 6.8));
+  // 手背 / 掌心
+  g.add(b(4.2, 4.8, 5.0, W.glove, 0, 0, 0));
+  // 四指：从手背前端压向枪身（-Z）
+  g.add(b(3.8, 1.9, 2.6, W.glove, 0, 1.5, -3.0));
+  // 拇指
+  g.add(b(2.2, 1.7, 2.6, W.glove, mirror * 2.2, 0.5, -2.6));
+  // 腕部收口
+  g.add(b(3.8, 4.2, 1.6, W.glove, 0, -0.2, 3.0));
+  // 袖口 → 前臂：朝画面右下斜出画面
+  const sleeve = b(3.5, 4.0, 8.6, W.sleeve, mirror * 1.2, -1.5, 7.4);
+  sleeve.rotation.x = -0.34;
+  sleeve.rotation.z = mirror * 0.16;
+  g.add(sleeve);
+  g.scale.setScalar(scale);
   return g;
 }
 
@@ -383,10 +398,11 @@ function buildAWP() {
   // 长枪管
   g.add(tube(0.95, 0.95, 26, W.steel, 0, 0.6, -30));
   g.add(tube(1.3, 1.3, 3.6, W.black, 0, 0.6, -43.6));   // 制退器
-  // 大瞄镜：主镜筒 + 前后喇叭口
-  g.add(tube(2.6, 2.6, 15, W.black, 0, 4.0, -10, 12));
-  g.add(tube(3.2, 2.6, 3.0, W.black, 0, 4.0, -19.5, 12));
-  g.add(tube(2.7, 3.1, 2.6, W.black, 0, 4.0, -1.2, 12));
+  // 大瞄镜：主镜筒 + 前后喇叭口。镜筒用深灰金属而不是纯黑，
+  // 否则整把枪在画面里会糊成一根黑棒，辨识度全丢。
+  g.add(tube(2.6, 2.6, 15, W.steelDark, 0, 4.0, -10, 12));
+  g.add(tube(3.2, 2.6, 3.0, W.steel, 0, 4.0, -19.5, 12));
+  g.add(tube(2.7, 3.1, 2.6, W.steel, 0, 4.0, -1.2, 12));
   g.add(tube(2.2, 2.2, 0.6, W.glass, 0, 4.0, -21.2, 12)); // 前镜片
   // 镜桥
   g.add(b(2.0, 2.4, 2.2, W.steel, 0, 2.2, -5.4));
@@ -466,8 +482,8 @@ function buildPistol(kind) {
     }
     g.add(tube(1.0, 1.0, 2.6, W.steelDark, 0, 0.7, -11.2));
   }
-  const rh = glovedHand(1);
-  rh.position.set(0.2, -4.2, 2.4);
+  const rh = glovedHand(1, 0.86);
+  rh.position.set(0.1, -3.9, 2.8);
   g.add(rh);
   return g;
 }

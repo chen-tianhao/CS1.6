@@ -21247,6 +21247,151 @@
       scope: [0.55, 0.18]
     }
   };
+  var RECOIL = {
+    ak47: [
+      [2.2, 0],
+      [2.05, 0.04],
+      [1.95, -0.04],
+      [1.8, 0.08],
+      [1.6, 0.24],
+      [1.45, 0.4],
+      [1.32, 0.56],
+      [1.22, 0.72],
+      [1.14, 0.86],
+      [1.06, 0.96],
+      [1, 1.04],
+      [0.96, 1.02],
+      [0.92, 0.86],
+      [0.88, 0.58],
+      [0.84, 0.2],
+      [0.8, -0.22],
+      [0.76, -0.62],
+      [0.73, -0.94],
+      [0.7, -1.16],
+      [0.68, -1.26],
+      [0.66, -1.2],
+      [0.64, -1],
+      [0.62, -0.7],
+      [0.6, -0.32],
+      [0.58, 0.1],
+      [0.57, 0.5],
+      [0.56, 0.84],
+      [0.55, 1.04],
+      [0.54, 1.02],
+      [0.53, 0.82]
+    ],
+    m4a1: [
+      [1.7, 0],
+      [1.64, 0.04],
+      [1.56, -0.04],
+      [1.46, 0.06],
+      [1.34, 0.16],
+      [1.22, 0.28],
+      [1.12, 0.4],
+      [1.04, 0.52],
+      [0.97, 0.62],
+      [0.91, 0.7],
+      [0.86, 0.74],
+      [0.82, 0.7],
+      [0.79, 0.56],
+      [0.76, 0.34],
+      [0.74, 0.06],
+      [0.72, -0.22],
+      [0.7, -0.46],
+      [0.68, -0.64],
+      [0.66, -0.74],
+      [0.64, -0.74],
+      [0.62, -0.62],
+      [0.6, -0.42],
+      [0.58, -0.16],
+      [0.57, 0.1],
+      [0.56, 0.34],
+      [0.55, 0.52],
+      [0.54, 0.62],
+      [0.53, 0.6],
+      [0.52, 0.48],
+      [0.51, 0.3]
+    ],
+    mp5navy: [
+      [0.9, 0],
+      [0.86, 0.03],
+      [0.82, -0.03],
+      [0.78, 0.05],
+      [0.74, 0.1],
+      [0.7, 0.16],
+      [0.67, 0.22],
+      [0.64, 0.27],
+      [0.62, 0.31],
+      [0.6, 0.34],
+      [0.58, 0.35],
+      [0.56, 0.34],
+      [0.55, 0.3],
+      [0.54, 0.24],
+      [0.53, 0.16],
+      [0.52, 0.08],
+      [0.51, 0],
+      [0.5, -0.08],
+      [0.49, -0.15],
+      [0.48, -0.2],
+      [0.47, -0.22],
+      [0.46, -0.22],
+      [0.45, -0.19],
+      [0.45, -0.14],
+      [0.44, -0.08],
+      [0.44, -0.02],
+      [0.43, 0.05],
+      [0.43, 0.11],
+      [0.42, 0.15],
+      [0.42, 0.17]
+    ],
+    p90: [
+      [0.8, 0],
+      [0.77, 0.03],
+      [0.74, -0.03],
+      [0.71, 0.05],
+      [0.68, 0.09],
+      [0.65, 0.14],
+      [0.62, 0.19],
+      [0.6, 0.23],
+      [0.58, 0.27],
+      [0.56, 0.29],
+      [0.54, 0.3],
+      [0.53, 0.29],
+      [0.52, 0.26],
+      [0.51, 0.21],
+      [0.5, 0.14],
+      [0.49, 0.07],
+      [0.48, 0],
+      [0.47, -0.07],
+      [0.46, -0.13],
+      [0.45, -0.17],
+      [0.44, -0.19],
+      [0.43, -0.19],
+      [0.43, -0.16],
+      [0.42, -0.12],
+      [0.42, -0.07],
+      [0.41, -0.02],
+      [0.41, 0.04],
+      [0.4, 0.09],
+      [0.4, 0.13],
+      [0.4, 0.15]
+    ]
+  };
+  function recoilPattern(def, shot) {
+    let table = RECOIL[def.id];
+    let scale = 1;
+    if (!table) {
+      if (def.id === "sg552") {
+        table = RECOIL.m4a1;
+        scale = 1.08;
+      } else if (def.id === "aug") {
+        table = RECOIL.m4a1;
+        scale = 1.02;
+      } else return [def.kick, 0];
+    }
+    const e = table[Math.min(Math.max(shot, 1) - 1, table.length - 1)];
+    return [e[0] * scale, e[1] * scale];
+  }
   var GEAR = {
     kevlar: { id: "kevlar", name: "Kevlar Vest", cn: "\u9632\u5F39\u8863", price: 650 },
     kevlarhelm: { id: "kevlarhelm", name: "Kevlar + Helmet", cn: "\u9632\u5F39\u8863 + \u5934\u76D4", price: 1e3 },
@@ -21268,7 +21413,8 @@
     CT: ["usp45", "deagle", "m4a1", "aug", "awp", "scout", "mp5navy", "p90"]
   };
   var SETTINGS_DEFAULT = {
-    sensitivity: 1,
+    // 1.6 的默认 sensitivity 就是 3（m_yaw 0.022 × 3 ≈ 0.066°/计数）
+    sensitivity: 3,
     fov: 90,
     volume: 0.7,
     crosshair: "#4dff66",
@@ -21844,6 +21990,10 @@
   // src/map.js
   var WALL_H = 440;
   var WALL_T = 24;
+  var SUN_DIR = { x: -0.478, y: 0.796, z: 0.372 };
+  var SUN_GAIN = 0.45;
+  var HEMI_GAIN = 0.2;
+  var SHADE_BASE = 0.62;
   var GameMap = class {
     // def 来自 src/maps/*.js：纯数据，渲染与碰撞全部由此推导
     constructor(scene, def) {
@@ -21856,6 +22006,7 @@
       this.ceilingZones = [];
       this.grid = new Uint8Array(GRID * GRID);
       this.blocked = new Uint8Array(GRID * GRID);
+      this.propTop = new Float32Array(GRID * GRID);
       this.spawns = { T: [], CT: [] };
       this.sites = def.sites;
       this.label = def.label || def.id || "";
@@ -21904,6 +22055,7 @@
     // 墙体 / 石墩的顶面是 WALL_H，永远进不来。
     supportHeightAt(x, z, r, maxY) {
       let best = 0;
+      let mat = "sand";
       const cols = this.colliders;
       for (let i = 0; i < cols.length; i++) {
         const b2 = cols[i];
@@ -21911,17 +22063,18 @@
         if (x + r <= b2.x0 || x - r >= b2.x1) continue;
         if (z + r <= b2.z0 || z - r >= b2.z1) continue;
         best = b2.y1;
+        mat = b2.mat || "stone";
       }
-      return best;
+      return { y: best, mat };
     }
     // ---------- 构建 ----------
     _build() {
       this._rasterize();
       this._buildAtmosphere();
-      this._buildFloor();
-      this._buildWalls();
       this._buildProps();
       this._markPropTiles();
+      this._buildFloor();
+      this._buildWalls();
       this._buildSpawns();
       this._buildCeilings();
       this._buildLabels();
@@ -21943,12 +22096,12 @@
       const scene = this.scene;
       scene.fog = new Fog(14207403, 1800, 5e3);
       scene.background = new Color(10467020);
-      const hemi = new HemisphereLight(13624050, 10256469, 0.9);
+      const hemi = new HemisphereLight(13624050, 10256469, 0.82);
       scene.add(hemi);
-      const sun = new DirectionalLight(16774102, 1.3);
+      const sun = new DirectionalLight(16774102, 1.05);
       sun.position.set(-900, 1500, 700);
       scene.add(sun);
-      const fill = new DirectionalLight(9414856, 0.4);
+      const fill = new DirectionalLight(9414856, 0.3);
       fill.position.set(1200, 600, -1400);
       scene.add(fill);
       const skyTex = makeSkyTexture();
@@ -21983,7 +22136,7 @@
       }
       return g;
     }
-    _addSolid(geo, mat, x, y, z, collide = true, rotY = 0) {
+    _addSolid(geo, mat, x, y, z, collide = true, rotY = 0, surf = "stone") {
       const m = new Mesh(geo, mat);
       m.position.set(x, y, z);
       if (rotY) m.rotation.y = rotY;
@@ -21996,13 +22149,14 @@
           y0: y - geo.parameters.height / 2,
           y1: y + geo.parameters.height / 2,
           z0: z - geo.parameters.depth / 2,
-          z1: z + geo.parameters.depth / 2
+          z1: z + geo.parameters.depth / 2,
+          mat: surf
         });
       }
       return m;
     }
     // ---------- 顶点级环境光遮蔽 ----------
-    // GoldSrc 的纵深来自每面独立的 lightmap；这里用栅格近似等价信息：
+    // GoldSrc 的纵深来自每面墙独立的 lightmap；这里用栅格近似等价信息：
     // 逐顶点采样周围空间是否被墙体/道具/顶盖占据，把结果写进顶点色。
     // 成本是 O(顶点数)，纯查表，不需要射线。
     _openAt(x, y, z) {
@@ -22012,7 +22166,7 @@
       if (!this.inBounds(cx, cz)) return false;
       const i = cz * GRID + cx;
       if (this.grid[i] !== 1) return false;
-      if (this.blocked[i] === 1 && y < 140) return false;
+      if (this.blocked[i] === 1 && y < this.propTop[i] - 1) return false;
       if (y > WALL_H - 46 && this._hasCeiling(x, z)) return false;
       return true;
     }
@@ -22055,24 +22209,45 @@
       const strength = horiz ? 1.35 : 1.9;
       return Math.max(0.34, 1 - ratio * strength);
     }
-    _applyAO(geo) {
+    // 沿太阳方向做一次可见性步进：被挡住就是背光面。
+    // 高过墙顶 / 走出地图都当作天空，否则贴边的墙会被自己的地图边界判成阴影。
+    _sunVisible(x, y, z) {
+      const d = SUN_DIR;
+      for (let k = 1; k <= 7; k++) {
+        const t = k * 46;
+        const px2 = x + d.x * t, py2 = y + d.y * t, pz2 = z + d.z * t;
+        if (py2 > WALL_H - 12) return 1;
+        const { cx, cz } = this.worldToTile(px2, pz2);
+        if (!this.inBounds(cx, cz)) return 1;
+        if (!this._openAt(px2, py2, pz2)) return 0;
+      }
+      return 1;
+    }
+    // 把「遮蔽 × 太阳可见性 × 半球权重」烘进顶点色 RGB。
+    // 顶点色会乘在整个光照结果上，所以受光面 ≈1.2、背光面 ≈0.45、
+    // 背光又蔽塞的角落再压一档 —— 这就是 1.6 那种"一面亮一面暗"的来路。
+    _applyLighting(geo) {
       const pos = geo.attributes.position;
       const nor = geo.attributes.normal;
       if (!pos || !nor) return geo;
       const n = pos.count;
       const colors = new Float32Array(n * 3);
+      const d = SUN_DIR;
       for (let i = 0; i < n; i++) {
-        const a = this._aoFactor(
-          pos.getX(i),
-          pos.getY(i),
-          pos.getZ(i),
-          nor.getX(i),
-          nor.getY(i),
-          nor.getZ(i)
-        );
-        colors[i * 3] = a;
-        colors[i * 3 + 1] = a;
-        colors[i * 3 + 2] = a;
+        const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+        const nx = nor.getX(i), ny = nor.getY(i), nz = nor.getZ(i);
+        const occl = this._aoFactor(vx, vy, vz, nx, ny, nz);
+        const facing = nx * d.x + ny * d.y + nz * d.z;
+        let sun = 0;
+        if (facing > 0.02 && !(vy < WALL_H - 16 && this._hasCeiling(vx, vz))) {
+          sun = facing * this._sunVisible(vx, vy, vz);
+        }
+        const hemi = 0.5 + 0.5 * ny;
+        const shade = SHADE_BASE + HEMI_GAIN * hemi + SUN_GAIN * sun;
+        const k = Math.max(0.16, occl * shade);
+        colors[i * 3] = Math.min(1.45, k * (1 + 0.1 * sun));
+        colors[i * 3 + 1] = Math.min(1.45, k);
+        colors[i * 3 + 2] = Math.min(1.45, k * (1 - 0.15 * sun));
       }
       geo.setAttribute("color", new BufferAttribute(colors, 3));
       return geo;
@@ -22096,7 +22271,7 @@
       if (!geos.length) return;
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());
-      this._applyAO(merged);
+      this._applyLighting(merged);
       const mat = new MeshLambertMaterial({ map: this.tex.floor, vertexColors: true });
       const mesh = new Mesh(merged, mat);
       mesh.position.y = 0;
@@ -22135,7 +22310,7 @@
       if (!geos.length) return;
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());
-      this._applyAO(merged);
+      this._applyLighting(merged);
       const mat = new MeshLambertMaterial({ map: this.tex.sand, vertexColors: true });
       const mesh = new Mesh(merged, mat);
       this.scene.add(mesh);
@@ -22160,7 +22335,8 @@
                 y0: 0,
                 y1: WALL_H,
                 z0: z + e.dz * half,
-                z1: z + e.dz * (half + WALL_T)
+                z1: z + e.dz * (half + WALL_T),
+                mat: "stone"
               });
             } else {
               this.colliders.push({
@@ -22169,7 +22345,8 @@
                 y0: 0,
                 y1: WALL_H,
                 z0: z - half,
-                z1: z + half
+                z1: z + half,
+                mat: "stone"
               });
             }
           }
@@ -22178,8 +22355,9 @@
     }
     _addTileBlocker(cx, cz, mat) {
       const { x, z } = this.tileToWorld(cx, cz);
-      this._addSolid(this._boxGeo(TILE - 6, WALL_H, TILE - 6, 140), mat, x, WALL_H / 2, z, true);
+      this._addSolid(this._boxGeo(TILE - 6, WALL_H, TILE - 6, 140), mat, x, WALL_H / 2, z, true, 0, "stone");
       this.blocked[cz * GRID + cx] = 1;
+      this.propTop[cz * GRID + cx] = WALL_H;
     }
     _prop(cx, cz, kind) {
       const { x, z } = this.tileToWorld(cx, cz);
@@ -22195,13 +22373,14 @@
         metalGreen: new MeshLambertMaterial({ map: this.tex.metalGreen })
       };
       const pick = (name) => mats[name] || mats.concrete;
+      const surfOf = (name) => name && name.indexOf("metal") === 0 ? "metal" : "stone";
       for (const p of this.def.props || []) {
         switch (p.t) {
           case "crate": {
             const size = p.s ?? 100;
             const h = p.h ?? size;
             const rot = p.rot ?? (p.x * 13 + p.z * 7) % 100 / 1e3 - 0.05;
-            this._addSolid(this._boxGeo(size, h, size, 96), pick("crate"), p.x, h / 2, p.z, true, rot);
+            this._addSolid(this._boxGeo(size, h, size, 96), pick("crate"), p.x, h / 2, p.z, true, rot, "wood");
             const top = new Mesh(new PlaneGeometry(size, size), new MeshBasicMaterial({
               color: 0,
               transparent: true,
@@ -22220,12 +22399,12 @@
             m.position.set(p.x, h / 2, p.z);
             this.scene.add(m);
             this.solids.push(m);
-            this.colliders.push({ x0: p.x - r, x1: p.x + r, y0: 0, y1: h, z0: p.z - r, z1: p.z + r });
+            this.colliders.push({ x0: p.x - r, x1: p.x + r, y0: 0, y1: h, z0: p.z - r, z1: p.z + r, mat: "metal" });
             break;
           }
           case "box": {
             const g = this._boxGeo(p.w, p.h, p.d, p.uv ?? 128);
-            this._addSolid(g, pick(p.mat), p.x, p.y ?? p.h / 2, p.z, p.solid !== false, p.rot || 0);
+            this._addSolid(g, pick(p.mat), p.x, p.y ?? p.h / 2, p.z, p.solid !== false, p.rot || 0, surfOf(p.mat));
             break;
           }
           case "blocker":
@@ -22259,7 +22438,9 @@
             const p = this.tileToWorld(c, r);
             const margin = 26;
             if (p.x > b2.x0 - margin && p.x < b2.x1 + margin && p.z > b2.z0 - margin && p.z < b2.z1 + margin) {
-              this.blocked[r * GRID + c] = 1;
+              const i = r * GRID + c;
+              this.blocked[i] = 1;
+              if (b2.y1 > this.propTop[i]) this.propTop[i] = b2.y1;
             }
           }
         }
@@ -22285,7 +22466,15 @@
       const mat = new MeshLambertMaterial({
         map: this.tex.concrete,
         side: DoubleSide,
-        color: 7302246
+        color: 10722448,
+        emissive: 1775894
+      });
+      const lampShadeMat = new MeshBasicMaterial({
+        color: 16769200,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+        side: DoubleSide
       });
       for (const zn of this.def.ceilings || []) {
         const w = zn.x1 - zn.x0, d = zn.z1 - zn.z0;
@@ -22294,6 +22483,15 @@
         m.position.set((zn.x0 + zn.x1) / 2, WALL_H - 15, (zn.z0 + zn.z1) / 2);
         this.scene.add(m);
         this.ceilingZones.push(zn);
+        const lx = (zn.x0 + zn.x1) / 2;
+        const lz = (zn.z0 + zn.z1) / 2;
+        const lamp = new PointLight(16763794, 0.85, 1100, 1.6);
+        lamp.position.set(lx, WALL_H - 70, lz);
+        this.scene.add(lamp);
+        const shade = new Mesh(new PlaneGeometry(90, 90), lampShadeMat);
+        shade.rotation.x = Math.PI / 2;
+        shade.position.set(lx, WALL_H - 34, lz);
+        this.scene.add(shade);
       }
     }
     _buildLabels() {
@@ -22379,8 +22577,19 @@
             dist: tmin,
             nx: nAxis === 0 ? nSign : 0,
             ny: nAxis === 1 ? nSign : 0,
-            nz: nAxis === 2 ? nSign : 0
+            nz: nAxis === 2 ? nSign : 0,
+            mat: b2.mat || "stone"
           };
+        }
+      }
+      if (dir.y < -1e-6) {
+        const t = -origin.y / dir.y;
+        if (t > 0 && t < best) {
+          const px2 = origin.x + dir.x * t;
+          const pz2 = origin.z + dir.z * t;
+          if (this.isFloorAt(px2, pz2)) {
+            hit = { dist: t, nx: 0, ny: 1, nz: 0, mat: "sand" };
+          }
         }
       }
       return hit;
@@ -22648,7 +22857,7 @@
   var conv = null;
   var noiseBuf = null;
   var volume = SETTINGS_DEFAULT.volume;
-  var OUTDOOR_WET = 0.17;
+  var OUTDOOR_WET = 0.075;
   var GUN = {
     pistol: { crack: 2100, body: 700, sub: 150, decay: 0.1, gain: 0.55, mechFreq: 3800 },
     deagle: { crack: 1500, body: 520, sub: 92, decay: 0.22, gain: 0.88, mechFreq: 3200 },
@@ -22658,7 +22867,7 @@
     awp: { crack: 950, body: 300, sub: 68, decay: 0.58, gain: 1, mechFreq: 2600 },
     default: { crack: 2e3, body: 650, sub: 140, decay: 0.12, gain: 0.6, mechFreq: 3600 }
   };
-  function buildImpulse(seconds = 1.25, decay = 3.1) {
+  function buildImpulse(seconds = 0.62, decay = 2.6) {
     const rate = ctx.sampleRate;
     const len = Math.max(1, Math.floor(rate * seconds));
     const buf = ctx.createBuffer(2, len, rate);
@@ -22887,30 +23096,93 @@
     }
     gunshot(dest, t, kind);
   }
-  function playFootstep(pos, listener, onSand = true) {
+  var STEP = {
+    sand: { freq: 900, gain: 0.17, decay: 0.065, q: 1.4, type: "lowpass", grit: 5200, gritGain: 0.05 },
+    stone: { freq: 1900, gain: 0.15, decay: 0.045, q: 2.2, type: "bandpass", grit: 4200, gritGain: 0.03 },
+    wood: { freq: 620, gain: 0.16, decay: 0.075, q: 3, type: "bandpass", grit: 0, gritGain: 0 },
+    metal: { freq: 2600, gain: 0.13, decay: 0.06, q: 5, type: "bandpass", grit: 0, gritGain: 0 }
+  };
+  function playFootstep(pos, listener, surface = "sand") {
     if (!ctx) return;
+    const S = STEP[surface] || STEP.sand;
     const t = now();
     const dest = spatial(pos, listener);
     const jitter = 0.92 + Math.random() * 0.18;
     burst(dest, t, {
-      freq: (onSand ? 900 : 1500) * jitter,
-      gain: 0.17,
-      decay: 0.065,
-      type: "lowpass",
-      q: 1.4,
+      freq: S.freq * jitter,
+      gain: S.gain,
+      decay: S.decay,
+      type: S.type,
+      q: S.q,
       attack: 3e-3
     });
-    if (onSand) burst(dest, t + 6e-3, { freq: 5200, gain: 0.05, decay: 0.04, type: "highpass" });
+    if (S.grit) burst(dest, t + 6e-3, { freq: S.grit, gain: S.gritGain, decay: 0.04, type: "highpass" });
   }
-  function playReload() {
+  var RELOAD = {
+    rifle: { out: 0.06, seat: 0.44, bolt: 0.74, magHz: 250, metalHz: 3100, boltGain: 0.22 },
+    smg: { out: 0.05, seat: 0.46, bolt: 0.76, magHz: 300, metalHz: 3400, boltGain: 0.2 },
+    pistol: { out: 0.05, seat: 0.45, bolt: 0.76, magHz: 430, metalHz: 2500, boltGain: 0.24 },
+    sniper: { out: 0.04, seat: 0.4, bolt: 0.6, magHz: 230, metalHz: 2100, boltGain: 0.26 }
+  };
+  function playReload(weaponId) {
+    if (!ctx) return;
+    const def = WEAPONS[weaponId];
+    const dur = def && def.reload ? def.reload : 2.2;
+    const P = RELOAD[def && def.cls || "rifle"] || RELOAD.rifle;
+    const t = now();
+    const dest = spatial(null, null);
+    click(dest, t + dur * 0.015, P.metalHz * 0.8, 0.16);
+    click(dest, t + dur * P.out, P.metalHz, 0.2);
+    burst(dest, t + dur * P.out + 0.012, { freq: 900, gain: 0.07, decay: 0.06, type: "lowpass" });
+    burst(dest, t + Math.max(0.01, dur * P.seat - 0.06), { freq: 1400, gain: 0.05, decay: 0.07, type: "bandpass", q: 2 });
+    click(dest, t + dur * P.seat, P.metalHz * 0.72, 0.26);
+    thump(dest, t + dur * P.seat, P.magHz, 0.08, 0.18);
+    click(dest, t + dur * P.bolt, P.metalHz * 1.25, P.boltGain);
+    burst(dest, t + dur * P.bolt + 0.02, { freq: 2600, gain: 0.04, decay: 0.05, type: "bandpass", q: 3 });
+  }
+  function playDeploy(weaponId) {
+    if (!ctx) return;
+    const def = WEAPONS[weaponId];
+    const cls = def ? def.cls : "rifle";
+    const t = now();
+    const dest = spatial(null, null);
+    burst(dest, t, { freq: 1200, gain: 0.07, decay: 0.09, type: "bandpass", q: 1.2, attack: 6e-3 });
+    click(dest, t + 0.02, cls === "sniper" ? 2100 : 3e3, 0.13);
+    burst(dest, t + 0.05, { freq: 700, gain: 0.05, decay: 0.06, type: "lowpass" });
+  }
+  function playZoom(inScope = true) {
     if (!ctx) return;
     const t = now();
     const dest = spatial(null, null);
-    click(dest, t, 2600, 0.2);
-    burst(dest, t + 0.02, { freq: 900, gain: 0.1, decay: 0.07, type: "lowpass" });
-    click(dest, t + 0.34, 1800, 0.26);
-    thump(dest, t + 0.34, 240, 0.07, 0.16);
-    click(dest, t + 0.52, 3200, 0.18);
+    click(dest, t, inScope ? 1450 : 1050, 0.17);
+    burst(dest, t + 8e-3, { freq: 900, gain: 0.03, decay: 0.04, type: "lowpass" });
+  }
+  var IMPACT = {
+    sand: { freq: 850, q: 0.8, gain: 0.15, decay: 0.085, type: "lowpass" },
+    stone: { freq: 2500, q: 1.8, gain: 0.19, decay: 0.06, type: "bandpass" },
+    wood: { freq: 720, q: 3.4, gain: 0.17, decay: 0.1, type: "bandpass" },
+    metal: { freq: 3400, q: 7, gain: 0.14, decay: 0.14, type: "bandpass" }
+  };
+  function playImpact(surface, pos, listener) {
+    if (!ctx) return;
+    const S = IMPACT[surface] || IMPACT.stone;
+    const t = now();
+    const dest = spatial(pos, listener);
+    burst(dest, t, { freq: S.freq, gain: S.gain, decay: S.decay, type: S.type, q: S.q, attack: 1e-3 });
+    if (surface === "metal") {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(2400, t);
+      o.frequency.exponentialRampToValueAtTime(1450, t + 0.16);
+      g.gain.setValueAtTime(1e-4, t);
+      g.gain.exponentialRampToValueAtTime(0.05, t + 4e-3);
+      g.gain.exponentialRampToValueAtTime(8e-4, t + 0.18);
+      o.connect(g);
+      g.connect(dest);
+      o.start(t);
+      o.stop(t + 0.2);
+    }
   }
   function playHit(headshot = false) {
     if (!ctx) return;
@@ -23221,7 +23493,7 @@
       t.life = t.maxLife;
       t.m.opacity = 0.55;
     },
-    impact(point, normal) {
+    impact(point, normal, surface = "stone") {
       const d = this._decals[this._decalCursor];
       this._decalCursor = (this._decalCursor + 1) % this._decals.length;
       d.position.copy(point);
@@ -23237,13 +23509,17 @@
         this._sprite(16760928, point, { size: 6 + Math.random() * 8, life: 0.28, kind: "spark", v });
       }
       const dustPos = point.clone().addScaledVector(n, 4);
-      this._sprite(12560516, dustPos, {
-        size: 14,
-        life: 0.5,
-        kind: "grow",
-        grow: 30,
-        blending: NormalBlending
-      });
+      if (surface !== "metal") {
+        const dustColor = surface === "wood" ? 10123858 : 12560516;
+        this._sprite(dustColor, dustPos, {
+          size: 14,
+          life: 0.5,
+          kind: "grow",
+          grow: 30,
+          blending: NormalBlending
+        });
+      }
+      playImpact(surface, point, this.game.listenerPos());
     },
     blood(point, n = 5) {
       for (let i = 0; i < n; i++) {
@@ -23621,7 +23897,7 @@
       }
     } else if (wallHit) {
       const p = origin.clone().addScaledVector(dir, wallHit.dist - 0.6);
-      fx.impact(p, { x: wallHit.nx, y: wallHit.ny, z: wallHit.nz });
+      fx.impact(p, { x: wallHit.nx, y: wallHit.ny, z: wallHit.nz }, wallHit.mat);
     }
     return { end, hitPlayer: !!ph };
   }
@@ -23656,9 +23932,10 @@
     wood: new MeshLambertMaterial({ map: WT.wood, color: 13806722 }),
     woodDark: new MeshLambertMaterial({ map: WT.wood, color: 9071176 }),
     accent: new MeshLambertMaterial({ color: 9276288 }),
-    glass: new MeshLambertMaterial({ color: 1126460 }),
-    glove: new MeshLambertMaterial({ color: 3355435 }),
-    sleeve: new MeshLambertMaterial({ color: 3883060 }),
+    glass: new MeshLambertMaterial({ color: 1920867 }),
+    // 手套比袖口亮一档：两者同色时整条小臂会糊成一块，看不出在握枪
+    glove: new MeshLambertMaterial({ color: 7038288 }),
+    sleeve: new MeshLambertMaterial({ color: 3356458 }),
     skin: new MeshLambertMaterial({ color: 12091994 }),
     skinDark: new MeshLambertMaterial({ color: 9396802 })
   };
@@ -23879,10 +24156,17 @@
     g.rotation.x = rx;
     return g;
   }
-  function glovedHand(mirror = 1) {
+  function glovedHand(mirror = 1, scale = 1) {
     const g = new Group();
-    g.add(b(4.4, 5.6, 5.8, W.glove, 0, 0, 0));
-    g.add(b(4, 4.6, 9.5, W.sleeve, mirror * 1.4, -0.8, 6.8));
+    g.add(b(4.2, 4.8, 5, W.glove, 0, 0, 0));
+    g.add(b(3.8, 1.9, 2.6, W.glove, 0, 1.5, -3));
+    g.add(b(2.2, 1.7, 2.6, W.glove, mirror * 2.2, 0.5, -2.6));
+    g.add(b(3.8, 4.2, 1.6, W.glove, 0, -0.2, 3));
+    const sleeve = b(3.5, 4, 8.6, W.sleeve, mirror * 1.2, -1.5, 7.4);
+    sleeve.rotation.x = -0.34;
+    sleeve.rotation.z = mirror * 0.16;
+    g.add(sleeve);
+    g.scale.setScalar(scale);
     return g;
   }
   function buildAK47() {
@@ -23944,9 +24228,9 @@
     g.add(b(3.4, 4, 24, W.steelDark, 0, 0, -6));
     g.add(tube(0.95, 0.95, 26, W.steel, 0, 0.6, -30));
     g.add(tube(1.3, 1.3, 3.6, W.black, 0, 0.6, -43.6));
-    g.add(tube(2.6, 2.6, 15, W.black, 0, 4, -10, 12));
-    g.add(tube(3.2, 2.6, 3, W.black, 0, 4, -19.5, 12));
-    g.add(tube(2.7, 3.1, 2.6, W.black, 0, 4, -1.2, 12));
+    g.add(tube(2.6, 2.6, 15, W.steelDark, 0, 4, -10, 12));
+    g.add(tube(3.2, 2.6, 3, W.steel, 0, 4, -19.5, 12));
+    g.add(tube(2.7, 3.1, 2.6, W.steel, 0, 4, -1.2, 12));
     g.add(tube(2.2, 2.2, 0.6, W.glass, 0, 4, -21.2, 12));
     g.add(b(2, 2.4, 2.2, W.steel, 0, 2.2, -5.4));
     g.add(b(2, 2.4, 2.2, W.steel, 0, 2.2, -15.2));
@@ -24008,8 +24292,8 @@
       }
       g.add(tube(1, 1, 2.6, W.steelDark, 0, 0.7, -11.2));
     }
-    const rh = glovedHand(1);
-    rh.position.set(0.2, -4.2, 2.4);
+    const rh = glovedHand(1, 0.86);
+    rh.position.set(0.1, -3.9, 2.8);
     g.add(rh);
     return g;
   }
@@ -24118,6 +24402,8 @@
       this.eyeHeight = PHYS.eyeStand;
       this.onGround = true;
       this.groundY = 0;
+      this.groundMat = "sand";
+      this.walking = false;
       this.ducking = false;
       this.duckAmount = 0;
       this.health = 100;
@@ -24206,6 +24492,7 @@
       this.deployTime = 0.4;
       this.reloadEnd = 0;
       this.zoom = 0;
+      playDeploy(id);
     }
     get weapon() {
       if (this.curSlot === "primary") return this.slots.primary;
@@ -24246,11 +24533,11 @@
       if (Math.abs(this.punchPitch) < 0.01) this.punchPitch = 0;
       if (Math.abs(this.punchYaw) < 0.01) this.punchYaw = 0;
       const hspeed = Math.hypot(this.vel.x, this.vel.z);
-      if (this.onGround && hspeed > 90) {
+      if (this.onGround && hspeed > 90 && !this.walking) {
         this.footTimer -= dt * (hspeed / 250);
         if (this.footTimer <= 0) {
           this.footTimer = 0.42;
-          playFootstep(this.pos, this.game.listenerPos(), true);
+          playFootstep(this.pos, this.game.listenerPos(), this.groundMat || "sand");
         }
       } else {
         this.footTimer = Math.min(this.footTimer, 0.2);
@@ -24265,6 +24552,7 @@
       const fwd = cmd.forward || 0;
       const side = cmd.side || 0;
       this.ducking = !!cmd.duck;
+      this.walking = !!cmd.walk;
       const sinY = Math.sin(this.yaw), cosY = Math.cos(this.yaw);
       let wishX = -sinY * fwd + cosY * side;
       let wishZ = -cosY * fwd - sinY * side;
@@ -24317,12 +24605,14 @@
       this.pos.z += this.vel.z * dt;
       this.resolveAxis("z", r, hull);
       const stepUp = this.onGround ? PHYS.stepHeight : 0;
-      const support = map.supportHeightAt(this.pos.x, this.pos.z, r, this.pos.y + stepUp);
+      const sup = map.supportHeightAt(this.pos.x, this.pos.z, r, this.pos.y + stepUp);
+      const support = sup.y;
+      this.groundMat = sup.mat;
       this.groundY = support;
       this.pos.y += this.vel.y * dt;
       if (this.vel.y <= 0 && this.pos.y <= support) {
         if (!this.onGround && this.vel.y < -260) {
-          playFootstep(this.pos, this.game.listenerPos(), true);
+          playFootstep(this.pos, this.game.listenerPos(), this.groundMat || "sand");
         }
         this.pos.y = support;
         this.vel.y = 0;
@@ -24431,9 +24721,9 @@
       this.nextFire = this.game.time + 60 / def.rpm;
       this.lastShotTime = this.game.time;
       this.shotCount++;
-      const pattern = recoilPattern(def, this.shotCount);
-      this.punchPitch += def.kick * (0.85 + Math.random() * 0.3);
-      this.punchYaw += pattern;
+      const [up, right] = recoilPattern(def, this.shotCount);
+      this.punchPitch += up;
+      this.punchYaw -= right;
       const origin = new Vector3(this.pos.x, this.eyeY(), this.pos.z);
       const dir = this.aimDir();
       const spread = this.computeSpread(def);
@@ -24442,7 +24732,10 @@
       traceBullet(this.game, this, origin, d, def);
       fx.muzzle(this, def);
       playShot(def.sound, this.pos, this.game.listenerPos());
-      if (def.scope && this.zoom > 0) this.zoom = 0;
+      if (def.scope && this.zoom > 0) {
+        this.zoom = 0;
+        playZoom(false);
+      }
       if (w.ammo === 0 && w.reserve > 0 && this.game.settings.autoReload) {
         this.reload();
       }
@@ -24487,7 +24780,7 @@
       if (w.ammo >= def.mag || w.reserve <= 0) return;
       this.reloadEnd = this.game.time + def.reload;
       this.zoom = 0;
-      playReload();
+      playReload(w.id);
     }
     finishReload() {
       this.reloadEnd = 0;
@@ -24511,6 +24804,7 @@
         this.curSlot = "grenade";
         this.deployTime = 0.35;
         this.zoom = 0;
+        playDeploy(null);
         return;
       }
       if (this.curSlot === slot) return;
@@ -24518,11 +24812,13 @@
       this.deployTime = 0.4;
       this.reloadEnd = 0;
       this.zoom = 0;
+      playDeploy(this.weaponDef ? this.weaponDef.id : null);
     }
     toggleZoom() {
       const def = this.weaponDef;
       if (!def || !def.scope) return;
       this.zoom = (this.zoom + 1) % 3;
+      playZoom(this.zoom > 0);
     }
     throwGrenade() {
       const kind = this.grenadeSel;
@@ -24673,26 +24969,6 @@
     if (accelspeed > add) accelspeed = add;
     p.vel.x += wx * accelspeed;
     p.vel.z += wz * accelspeed;
-  }
-  function recoilPattern(def, shot) {
-    const t = shot;
-    switch (def.id) {
-      case "ak47":
-        if (t < 4) return (Math.random() - 0.5) * 0.35;
-        if (t < 10) return 0.55 + (Math.random() - 0.5) * 0.5;
-        if (t < 18) return -0.85 + (Math.random() - 0.5) * 0.6;
-        return 0.75 + (Math.random() - 0.5) * 0.9;
-      case "m4a1":
-        if (t < 5) return (Math.random() - 0.5) * 0.25;
-        if (t < 12) return 0.35 + (Math.random() - 0.5) * 0.35;
-        return -0.45 + (Math.random() - 0.5) * 0.5;
-      case "mp5navy":
-        return (Math.random() - 0.5) * 0.55;
-      case "awp":
-        return (Math.random() - 0.5) * 0.2;
-      default:
-        return (Math.random() - 0.5) * 0.7;
-    }
   }
   function applySpread(dir, spreadRad) {
     if (spreadRad <= 0) return dir.clone();
@@ -25971,11 +26247,19 @@
   };
 
   // src/viewmodel.js
+  var VM_POSE = {
+    rifle: { x: 13.5, y: -7.4, z: -40, s: 0.62 },
+    sniper: { x: 14.8, y: -7.8, z: -44, s: 0.64 },
+    smg: { x: 13.2, y: -7, z: -37, s: 0.62 },
+    pistol: { x: 11.4, y: -6.6, z: -31, s: 0.58 },
+    melee: { x: 12.2, y: -7.6, z: -32, s: 0.6 },
+    grenade: { x: 12.2, y: -8.2, z: -31, s: 0.6 }
+  };
   var ViewModel = class {
     constructor(game) {
       this.game = game;
       this.scene = new Scene();
-      this.camera = new PerspectiveCamera(68, 16 / 9, 1, 600);
+      this.camera = new PerspectiveCamera(70, 16 / 9, 1, 600);
       this.scene.add(new AmbientLight(16777215, 0.78));
       const key = new DirectionalLight(16773848, 1.5);
       key.position.set(-0.5, 1.3, 0.9);
@@ -25989,7 +26273,7 @@
       this.pose = { x: 4.2, y: -6.8, z: -33, s: 0.72 };
       this.root = new Group();
       this.root.position.set(this.pose.x, this.pose.y, this.pose.z);
-      this.root.rotation.y = 0.1;
+      this.root.rotation.y = 0.16;
       this.root.scale.setScalar(this.pose.s);
       this.scene.add(this.root);
       this.weaponGroup = null;
@@ -26037,7 +26321,8 @@
       this.swayY += (targetSwayY - this.swayY) * Math.min(1, dt * 9);
       p.lastMouseDX = 0;
       p.lastMouseDY = 0;
-      const pose = this.game && this.game.vmPose || this.pose;
+      const cls = p.curSlot === "melee" ? "melee" : p.curSlot === "grenade" ? "grenade" : p.weaponDef && p.weaponDef.cls || "rifle";
+      const pose = this.game && this.game.vmPose || VM_POSE[cls] || VM_POSE.rifle;
       const crouchOff = p.duckAmount * 2.2;
       const swingRaw = p.curSlot === "melee" ? p.swingT || 0 : 0;
       const sw = swingRaw > 0 ? Math.sin(Math.PI * (1 - swingRaw)) : 0;
@@ -26058,9 +26343,10 @@
   // src/main.js
   var D2R3 = Math.PI / 180;
   var clamp4 = (v, a, b2) => Math.max(a, Math.min(b2, v));
+  var SETTINGS_KEY = "cs16web.settings.v2";
   function loadSettings() {
     try {
-      const raw = localStorage.getItem("cs16web.settings");
+      const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) return { ...SETTINGS_DEFAULT, ...JSON.parse(raw) };
     } catch (e) {
     }
@@ -26243,7 +26529,7 @@
         if (this.hud.buyOpen) return;
         const p = this.localPlayer;
         if (!p) return;
-        const sens2 = this.settings.sensitivity * 22e-4;
+        const sens2 = this.settings.sensitivity * 0.022 * D2R3;
         p.yaw -= e.movementX * sens2;
         p.pitch -= e.movementY * sens2 * (this.settings.invertY ? -1 : 1);
         p.pitch = clamp4(p.pitch, -89 * D2R3, 89 * D2R3);
@@ -26349,7 +26635,7 @@
     }
     saveSettings() {
       try {
-        localStorage.setItem("cs16web.settings", JSON.stringify(this.settings));
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
       } catch (e) {
       }
     }
