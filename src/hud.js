@@ -1,7 +1,7 @@
 // ============================================================
 //  hud.js — HUD / 雷达 / 购买菜单 / 计分板
 // ============================================================
-import { WEAPONS, GEAR, BUY_MENU, TEAM_WEAPONS, TILE, GRID, WORLD_HALF, RULES } from './config.js';
+import { WEAPONS, GEAR, BUY_MENU, TEAM_WEAPONS, TILE, GRID, WORLD_HALF, RULES, KEY_ACTIONS, KEY_LABEL } from './config.js';
 import { buyItem } from './round.js';
 import * as Sfx from './audio.js';
 
@@ -14,9 +14,13 @@ export class HUD {
     this.buyCat = 'rifles';
     this.announceTimer = 0;
     this.bannerTimer = 0;
+    this.captureKey = null;      // 改键界面正在等待按下哪个键
     this.toasts = [];
     this.kf = [];
     this.radarStatic = null;
+    this._aliveSig = '';
+    this._gearSig = '';
+    this._iconFor = null;
 
     this.el = {
       hud: $('hud'),
@@ -35,14 +39,16 @@ export class HUD {
       crosshair: $('crosshair'), hitmarker: $('hitmarker'),
       damage: $('damage-vignette'), flash: $('flash-overlay'),
       scope: $('scope-overlay'), radar: $('radar'),
-      fps: $('fps'), hint: $('hint-bar'),
+      fps: $('fps'), hint: $('hint-bar'), wicon: $('wicon'),
       buy: $('buymenu'), buyCats: $('buy-cats'), buyItems: $('buy-items'),
       buyTimer: $('buy-timer'), buyMoney: $('buy-money'),
+      keybind: $('keybind'), kbList: $('kb-list'), kbClose: $('kb-close'),
       scoreboard: $('scoreboard'), sbCT: $('sb-ct'), sbT: $('sb-t'),
       sbCTList: $('sb-ct-list'), sbTList: $('sb-t-list'),
     };
     this.buildRadarStatic();
     this.bindBuyEvents();
+    this.bindKeybinds();
   }
 
   // ---------------- 雷达底图 ----------------
@@ -121,6 +127,22 @@ export class HUD {
     };
   }
 
+  // 只在值真的变了才写 DOM。
+  // 原来每帧无条件 textContent / innerHTML，等于每帧触发一次样式重算 + 布局，
+  // 而 HUD 里 90% 的值一秒钟才变一次。
+  setText(el, v) {
+    if (el.__v === v) return;
+    el.__v = v;
+    el.textContent = v;
+  }
+
+  setClass(el, cls, on) {
+    const key = `__c_${cls}`;
+    if (el[key] === on) return;
+    el[key] = on;
+    el.classList.toggle(cls, on);
+  }
+
   // ---------------- 每帧 ----------------
   update(dt) {
     const g = this.game;
@@ -133,56 +155,60 @@ export class HUD {
     const t = ticking ? Math.max(0, r.time) : 0;
     const mm = Math.floor(t / 60);
     const ss = Math.floor(t % 60);
-    this.el.timer.textContent = `${mm}:${ss.toString().padStart(2, '0')}`;
-    this.el.timer.classList.toggle('low', t < 20 && r.phase === 'live');
-    this.el.phase.textContent = r.phase === 'freeze' ? '准备' : r.phase === 'live' ? '交战中' : r.phase === 'over' ? '回合结束' : '比赛结束';
-    this.el.scoreT.textContent = r.scoreT;
-    this.el.scoreCT.textContent = r.scoreCT;
+    this.setText(this.el.timer, `${mm}:${ss.toString().padStart(2, '0')}`);
+    this.setClass(this.el.timer, 'low', t < 20 && r.phase === 'live');
+    this.setText(this.el.phase, r.phase === 'freeze' ? '准备' : r.phase === 'live' ? '交战中' : r.phase === 'over' ? '回合结束' : '比赛结束');
+    this.setText(this.el.scoreT, String(r.scoreT));
+    this.setText(this.el.scoreCT, String(r.scoreCT));
 
-    // 存活人数
     this.renderAlive();
 
     if (p) {
-      this.el.health.textContent = Math.max(0, Math.ceil(p.health));
-      this.el.health.classList.toggle('low', p.health <= 25);
-      this.el.armor.textContent = Math.ceil(p.armor);
-      this.el.money.textContent = `$${p.money}`;
+      this.setText(this.el.health, String(Math.max(0, Math.ceil(p.health))));
+      this.setClass(this.el.health, 'low', p.health <= 25);
+      this.setText(this.el.armor, String(Math.ceil(p.armor)));
+      this.setText(this.el.money, `$${p.money}`);
 
       const def = p.weaponDef;
       if (p.curSlot === 'grenade') {
-        this.el.ammo.textContent = '--';
-        this.el.reserve.textContent = '';
-        this.el.weaponName.textContent = p.grenadeSel === 'he' ? 'HE Grenade' : p.grenadeSel === 'flash' ? 'Flashbang' : 'Smoke';
+        this.setText(this.el.ammo, '--');
+        this.setText(this.el.reserve, '');
+        this.setText(this.el.weaponName, p.grenadeSel === 'he' ? 'HE Grenade' : p.grenadeSel === 'flash' ? 'Flashbang' : 'Smoke');
       } else {
-        this.el.ammo.textContent = def && def.cls !== 'melee' ? p.currentAmmo() : '--';
-        this.el.reserve.textContent = def && def.cls !== 'melee' ? p.reserveAmmo() : '';
-        this.el.weaponName.textContent = def ? def.name : '—';
+        this.setText(this.el.ammo, def && def.cls !== 'melee' ? String(p.currentAmmo()) : '--');
+        this.setText(this.el.reserve, def && def.cls !== 'melee' ? String(p.reserveAmmo()) : '');
+        this.setText(this.el.weaponName, def ? def.name : '—');
       }
+      this.drawWeaponIcon(p);
 
-      // 装备栏
+      // 装备栏（原来每帧重建 innerHTML）
       const gear = [];
       if (p.armor > 0) gear.push(p.helmet ? 'KEV+HELM' : 'KEVLAR');
       if (p.hasKit) gear.push('KIT');
       if (p.hasBomb) gear.push('C4');
-      const gr = [];
       for (const k of ['he', 'flash', 'smoke']) {
-        if (p.grenades[k] > 0) gr.push(`${k.toUpperCase()}×${p.grenades[k]}`);
+        if (p.grenades[k] > 0) gear.push(`${k.toUpperCase()}\u00d7${p.grenades[k]}`);
       }
-      this.el.gearRow.innerHTML = [...gear, ...gr].map((s) => `<span>${s}</span>`).join('');
+      const sig = gear.join('|');
+      if (sig !== this._gearSig) {
+        this._gearSig = sig;
+        this.el.gearRow.innerHTML = gear.map((s) => `<span>${s}</span>`).join('');
+      }
 
       // 准星
       this.updateCrosshair(p, def);
 
       // 闪光
-      this.el.flash.style.opacity = Math.min(1, p.flashAmount).toFixed(2);
+      const fo = Math.min(1, p.flashAmount).toFixed(2);
+      if (this.el.flash.__op !== fo) { this.el.flash.__op = fo; this.el.flash.style.opacity = fo; }
 
       // 开镜
       const scoped = p.zoom > 0;
-      this.el.scope.classList.toggle('hidden', !scoped);
-      this.el.crosshair.classList.toggle('hide', scoped || !p.alive);
+      this.setClass(this.el.scope, 'hidden', !scoped);
+      this.setClass(this.el.crosshair, 'hide', scoped || !p.alive);
 
       // 死亡
-      this.el.death.classList.toggle('hidden', p.alive || r.phase === 'over');
+      this.setClass(this.el.death, 'hidden', p.alive || r.phase === 'over');
     }
 
     // 回合横幅
@@ -219,11 +245,107 @@ export class HUD {
 
   renderAlive() {
     const g = this.game;
-    const tAlive = g.players.filter((x) => x.team === 'T');
-    const ctAlive = g.players.filter((x) => x.team === 'CT');
-    const mk = (arr) => arr.map((x) => `<i class="${x.alive ? 'on' : 'dead'}"></i>`).join('');
-    this.el.aliveT.innerHTML = mk(tAlive);
-    this.el.aliveCT.innerHTML = mk(ctAlive);
+    let tSig = '', cSig = '';
+    for (const x of g.players) {
+      if (x.team === 'T') tSig += x.alive ? '1' : '0';
+      else cSig += x.alive ? '1' : '0';
+    }
+    const sig = `${tSig}|${cSig}`;
+    if (sig === this._aliveSig) return;      // 没人死就不重写 DOM
+    this._aliveSig = sig;
+    const mk = (s) => s.split('').map((c) => `<i class="${c === '1' ? 'on' : 'dead'}"></i>`).join('');
+    this.el.aliveT.innerHTML = mk(tSig);
+    this.el.aliveCT.innerHTML = mk(cSig);
+  }
+
+  // ---------------- 武器剪影 ----------------
+  // 1.6 的 HUD 右下角是武器图标而不是文字，这里用 canvas 画一个粗剪影。
+  // 只在武器换掉时重画。
+  drawWeaponIcon(p) {
+    const cv = this.el.wicon;
+    if (!cv) return;
+    const id = p.curSlot === 'grenade' ? `g:${p.grenadeSel}` : (p.weaponDef ? p.weaponDef.id : 'none');
+    if (this._iconFor === id) return;
+    this._iconFor = id;
+
+    const x = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    x.clearRect(0, 0, W, H);
+    x.fillStyle = 'rgba(236,230,208,0.80)';
+    const bar = (bx, by, bw, bh) => x.fillRect(bx * W, by * H, bw * W, bh * H);
+    const def = p.weaponDef;
+    const cls = def ? def.cls : 'none';
+
+    if (id.startsWith('g:')) {
+      x.beginPath(); x.arc(W * 0.5, H * 0.60, H * 0.22, 0, 7); x.fill();
+      bar(0.46, 0.18, 0.08, 0.20);
+    } else if (cls === 'melee') {
+      bar(0.12, 0.46, 0.50, 0.09);
+      bar(0.60, 0.38, 0.08, 0.24);
+      bar(0.68, 0.44, 0.20, 0.13);
+    } else if (cls === 'pistol') {
+      bar(0.22, 0.38, 0.50, 0.13);
+      bar(0.28, 0.51, 0.16, 0.28);
+      if (def && def.id === 'elite') bar(0.54, 0.51, 0.14, 0.24);
+    } else {
+      const long = cls === 'sniper' || cls === 'machinegun';
+      bar(long ? 0.06 : 0.16, 0.42, long ? 0.70 : 0.58, 0.12);
+      bar(long ? 0.74 : 0.70, 0.46, 0.18, 0.06);
+      bar(0.30, 0.54, 0.12, 0.26);
+      bar(0.17, 0.54, 0.10, 0.18);
+      if (cls === 'sniper') bar(0.34, 0.28, 0.22, 0.10);
+      if (cls === 'machinegun') bar(0.42, 0.54, 0.16, 0.24);
+      if (cls === 'shotgun') bar(0.42, 0.56, 0.34, 0.06);
+    }
+  }
+
+  // ---------------- 改键 ----------------
+  openKeybinds() {
+    this.keybindOpen = true;
+    this.captureKey = null;
+    this.el.keybind.classList.remove('hidden');
+    this.renderKeybinds();
+  }
+
+  closeKeybinds() {
+    this.captureKey = null;
+    this.keybindOpen = false;
+    this.el.keybind.classList.add('hidden');
+  }
+
+  renderKeybinds() {
+    const km = this.game.settings.keymap;
+    this.el.kbList.innerHTML = KEY_ACTIONS.map(([a, label]) => {
+      const waiting = this.captureKey === a;
+      const code = km[a];
+      const shown = waiting ? '按下新键…' : (code ? (KEY_LABEL[code] || code) : '未绑定');
+      return `<div class="kb-row${waiting ? ' waiting' : ''}" data-a="${a}">
+        <span class="kb-name">${label}</span>
+        <span class="kb-key">${shown}</span>
+      </div>`;
+    }).join('');
+  }
+
+  assignKey(code) {
+    const a = this.captureKey;
+    this.captureKey = null;
+    if (!a || !code || code === 'Escape') { this.renderKeybinds(); return; }
+    const km = this.game.settings.keymap;
+    // 一个键只能绑一个动作：先从旧的绑定上摘掉
+    for (const k of Object.keys(km)) if (km[k] === code && k !== a) km[k] = '';
+    km[a] = code;
+    this.game.saveSettings();
+    this.renderKeybinds();
+  }
+
+  bindKeybinds() {
+    this.el.kbList.addEventListener('click', (e) => {
+      const row = e.target.closest('.kb-row');
+      if (!row) return;
+      this.captureKey = row.dataset.a;
+      this.renderKeybinds();
+    });
+    this.el.kbClose.addEventListener('click', () => this.closeKeybinds());
   }
 
   drawRadar() {

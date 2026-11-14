@@ -26,6 +26,9 @@ export const PHYS = {
   radius: 16,
   airWishSpeed: 30,   // 空中加速把 wishspeed 夹到 30，这是连跳/急停手感的来源
   maxLadderSpeed: 200,
+  // 跳蹲：空中蹲下时碰撞体从 72 收到 36，脚能被"抬高"一截够到沿儿。
+  // 45 的跳跃高度 + 20 ≈ 65，正好能上 64 的架点箱，这就是 1.6 的跳蹲手感。
+  duckJumpBonus: 22,
 };
 
 // ---------- 回合 / 经济 ----------
@@ -51,6 +54,10 @@ export const RULES = {
   halftimeRound: 15,
   roundEndDelay: 4.5,
   maxTeamSize: 5,
+  // 加时：常规回合打平就进加时，每半场 3 回合、先到 4 分获胜，钱重置到 10000
+  overtimeMoney: 10000,
+  overtimeHalf: 3,
+  overtimeWin: 4,
 };
 
 // ---------- 命中盒倍率 ----------
@@ -135,6 +142,37 @@ export const WEAPONS = {
     dmg: 115, rpm: 41, mag: 10, res: 30, reload: 2.9, spread: 0.12, moveSpread: 6.0,
     kick: 4.5, pen: 0.975, kill: 100, speed: 210, sound: 'awp', auto: false, scope: [0.55, 0.18],
   },
+  famas: {
+    id: 'famas', name: 'FAMAS', cn: 'FAMAS', cls: 'rifle', slot: 1, price: 2250,
+    dmg: 30, rpm: 666, mag: 25, res: 90, reload: 3.0, spread: 0.30, moveSpread: 1.15,
+    kick: 1.7, pen: 0.70, kill: 300, speed: 225, sound: 'm4a1', auto: true,
+  },
+  galil: {
+    id: 'galil', name: 'Galil', cn: '加利尔', cls: 'rifle', slot: 1, price: 2000,
+    dmg: 30, rpm: 666, mag: 35, res: 90, reload: 3.0, spread: 0.33, moveSpread: 1.15,
+    kick: 1.8, pen: 0.77, kill: 300, speed: 225, sound: 'ak47', auto: true,
+  },
+  mac10: {
+    id: 'mac10', name: 'MAC-10', cn: 'MAC-10', cls: 'smg', slot: 1, price: 1400,
+    dmg: 29, rpm: 857, mag: 30, res: 100, reload: 3.15, spread: 0.60, moveSpread: 1.10,
+    kick: 0.85, pen: 0.575, kill: 300, speed: 245, sound: 'smg', auto: true,
+  },
+  xm1014: {
+    id: 'xm1014', name: 'XM1014', cn: 'XM1014 霰弹枪', cls: 'shotgun', slot: 1, price: 3000,
+    dmg: 24, rpm: 240, mag: 7, res: 32, reload: 3.5, spread: 1.5, moveSpread: 2.2,
+    kick: 2.6, pen: 0.55, kill: 300, speed: 220, sound: 'deagle', auto: false,
+    pellets: 6,  // 一发六颗弹丸，每颗独立结算
+  },
+  m249: {
+    id: 'm249', name: 'M249', cn: 'M249 机枪', cls: 'machinegun', slot: 1, price: 5750,
+    dmg: 32, rpm: 750, mag: 100, res: 200, reload: 5.7, spread: 0.50, moveSpread: 1.40,
+    kick: 2.0, pen: 0.72, kill: 300, speed: 210, sound: 'ak47', auto: true,
+  },
+  elite: {
+    id: 'elite', name: 'Dual Berettas', cn: '双枪', cls: 'pistol', slot: 2, price: 800,
+    dmg: 26, rpm: 500, mag: 30, res: 120, reload: 4.6, spread: 0.70, moveSpread: 3.0,
+    kick: 0.8, pen: 0.50, kill: 300, speed: 240, sound: 'pistol', auto: false,
+  },
 };
 
 // ---------- 固定弹道 ----------
@@ -198,6 +236,9 @@ export function recoilPattern(def, shot) {
 }
 
 // ---------- 装备 ----------
+// 手雷引信（秒）。fx.js 的 Grenade 和"拔销计时"共用这一份，别写两份。
+export const GRENADE_FUSE = { he: 3.0, flash: 2.0, smoke: 1.8 };
+
 export const GEAR = {
   kevlar: { id: 'kevlar', name: 'Kevlar Vest', cn: '防弹衣', price: 650 },
   kevlarhelm: { id: 'kevlarhelm', name: 'Kevlar + Helmet', cn: '防弹衣 + 头盔', price: 1000 },
@@ -208,23 +249,59 @@ export const GEAR = {
 };
 
 export const BUY_MENU = {
-  handguns: { title: '手枪', items: ['glock18', 'usp45', 'deagle'] },
-  smgs: { title: '冲锋枪', items: ['mp5navy', 'p90'] },
-  rifles: { title: '步枪', items: ['ak47', 'm4a1', 'sg552', 'aug'] },
+  handguns: { title: '手枪', items: ['glock18', 'usp45', 'deagle', 'elite'] },
+  smgs: { title: '冲锋枪', items: ['mp5navy', 'p90', 'mac10'] },
+  shotguns: { title: '霰弹枪', items: ['xm1014'] },
+  rifles: { title: '步枪', items: ['ak47', 'm4a1', 'galil', 'famas', 'sg552', 'aug'] },
   sniper: { title: '狙击枪', items: ['scout', 'awp'] },
+  machineguns: { title: '机枪', items: ['m249'] },
   gear: { title: '装备', items: ['kevlar', 'kevlarhelm', 'defusekit'] },
   grenades: { title: '投掷物', items: ['hegrenade', 'flashbang', 'smokegrenade'] },
 };
 
-// 阵营可用武器（AK 只给 T，M4 只给 CT；1.6 里其实可以捡，购买受限制）
+// 阵营可用武器（AK/Galil/MAC-10/双枪 只给 T，M4/FAMAS 只给 CT）
 export const TEAM_WEAPONS = {
-  T: ['glock18', 'deagle', 'ak47', 'sg552', 'awp', 'scout', 'mp5navy', 'p90'],
-  CT: ['usp45', 'deagle', 'm4a1', 'aug', 'awp', 'scout', 'mp5navy', 'p90'],
+  T: ['glock18', 'elite', 'deagle', 'ak47', 'galil', 'sg552', 'famas', 'awp', 'scout',
+    'mp5navy', 'p90', 'mac10', 'xm1014', 'm249'],
+  CT: ['usp45', 'deagle', 'm4a1', 'famas', 'aug', 'awp', 'scout',
+    'mp5navy', 'p90', 'xm1014', 'm249'],
 };
 
 export const TEAM_COLOR = {
   T: 0xc2a06b,
   CT: 0x7f93b5,
+};
+
+// ---------- 可配键位 ----------
+// 统一用 KeyboardEvent.code（物理键位），不受输入法和键盘布局影响。
+export const KEYMAP_DEFAULT = {
+  forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD',
+  jump: 'Space', duck: 'ControlLeft', walk: 'ShiftLeft',
+  use: 'KeyE', reload: 'KeyR', buy: 'KeyB', lastWeapon: 'KeyQ',
+  slot1: 'Digit1', slot2: 'Digit2', slot3: 'Digit3', slot4: 'Digit4',
+  flashlight: 'KeyF', drop: 'KeyG', scoreboard: 'Tab',
+};
+
+// 改键界面要展示的动作列表（顺序即显示顺序）
+export const KEY_ACTIONS = [
+  ['forward', '前进'], ['back', '后退'], ['left', '左移'], ['right', '右移'],
+  ['jump', '跳跃'], ['duck', '下蹲'], ['walk', '静步'],
+  ['use', '使用 / 安放'], ['reload', '换弹'], ['lastWeapon', '上一把武器'],
+  ['slot1', '主武器'], ['slot2', '手枪'], ['slot3', '匕首'], ['slot4', '手雷'],
+  ['flashlight', '手电筒'], ['drop', '丢弃武器'],
+  ['buy', '购买菜单'], ['scoreboard', '计分板'],
+];
+
+// 键名的中文显示
+export const KEY_LABEL = {
+  Space: '空格', ControlLeft: '左 Ctrl', ShiftLeft: '左 Shift', Tab: 'Tab',
+  AltLeft: '左 Alt', Escape: 'Esc', Backspace: '退格', Enter: '回车',
+  ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+  CapsLock: 'CapsLock', Insert: 'Insert', Delete: 'Delete', Home: 'Home', End: 'End',
+  PageUp: 'PageUp', PageDown: 'PageDown', Semicolon: '；', Quote: '’',
+  Comma: '，', Period: '。', Slash: '/', Backslash: '\\', Backquote: '`',
+  BracketLeft: '[', BracketRight: ']', Minus: '-', Equal: '=',
+  MouseLeft: '鼠标左键', MouseRight: '鼠标右键', MouseMiddle: '滚轮',
 };
 
 export const SETTINGS_DEFAULT = {
@@ -238,6 +315,7 @@ export const SETTINGS_DEFAULT = {
   showFps: true,
   invertY: false,
   autoReload: true,
+  keymap: { ...KEYMAP_DEFAULT },
 };
 
 export const BOT_NAMES = [

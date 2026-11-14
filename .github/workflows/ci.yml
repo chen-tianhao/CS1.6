@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # 打包 + 语法检查（不跑浏览器，避免 CI 里装 Chrome 的开销）
+      - name: Build bundle
+        run: npm run build
+
+      - name: Syntax check sources
+        run: |
+          for f in src/*.js src/maps/*.js test/*.mjs; do
+            node --check "$f"
+          done
+
+      - name: Bundle must stay under 1 MB
+        run: |
+          size=$(stat -c%s assets/game.js)
+          echo "assets/game.js = $size bytes"
+          test "$size" -lt 1048576
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-bundle
+          path: assets/game.js
+
+  # 浏览器端回归：需要 Chrome，单独一个 job，失败不阻塞打包
+  smoke:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Run browser assertions
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          sudo apt-get update && sudo apt-get install -y google-chrome-stable || true
+          npm test

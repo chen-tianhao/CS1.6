@@ -29,6 +29,9 @@ export class Round {
     this.lastResult = null;
     this.tBombsite = null;
     this.bombMesh = null;
+    this.winTarget = RULES.winRounds;   // 加时会把目标分抬高
+    this.overtime = 0;
+    this.otRoundsPlayed = 0;
   }
 
   // ---------- 回合控制 ----------
@@ -37,6 +40,9 @@ export class Round {
     this.scoreCT = 0;
     this.scoreT = 0;
     this.lossStreak = { CT: 0, T: 0 };
+    this.winTarget = RULES.winRounds;
+    this.overtime = 0;
+    this.otRoundsPlayed = 0;
     for (const p of this.game.players) {
       p.money = RULES.startMoney;
       p.kills = 0; p.deaths = 0; p.damageDealt = 0;
@@ -69,6 +75,11 @@ export class Round {
     for (const p of order) {
       const list = this.game.map.spawns[p.team];
       const pt = list[spawnIdx[p.team]++ % list.length];
+      // 1.6：死了装备带不走，活下来的保留
+      if (!p.alive) {
+        p.resetInventory();
+        p.giveWeapon(p.team === 'T' ? 'glock18' : 'usp45');
+      }
       p.spawnAt(pt);
       p.plantProgress = 0;
       p.defuseProgress = 0;
@@ -135,11 +146,22 @@ export class Round {
   }
 
   nextRound() {
-    if (this.scoreCT >= RULES.winRounds || this.scoreT >= RULES.winRounds || this.roundNum >= RULES.maxRounds) {
-      this.phase = 'matchend';
-      const winner = this.scoreCT > this.scoreT ? 'CT' : this.scoreT > this.scoreCT ? 'T' : 'T';
-      this.game.hud.matchEnd(winner, this.scoreCT, this.scoreT);
-      this.game.localPlayer.fireHeld = false;
+    if (this.scoreCT >= this.winTarget || this.scoreT >= this.winTarget) {
+      this.finishMatch();
+      return;
+    }
+    // 常规回合打完
+    if (!this.overtime && this.roundNum >= RULES.maxRounds) {
+      if (this.scoreCT === this.scoreT) { this.startOvertime(); return; }
+      this.finishMatch();
+      return;
+    }
+    // 加时：每半场 overtimeHalf 回合，换边；一轮打完还平就再来一轮
+    if (this.overtime) {
+      this.otRoundsPlayed += 1;
+      if (this.otRoundsPlayed >= RULES.overtimeHalf * 2) { this.startOvertime(); return; }
+      if (this.otRoundsPlayed === RULES.overtimeHalf) this.swapSides();
+      this.startRound();
       return;
     }
     // 半场换边
@@ -150,10 +172,18 @@ export class Round {
     this.startRound();
   }
 
-  halftime() {
+  finishMatch() {
+    this.phase = 'matchend';
+    const winner = this.scoreCT > this.scoreT ? 'CT' : this.scoreT > this.scoreCT ? 'T' : 'T';
+    this.game.hud.matchEnd(winner, this.scoreCT, this.scoreT);
+    this.game.localPlayer.fireHeld = false;
+  }
+
+  // 交换阵营：比分跟随「阵营」不变，玩家换边
+  swapSides() {
     for (const p of this.game.players) {
       p.team = p.team === 'T' ? 'CT' : 'T';
-      p.money = RULES.startMoney;
+      p.money = Math.min(RULES.maxMoney, p.money);
       p.resetInventory();
       p.giveWeapon(p.team === 'T' ? 'glock18' : 'usp45');
       // 阵营换了，外观要重建成对面的材质；重建前必须先回收旧网格和贴地阴影，
@@ -169,10 +199,24 @@ export class Round {
         p.buildMesh(this.game.scene);
       }
     }
-    // 比分跟随「阵营」，不跟随玩家。半场只是玩家换边，
-    // 所以 scoreCT / scoreT 原样保留，绝对不能对调。
     this.lossStreak = { CT: 0, T: 0 };
+  }
+
+  halftime() {
+    this.swapSides();
+    for (const p of this.game.players) p.money = RULES.startMoney;
     this.game.hud.announce('半场结束 · 交换阵营');
+    this.startRound();
+  }
+
+  // 加时：钱重置、换边、目标分 = 当前平分 + 4
+  startOvertime() {
+    this.overtime += 1;
+    this.otRoundsPlayed = 0;
+    this.winTarget = Math.max(this.scoreCT, this.scoreT) + RULES.overtimeWin;
+    this.swapSides();
+    for (const p of this.game.players) p.money = RULES.overtimeMoney;
+    this.game.hud.announce(`加时赛 ${this.overtime} · 先到 ${RULES.overtimeWin} 分`);
     this.startRound();
   }
 
@@ -368,6 +412,9 @@ export class Round {
   onKill(victim, attacker, weaponId, headshot) {
     const g = this.game;
     victim.deaths++;
+    // 掉枪：主武器和手枪都落在尸体处，走过去就能捡
+    g.dropWeapon(victim, 'primary');
+    g.dropWeapon(victim, 'secondary');
     if (attacker && attacker !== victim) {
       attacker.kills++;
       const def = WEAPONS[weaponId];

@@ -153,15 +153,16 @@ function sandWall() {
 
 // ---------- 沙地 ----------
 function sandFloor() {
-  const S = 256, c = cv(S, S), x = c.getContext('2d');
+  const S = 512, c = cv(S, S), x = c.getContext('2d');
   x.fillStyle = '#b29469';
   x.fillRect(0, 0, S, S);
 
-  // 风纹：方向一致的浅色波纹
-  for (let i = 0; i < 22; i++) {
+  // 风纹：方向一致的浅色波纹。
+  // 对比别太高 —— 256² 的贴图按 220 单位平铺，掠射角上强对比会糊成一条条横带。
+  for (let i = 0; i < 26; i++) {
     const y0 = Math.random() * S;
-    const amp = 3 + Math.random() * 7;
-    x.strokeStyle = `rgba(${205 + Math.random() * 18 | 0},${182 + Math.random() * 16 | 0},${142 + Math.random() * 14 | 0},0.22)`;
+    const amp = 5 + Math.random() * 12;
+    x.strokeStyle = `rgba(${205 + Math.random() * 18 | 0},${182 + Math.random() * 16 | 0},${142 + Math.random() * 14 | 0},0.11)`;
     x.lineWidth = 1 + Math.random() * 2.4;
     x.beginPath();
     for (let px = 0; px <= S; px += 6) {
@@ -172,7 +173,7 @@ function sandFloor() {
   }
 
   // 碎石粒
-  for (let i = 0; i < 1400; i++) {
+  for (let i = 0; i < 5200; i++) {
     const v = Math.random() * 46 - 23;
     x.fillStyle = `rgba(${178 + v | 0},${154 + v | 0},${110 + v | 0},${0.35 + Math.random() * 0.4})`;
     x.fillRect(Math.random() * S, Math.random() * S, 1 + Math.random() * 2.4, 1 + Math.random() * 1.8);
@@ -192,6 +193,87 @@ function sandFloor() {
 
   overlayFbm(x, S, { basePer: 5, oct: 4, strength: 0.20, seed: 23 });
   grain(x, S, S, 14);
+  return toTex(c);
+}
+
+// ---------- 抹灰墙（dust 里常见的浅色灰泥面） ----------
+function wallPlaster() {
+  const S = 256, c = cv(S, S), x = c.getContext('2d');
+  x.fillStyle = '#b8a888';
+  x.fillRect(0, 0, S, S);
+
+  // 大面积斑驳：泥瓦匠的手工感来自这里。
+  // 对比一定要低 —— 贴图会按世界坐标放大到整面墙，形状一大就变成"墙上有大块污渍"。
+  for (let i = 0; i < 70; i++) {
+    const v = Math.random() * 16 - 8;
+    x.fillStyle = `rgba(${190 + v | 0},${174 + v | 0},${146 + v | 0},0.22)`;
+    x.beginPath();
+    x.ellipse(Math.random() * S, Math.random() * S,
+      8 + Math.random() * 22, 6 + Math.random() * 16, Math.random() * 3, 0, 7);
+    x.fill();
+  }
+  // 脱落露砖的坑：小而多的不规则块，别画成大片
+  for (let i = 0; i < 18; i++) {
+    const cx = Math.random() * S, cy = Math.random() * S;
+    x.fillStyle = `rgba(120,100,72,${0.12 + Math.random() * 0.10})`;
+    x.beginPath();
+    x.moveTo(cx, cy);
+    for (let k = 1; k <= 7; k++) {
+      const a = (k / 7) * Math.PI * 2;
+      const r = 4 + Math.random() * 9;
+      x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+    x.closePath(); x.fill();
+  }
+  // 细裂缝
+  for (let i = 0; i < 14; i++) {
+    x.strokeStyle = `rgba(96,80,58,${0.08 + Math.random() * 0.12})`;
+    x.lineWidth = 0.6 + Math.random() * 0.7;
+    x.beginPath();
+    let px = Math.random() * S, py = Math.random() * S;
+    x.moveTo(px, py);
+    for (let k = 0; k < 6; k++) {
+      px += (Math.random() - 0.5) * 26;
+      py += (Math.random() - 0.5) * 26;
+      x.lineTo(px, py);
+    }
+    x.stroke();
+  }
+  overlayFbm(x, S, { basePer: 5, oct: 5, strength: 0.20, seed: 131 });
+  grain(x, S, S, 16);
+  return toTex(c);
+}
+
+// ---------- 石砌墙（大块、深灰缝） ----------
+function wallStone() {
+  const S = 256, c = cv(S, S), x = c.getContext('2d');
+  x.fillStyle = '#6f6455';
+  x.fillRect(0, 0, S, S);
+
+  const rowH = 44;
+  for (let r = 0; r < Math.ceil(S / rowH); r++) {
+    const off = (r % 2) * 46;
+    let bx = -off;
+    while (bx < S) {
+      const w = 58 + Math.random() * 46;
+      const h = rowH - 5;
+      const y = r * rowH + 2;
+      const v = Math.random() * 30 - 15;
+      x.fillStyle = `rgb(${150 + v | 0},${140 + v | 0},${122 + v | 0})`;
+      x.fillRect(bx + 2, y, w - 3, h);
+
+      // 每块石头自己的明暗渐变
+      const g = x.createLinearGradient(bx, y, bx, y + h);
+      g.addColorStop(0, 'rgba(255,250,240,0.10)');
+      g.addColorStop(0.5, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(20,16,12,0.42)');
+      x.fillStyle = g;
+      x.fillRect(bx + 2, y, w - 3, h);
+      bx += w;
+    }
+  }
+  overlayFbm(x, S, { basePer: 4, oct: 4, strength: 0.22, seed: 173 });
+  grain(x, S, S, 20);
   return toTex(c);
 }
 
@@ -319,6 +401,8 @@ export function getTextures() {
   if (cache) return cache;
   cache = {
     sand: sandWall(),
+    sand2: wallStone(),
+    sand3: wallPlaster(),
     floor: sandFloor(),
     crate: crate(),
     concrete: concrete(),

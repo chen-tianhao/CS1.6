@@ -26,7 +26,7 @@ const W = {
   accent: new THREE.MeshLambertMaterial({ color: 0x8d8b80 }),
   glass: new THREE.MeshLambertMaterial({ color: 0x1d4f63 }),
   // 手套比袖口亮一档：两者同色时整条小臂会糊成一块，看不出在握枪
-  glove: new THREE.MeshLambertMaterial({ color: 0x6b6550 }),
+  glove: new THREE.MeshLambertMaterial({ color: 0xa0967c }),
   sleeve: new THREE.MeshLambertMaterial({ color: 0x33372a }),
   skin: new THREE.MeshLambertMaterial({ color: 0xb8825a }),
   skinDark: new THREE.MeshLambertMaterial({ color: 0x8f6242 }),
@@ -295,23 +295,35 @@ function curvedMag(m, { segs = 4, w = 3.4, h = 3.0, d = 4.4, y = -2.6, z = -4, c
 }
 
 // 手与手套：第一人称只看得到手套和袖口，不要露出肉色前臂。
-// 尺寸要贴着枪 —— 比枪还大一圈的方块手会立刻出戏。
-// scale 让手枪用更小一号的握持手。
-function glovedHand(mirror = 1, scale = 1) {
+//
+// 之前是一整块 4.2×4.8×5.0 的方块，比 AK 的机匣（3.5 宽）还大，
+// 摆在握把上就是一坨糊住的箱子 —— 玩家根本看不出自己在握枪。
+// 现在拆成「掌 + 三根指节 + 拇指 + 腕 + 前臂袖」：
+// 指节是唯一能让人读出"这是手"的信息，所以必须做出来。
+//
+// side = 1 表示手从右侧包过来（右手握枪），-1 为左手。
+function glovedHand(side = 1, scale = 1) {
   const g = new THREE.Group();
-  // 手背 / 掌心
-  g.add(b(4.2, 4.8, 5.0, W.glove, 0, 0, 0));
-  // 四指：从手背前端压向枪身（-Z）
-  g.add(b(3.8, 1.9, 2.6, W.glove, 0, 1.5, -3.0));
-  // 拇指
-  g.add(b(2.2, 1.7, 2.6, W.glove, mirror * 2.2, 0.5, -2.6));
-  // 腕部收口
-  g.add(b(3.8, 4.2, 1.6, W.glove, 0, -0.2, 3.0));
-  // 袖口 → 前臂：朝画面右下斜出画面
-  const sleeve = b(3.5, 4.0, 8.6, W.sleeve, mirror * 1.2, -1.5, 7.4);
-  sleeve.rotation.x = -0.34;
-  sleeve.rotation.z = mirror * 0.16;
+
+  // 1.6 的第一人称手在画面上是**明显偏大**的（比真实比例大一圈），
+  // 不然在 1080p 下只有几十像素，根本读不出形状。这里按那个比例来。
+  //
+  // 手背：贴在握把外侧
+  g.add(b(4.0, 6.2, 6.0, W.glove, side * 1.5, 0, 0.4));
+  // 四根指节：做在朝镜头那一面（+Z）
+  for (let i = 0; i < 4; i++) {
+    g.add(b(2.6, 1.15, 1.9, W.glove, side * 0.3, -2.2 + i * 1.45, 3.5));
+  }
+  // 拇指：从外侧翻上来
+  g.add(b(1.8, 1.5, 3.0, W.glove, side * 2.7, 2.1, 1.0));
+  // 腕口
+  g.add(b(3.6, 4.2, 2.4, W.glove, side * 1.2, -0.7, 4.0));
+  // 前臂袖：又长又粗，朝画面右下角甩出去
+  const sleeve = b(4.4, 4.6, 14.0, W.sleeve, side * 2.3, -3.0, 11.0);
+  sleeve.rotation.x = -0.28;
+  sleeve.rotation.z = side * 0.30;
   g.add(sleeve);
+
   g.scale.setScalar(scale);
   return g;
 }

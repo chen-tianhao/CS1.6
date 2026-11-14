@@ -59,6 +59,7 @@
 
     <div class="bottom-right">
       <div class="wname" id="weapon-name">USP-45</div>
+      <canvas id="wicon" width="132" height="46"></canvas>
       <div class="ammo">
         <span id="ammo">12</span><span class="sep">/</span><span id="reserve">100</span>
       </div>
@@ -163,8 +164,21 @@
     <div class="pause-box">
       <h2>已暂停</h2>
       <button id="btn-resume">继续游戏</button>
+      <button id="btn-keys">按键设置</button>
       <button id="btn-restart">重新开始</button>
       <div class="pause-hint">点击画面锁定鼠标</div>
+    </div>
+  </div>
+
+  <!-- ============ 按键设置 ============ -->
+  <div id="keybind" class="hidden">
+    <div class="kb-box">
+      <div class="kb-head">
+        <h2>按键设置</h2>
+        <span class="kb-tip">点击右侧按键格，再按下新的键</span>
+      </div>
+      <div id="kb-list" class="kb-list"></div>
+      <button id="kb-close">完成</button>
     </div>
   </div>
 

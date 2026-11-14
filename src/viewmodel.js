@@ -14,12 +14,12 @@ import { buildWeaponModel } from './models.js';
 // 枪口朝画面中心偏上。原来的 (4.2, -6.8, -33) 几乎糊在正中，而且太近，
 // 0.72 的缩放下木托会顶到镜头前，看起来像半截贴在脸上的枪。
 const VM_POSE = {
-  rifle: { x: 13.5, y: -7.4, z: -40, s: 0.62 },
-  sniper: { x: 14.8, y: -7.8, z: -44, s: 0.64 },
-  smg: { x: 13.2, y: -7.0, z: -37, s: 0.62 },
-  pistol: { x: 11.4, y: -6.6, z: -31, s: 0.58 },
-  melee: { x: 12.2, y: -7.6, z: -32, s: 0.60 },
-  grenade: { x: 12.2, y: -8.2, z: -31, s: 0.60 },
+  rifle: { x: 15.0, y: -8.0, z: -40, s: 0.62, ry: 0.30 },
+  sniper: { x: 16.2, y: -8.4, z: -44, s: 0.64, ry: 0.30 },
+  smg: { x: 14.6, y: -7.6, z: -37, s: 0.62, ry: 0.32 },
+  pistol: { x: 12.4, y: -7.2, z: -31, s: 0.58, ry: 0.34 },
+  melee: { x: 13.2, y: -8.2, z: -32, s: 0.60, ry: 0.36 },
+  grenade: { x: 13.2, y: -8.8, z: -31, s: 0.60, ry: 0.32 },
 };
 
 export class ViewModel {
@@ -119,7 +119,7 @@ export class ViewModel {
     );
     this.root.rotation.set(
       this.kick * 0.02 + this.reloadT * 0.42 - (1 - this.rise) * 0.8 - sw * 0.62,
-      0.16 - this.kick * 0.008 + this.swayX * 0.006 + sw * 0.34,
+      (pose.ry ?? 0.30) - this.kick * 0.008 + this.swayX * 0.006 + sw * 0.34,
       this.reloadT * 0.3 + Math.sin(this.bob) * 0.01 + sw * 0.42,
     );
   }

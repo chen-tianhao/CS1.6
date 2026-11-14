@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import {
   PHYS, RULES, WEAPONS, GEAR, SETTINGS_DEFAULT, BOT_NAMES, TILE, GRID, WORLD_HALF,
+  KEYMAP_DEFAULT, KEY_LABEL,
 } from './config.js';
 import { GameMap } from './map.js';
 import { getMap, DEFAULT_MAP } from './maps/index.js';
@@ -13,11 +14,13 @@ import { BotController } from './bots.js';
 import { Round } from './round.js';
 import { HUD } from './hud.js';
 import { ViewModel } from './viewmodel.js';
+import { buildWeaponProp } from './models.js';
 import { fx } from './fx.js';
 import { tracePlayers } from './weapons.js';
 import * as Sfx from './audio.js';
 
 const D2R = Math.PI / 180;
+const FIXED_DT = 1 / 64;   // GoldSrc 的物理 tick
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 // 键名带 v2：sensitivity 的语义从"倍率"改成了 1.6 的 m_yaw × sensitivity，
@@ -27,9 +30,17 @@ const SETTINGS_KEY = 'cs16web.settings.v2';
 function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return { ...SETTINGS_DEFAULT, ...JSON.parse(raw) };
+    if (raw) {
+      const saved = JSON.parse(raw);
+      return {
+        ...SETTINGS_DEFAULT,
+        ...saved,
+        // keymap 逐键合并：以后新增动作时旧存档不会缺键
+        keymap: { ...KEYMAP_DEFAULT, ...(saved.keymap || {}) },
+      };
+    }
   } catch (e) { /* ignore */ }
-  return { ...SETTINGS_DEFAULT };
+  return { ...SETTINGS_DEFAULT, keymap: { ...KEYMAP_DEFAULT } };
 }
 
 class Game {
@@ -51,6 +62,10 @@ class Game {
     this.lastShotDir = null;
     this.dragLook = false;
     this.dragging = false;
+    this.pointerLockFailures = 0;
+    this.dropped = [];        // 地上掉落的武器
+    this.acc = 0;             // 固定步长累加器
+    this.flashlightOn = false;
   }
 
   // ---------- 初始化 ----------
@@ -73,6 +88,13 @@ class Game {
     this.camera = new THREE.PerspectiveCamera(this.settings.fov, window.innerWidth / window.innerHeight, 1, 9000);
     this.camera.rotation.order = 'YXZ';
     this.scene.add(this.camera);
+
+    // 手电筒：灯常驻、只切强度。运行时增删灯会让 three 重编译所有材质。
+    this.flashlight = new THREE.SpotLight(0xfff0d0, 0, 2400, Math.PI / 7, 0.5, 1.1);
+    this.flashlight.position.set(0, -6, 0);
+    this.flashlight.target.position.set(0, -4, -1);
+    this.camera.add(this.flashlight);
+    this.camera.add(this.flashlight.target);
 
     this.map = new GameMap(this.scene, getMap(this.settings.map || DEFAULT_MAP));
     const rl = document.querySelector('.radar-label');
@@ -202,15 +224,15 @@ class Game {
   // ---------- 输入 ----------
   bindEvents() {
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Tab') e.preventDefault();
+      const km = this.km();
+      // Tab 会切焦点、空格会滚页面，都要拦掉
+      if (e.code === km.scoreboard || e.code === km.jump) e.preventDefault();
       if (e.repeat) return;
       this.onKeyDown(e);
     });
     window.addEventListener('keyup', (e) => {
       this.keys[e.code] = false;
-      if (e.code === 'Tab') {
-        this.hud.toggleScoreboard(false);
-      }
+      if (e.code === this.km().scoreboard) this.hud.toggleScoreboard(false);
     });
 
     document.addEventListener('mousemove', (e) => {
@@ -233,7 +255,14 @@ class Game {
 
     this.canvas.addEventListener('mousedown', (e) => {
       if (!this.started) return;
-      if (document.pointerLockElement !== this.canvas && !this.dragLook) { this.lockPointer(); return; }
+      const locked = document.pointerLockElement === this.canvas;
+      if (!locked) {
+        // 每次点击都是一次合法的用户手势：借它重新申请指针锁定。
+        // 买完东西用键盘关菜单时浏览器会拒绝那次请求，只能靠这一下锁回来。
+        this.lockPointer();
+        // 不在拖拽兜底模式下时，这一下只用来锁定鼠标，不开枪（和 1.6 点回窗口的手感一致）
+        if (!this.dragLook) return;
+      }
       if (e.button === 0) {
         this.dragging = true;
         this.onFireDown();
@@ -250,7 +279,10 @@ class Game {
       if (e.button === 0) {
         this.dragging = false;
         const p = this.localPlayer;
-        if (p) p.fireHeld = false;
+        if (p) {
+          p.fireHeld = false;
+          if (p.priming) p.releaseGrenade();
+        }
       }
     });
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -264,11 +296,18 @@ class Game {
       p.switchSlot(next);
     }, { passive: true });
 
-    document.addEventListener('pointerlockerror', () => this.enableDragLook());
+    document.addEventListener('pointerlockerror', () => this.onPointerLockFailed());
 
     document.addEventListener('pointerlockchange', () => {
       const locked = document.pointerLockElement === this.canvas;
-      if (!locked && this.started && !this.hud.buyOpen && !this.suppressPause &&
+      if (locked) {
+        // 锁回来了：退出拖拽兜底，恢复"只要移动鼠标就转视角"
+        this.dragLook = false;
+        this.dragging = false;
+        this.pointerLockFailures = 0;
+        return;
+      }
+      if (this.started && !this.hud.buyOpen && !this.suppressPause &&
           this.round.phase !== 'matchend' && !this.paused) {
         this.paused = true;
         document.getElementById('pause').classList.remove('hidden');
@@ -282,10 +321,12 @@ class Game {
       this.startGame();
     });
     document.getElementById('btn-resume').addEventListener('click', () => {
+      this.hud.closeKeybinds();
       document.getElementById('pause').classList.add('hidden');
       this.paused = false;
       this.lockPointer();
     });
+    document.getElementById('btn-keys').addEventListener('click', () => this.hud.openKeybinds());
     document.getElementById('btn-restart').addEventListener('click', () => this.restartMatch());
 
     // 主菜单选项
@@ -342,8 +383,13 @@ class Game {
     const p = this.localPlayer;
     this.keys[e.code] = true;
     if (!this.started) return;
+    const km = this.km();
 
-    if (e.code === 'Tab') {
+    // 改键界面正在等一个键：全部拦下来交给它
+    if (this.hud.captureKey) { this.hud.assignKey(e.code); return; }
+    if (this.hud.keybindOpen && e.code === 'Escape') { this.hud.closeKeybinds(); return; }
+
+    if (e.code === km.scoreboard) {
       this.hud.toggleScoreboard(true);
       return;
     }
@@ -352,35 +398,34 @@ class Game {
       return;
     }
     if (this.hud.buyOpen) {
-      if (e.code === 'KeyB') { this.hud.toggleBuy(false); return; }
+      if (e.code === km.buy) { this.hud.toggleBuy(false); return; }
       this.hud.handleBuyKey(e.code);
       return;
     }
     if (!p) return;
 
-    // 比赛结束后按 R 重开
-    if (e.code === 'KeyR' && this.round.phase === 'matchend') { this.restartMatch(); return; }
+    // 比赛结束后按换弹键重开
+    if (e.code === km.reload && this.round.phase === 'matchend') { this.restartMatch(); return; }
 
-    switch (e.code) {
-      case 'KeyB':
-        if (p.alive) this.hud.toggleBuy();
-        break;
-      case 'KeyR':
-        if (p.alive) p.reload();
-        break;
-      case 'Digit1': p.switchSlot('primary'); break;
-      case 'Digit2': p.switchSlot('secondary'); break;
-      case 'Digit3': p.switchSlot('melee'); break;
-      case 'Digit4': p.switchSlot('grenade'); break;
-      case 'KeyQ': {
-        // 上一把武器：主武器 ↔ 手枪
-        if (p.curSlot === 'primary' && p.slots.secondary) p.switchSlot('secondary');
-        else if (p.curSlot === 'secondary' && p.slots.primary) p.switchSlot('primary');
-        break;
-      }
-      default: break;
+    if (e.code === km.buy) { if (p.alive) this.hud.toggleBuy(); return; }
+    if (e.code === km.reload) { if (p.alive) p.reload(); return; }
+    if (e.code === km.slot1) { p.switchSlot('primary'); return; }
+    if (e.code === km.slot2) { p.switchSlot('secondary'); return; }
+    if (e.code === km.slot3) { p.switchSlot('melee'); return; }
+    if (e.code === km.slot4) { p.switchSlot('grenade'); return; }
+    if (e.code === km.lastWeapon) {
+      if (p.curSlot === 'primary' && p.slots.secondary) p.switchSlot('secondary');
+      else if (p.curSlot === 'secondary' && p.slots.primary) p.switchSlot('primary');
+      return;
     }
+    if (e.code === km.flashlight) { this.toggleFlashlight(); return; }
+    if (e.code === km.drop) { this.dropWeapon(p, p.curSlot); return; }
+  }
 
+  km() { return this.settings.keymap || KEYMAP_DEFAULT; }
+  act(action) {
+    const km = this.settings.keymap || KEYMAP_DEFAULT;
+    return !!this.keys[km[action]];
   }
 
   onFireDown() {
@@ -390,25 +435,45 @@ class Game {
       this.cycleSpectate();
       return;
     }
+    // 手雷：按下只是拔销，松开才扔（1.6 的空爆靠这个）
+    if (p.curSlot === 'grenade') { p.beginPrime(); return; }
     p.fireHeld = true;
     p.tryFire();
   }
 
+  toggleFlashlight() {
+    this.flashlightOn = !this.flashlightOn;
+    this.flashlight.intensity = this.flashlightOn ? 2.4 : 0;
+    Sfx.playUIClick();
+  }
+
   lockPointer() {
     if (document.pointerLockElement === this.canvas) return;
-    if (this.dragLook) return;
     if (!this.canvas.requestPointerLock) { this.enableDragLook(); return; }
     try {
-      const p = this.canvas.requestPointerLock();
-      if (p && p.catch) p.catch(() => this.enableDragLook());
+      const r = this.canvas.requestPointerLock();
+      if (r && r.catch) r.catch(() => this.onPointerLockFailed());
     } catch (err) {
-      this.enableDragLook();
+      this.onPointerLockFailed();
     }
+  }
+
+  // 指针锁定失败。
+  // 浏览器只在"用户手势"里才给锁（点按钮、点画面）；用键盘关购买菜单时
+  // 那次请求一定会被拒。这里**绝对不能**永久降级成拖拽视角 —— 否则玩家会
+  // 以为"鼠标坏了，必须按住左键才能转视角"。留给下一次点击重试。
+  onPointerLockFailed() {
+    if (document.pointerLockElement === this.canvas) return;
+    this.pointerLockFailures += 1;
+    // 连续失败两次（无指针锁环境：iframe、无头浏览器…）才真正启用拖拽兜底
+    if (this.pointerLockFailures >= 2) this.enableDragLook();
+    else if (this.started && this.hud) this.hud.toast('点击画面以锁定鼠标');
   }
 
   enableDragLook() {
     if (this.dragLook) return;
     this.dragLook = true;
+    this.dragging = false;
     this.hud.toast('鼠标锁定不可用：按住左键拖动可转动视角');
   }
 
@@ -561,7 +626,17 @@ class Game {
     }
 
     if (this.started && !this.paused) {
-      this.update(dt);
+      // 物理固定 1/64 步长：GoldSrc 就是定步长。可变 dt 会让连跳时机、
+      // 加速手感和落地判定随帧率漂移，低帧率时单帧位移还会大到穿墙。
+      this.acc += Math.min(0.25, raw);
+      let steps = 0;
+      while (this.acc >= FIXED_DT && steps < 6) {
+        this.stepPhysics(FIXED_DT);
+        this.acc -= FIXED_DT;
+        steps += 1;
+      }
+      if (steps >= 6) this.acc = 0;      // 追不上就丢弃，别让累加器雪崩
+      this.updateVisuals(raw);
     }
     this.renderer.clear(true, true, true);
     this.renderer.render(this.scene, this.camera);
@@ -570,54 +645,111 @@ class Game {
     this.renderer.render(this.viewModel.scene, this.viewModel.camera);
   }
 
-  update(dt) {
+  // 定步长：回合 / 玩家 / BOT / 投掷物 / 掉落物
+  stepPhysics(dt) {
     this.time += dt;
     const p = this.localPlayer;
 
-    // 回合
     this.round.update(dt);
 
-    // 本地玩家输入
     if (p) {
+      // 键位全部来自 settings.keymap；右 Ctrl / 右 Shift / C 作为固定备用键
       const cmd = {
-        forward: (this.keys['KeyW'] ? 1 : 0) - (this.keys['KeyS'] ? 1 : 0),
-        side: (this.keys['KeyD'] ? 1 : 0) - (this.keys['KeyA'] ? 1 : 0),
-        jump: !!this.keys['Space'],
-        duck: !!(this.keys['ControlLeft'] || this.keys['ControlRight'] || this.keys['KeyC']),
-        walk: !!(this.keys['ShiftLeft'] || this.keys['ShiftRight']),
+        forward: (this.act('forward') ? 1 : 0) - (this.act('back') ? 1 : 0),
+        side: (this.act('right') ? 1 : 0) - (this.act('left') ? 1 : 0),
+        jump: this.act('jump'),
+        duck: this.act('duck') || !!this.keys['ControlRight'] || !!this.keys['KeyC'],
+        walk: this.act('walk') || !!this.keys['ShiftRight'],
       };
-      p.wantUse = !!this.keys['KeyE'];
+      p.wantUse = this.act('use');
       p.update(dt, cmd);
-
-      // 购买提示
-      if (this.inBuyZone() && !this.hud.buyOpen) this.hud.hint('按 B 打开购买菜单');
-      else if (p.hasBomb && this.map.siteAt(p.pos.x, p.pos.z) && this.round.bomb.state === 'carried') this.hud.hint('按住 E 安放 C4');
-      else if (p.team === 'CT' && this.round.bomb.state === 'planted' &&
-        Math.hypot(p.pos.x - this.round.bomb.pos.x, p.pos.z - this.round.bomb.pos.z) < 90) this.hud.hint('按住 E 拆除炸弹');
-      else this.hud.hint(null);
     }
 
-    // BOT
     for (const b of this.players) {
       if (b.bot) b.bot.update(dt);
     }
 
-    // 投掷物
     for (let i = this.grenades.length - 1; i >= 0; i--) {
       const g = this.grenades[i];
       g.update(dt);
       if (g.dead) this.grenades.splice(i, 1);
     }
 
-    // 特效
-    fx.update(dt);
+    this.updateDropped();
+  }
 
+  // 每帧一次：特效 / 相机 / 第一人称 / HUD / 音频监听。
+  // 这些和物理步长无关，用真实帧间隔更平滑，也避免 HUD 被重复写 6 次。
+  updateVisuals(dt) {
+    const p = this.localPlayer;
+    fx.update(dt);
     this.updateCamera(dt);
     this.viewModel.update(dt, p);
     this.hud.update(dt);
-
-    // 同步音频监听者：HRTF 方位与混响都依赖它每帧跟随视角
     Sfx.setListener(this.listenerPos());
+
+    if (p) {
+      const buyKey = KEY_LABEL[this.km().buy] || this.km().buy;
+      if (this.inBuyZone() && !this.hud.buyOpen) this.hud.hint(`按 ${buyKey} 打开购买菜单`);
+      else if (p.hasBomb && this.map.siteAt(p.pos.x, p.pos.z) && this.round.bomb.state === 'carried') this.hud.hint('按住 E 安放 C4');
+      else if (p.team === 'CT' && this.round.bomb.state === 'planted' &&
+        Math.hypot(p.pos.x - this.round.bomb.pos.x, p.pos.z - this.round.bomb.pos.z) < 90) this.hud.hint('按住 E 拆除炸弹');
+      else this.hud.hint(null);
+    }
+  }
+
+  // ---------- 掉落武器 ----------
+  dropWeapon(player, slot) {
+    if (slot !== 'primary' && slot !== 'secondary') return;
+    const w = player.slots[slot];
+    if (!w) return;
+    const def = WEAPONS[w.id];
+    if (!def || def.cls === 'melee') return;
+    player.slots[slot] = null;
+    if ((slot === 'primary' && player.curSlot === 'primary') ||
+        (slot === 'secondary' && player.curSlot === 'secondary')) {
+      player.curSlot = player.slots.primary ? 'primary' : player.slots.secondary ? 'secondary' : 'melee';
+    }
+    const mesh = buildWeaponProp(w.id);
+    mesh.position.set(player.pos.x, 10, player.pos.z);
+    mesh.rotation.y = Math.random() * Math.PI * 2;
+    this.scene.add(mesh);
+    this.dropped.push({ id: w.id, ammo: w.ammo, reserve: w.reserve, mesh, x: player.pos.x, z: player.pos.z });
+    if (this.dropped.length > 24) {
+      const old = this.dropped.shift();
+      this.scene.remove(old.mesh);
+    }
+  }
+
+  clearDropped() {
+    for (const d of this.dropped) this.scene.remove(d.mesh);
+    this.dropped = [];
+  }
+
+  // 走过去自动拾取（1.6 就是这样，不用按键）
+  updateDropped() {
+    for (let i = this.dropped.length - 1; i >= 0; i--) {
+      const d = this.dropped[i];
+      d.mesh.rotation.y += 0.02;
+      let taken = false;
+      for (const p of this.players) {
+        if (!p.alive) continue;
+        if (Math.hypot(p.pos.x - d.x, p.pos.z - d.z) > 46) continue;
+        const def = WEAPONS[d.id];
+        const slot = def.slot === 1 ? 'primary' : 'secondary';
+        if (p.slots[slot]) continue;     // 同类槽位已经有枪就不捡
+        p.slots[slot] = { id: d.id, def, ammo: d.ammo, reserve: d.reserve };
+        p.curSlot = slot;
+        p.deployTime = 0.4;
+        if (p === this.localPlayer) Sfx.playPickup();
+        taken = true;
+        break;
+      }
+      if (taken) {
+        this.scene.remove(d.mesh);
+        this.dropped.splice(i, 1);
+      }
+    }
   }
 
   updateCamera(dt) {

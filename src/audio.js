@@ -341,9 +341,17 @@ export function playDeploy(weaponId) {
   burst(dest, t + 0.05, { freq: 700, gain: 0.05, decay: 0.06, type: 'lowpass' });
 }
 
-// 开镜 / 退镜：1.6 是一声很干脆的机械"咔"
-export function playZoom(inScope = true) {
+// 投掷：一声短促的破空
+export function playThrow() {
   if (!ctx) return;
+  const t = now();
+  const dest = spatial(null, null);
+  burst(dest, t, { freq: 1600, gain: 0.10, decay: 0.10, type: 'bandpass', q: 1.4, attack: 0.004 });
+  burst(dest, t + 0.05, { freq: 600, gain: 0.05, decay: 0.06, type: 'lowpass' });
+}
+
+// 开镜 / 退镜：1.6 是一声很干脆的机械"咔"
+export function playZoom(inScope = true) {  if (!ctx) return;
   const t = now();
   const dest = spatial(null, null);
   click(dest, t, inScope ? 1450 : 1050, 0.17);

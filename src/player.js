@@ -2,7 +2,7 @@
 //  player.js — 玩家实体：GoldSrc 移动物理 / 视角 / 命中盒 / 武器持有
 // ============================================================
 import * as THREE from 'three';
-import { PHYS, HITGROUP, WEAPONS, RULES, recoilPattern } from './config.js';
+import { PHYS, HITGROUP, WEAPONS, RULES, GRENADE_FUSE, recoilPattern } from './config.js';
 import { traceBullet, applyDamage, makeWeaponInstance } from './weapons.js';
 import { fx, Grenade } from './fx.js';
 import * as Sfx from './audio.js';
@@ -49,6 +49,9 @@ export class Player {
     this.groundY = 0;          // 脚下支撑面高度（贴地阴影要用）
     this.groundMat = 'sand';   // 脚下材质（脚步声 / 弹着点用）
     this.walking = false;      // 静步中：不发出脚步声
+    this.onLadder = false;     // 挂在梯子上（关掉重力）
+    this.priming = false;      // 手雷已拔销
+    this.primeT = 0;           // 拔销已经过去多久
     this.ducking = false;
     this.duckAmount = 0;
 
@@ -108,6 +111,9 @@ export class Player {
     this.health = 100;
     this.onGround = true;
     this.groundY = 0;
+    this.priming = false;
+    this.primeT = 0;
+    this.onLadder = false;
     this.ducking = false;
     this.duckAmount = 0;
     this.zoom = 0;
@@ -190,6 +196,17 @@ export class Player {
     this.move(dt, cmd);
     this.updateWeapon(dt);
 
+    // 手雷拔销：引信被扣光就在手里炸（1.6 里按住不放真的会炸死自己）
+    if (this.priming) {
+      this.primeT += dt;
+      const fuse = GRENADE_FUSE[this.grenadeSel] || 3;
+      if (this.primeT >= fuse) {
+        this.priming = false;
+        this.primeT = 0;
+        this.throwGrenade(fuse);   // fuse - fuse = 0，落地即爆
+      }
+    }
+
     // 后坐力回正（CS 手感：松开后准心慢慢回位）
     const rec = Math.exp(-dt * (this.game.time - this.lastShotTime > 0.25 ? 7.5 : 2.4));
     this.punchPitch *= rec;
@@ -230,6 +247,30 @@ export class Player {
     let wishZ = -cosY * fwd - sinY * side;
     const wl = Math.hypot(wishX, wishZ);
     if (wl > 0.001) { wishX /= wl; wishZ /= wl; }
+
+    // ---- 梯子 ----
+    // 按前=上升、按后=下降、松开就挂在梯子上；完全关掉重力。
+    const ladder = this.game.map.ladderAt(this.pos.x, this.pos.z, this.pos.y);
+    this.onLadder = !!ladder;
+    if (ladder) {
+      const jumpPressed = cmd.jump && !this.jumpHeld;
+      this.jumpHeld = !!cmd.jump;
+      const climb = fwd > 0.1 ? 1 : fwd < -0.1 ? -1 : 0;
+      this.vel.y = jumpPressed ? PHYS.jumpVel * 0.75 : climb * PHYS.maxLadderSpeed * 0.55;
+      // 到顶就停住。不夹一下的话玩家会越过攀爬区、掉回来、再爬上去，在顶端来回弹。
+      // 留 6 单位余量，保证人还能横向迈上旁边的平台。
+      if (climb > 0 && this.pos.y >= (ladder.y1 || 400) - 6) this.vel.y = 0;
+      if (jumpPressed || climb > 0) this.onGround = false;
+      // 梯子上横向速度被钳住，只留一点左右微调
+      this.vel.x *= 0.12;
+      this.vel.z *= 0.12;
+      if (side) {
+        this.vel.x += Math.cos(this.yaw) * side * 45;
+        this.vel.z += -Math.sin(this.yaw) * side * 45;
+      }
+      this.integrate(dt);
+      return;
+    }
 
     let maxSpeed = this.maxSpeedNow();
     if (this.ducking) maxSpeed *= PHYS.duckMul;
@@ -290,9 +331,11 @@ export class Player {
     this.resolveAxis('z', r, hull);
 
     // ---- 脚下的支撑面 ----
-    // 站在地面上时容忍 stepHeight 的台阶（能迈上去），
-    // 空中只认不高于脚面的面（不会被"吸"到箱子上）。
-    const stepUp = this.onGround ? PHYS.stepHeight : 0;
+    // 站在地面上时容忍 stepHeight 的台阶（能迈上去）；
+    // 空中只有蹲着才有一点"够到沿儿"的余量（跳蹲），否则不会被"吸"到箱子上。
+    const stepUp = this.onGround
+      ? PHYS.stepHeight
+      : (this.ducking ? PHYS.duckJumpBonus : 0);
     const sup = map.supportHeightAt(this.pos.x, this.pos.z, r, this.pos.y + stepUp);
     const support = sup.y;
     this.groundMat = sup.mat;
@@ -353,7 +396,10 @@ export class Player {
     const py = this.pos.y;
     // 顶面不高于台阶的碰撞体可以迈上去，不该挡住水平移动；
     // 同理，已经站在它上面（脚面不高于它的顶面）时也不该被推开。
-    const stepUp = this.onGround ? PHYS.stepHeight : 0;
+    // 空中蹲下时同样给跳蹲留一点余量。
+    const stepUp = this.onGround
+      ? PHYS.stepHeight
+      : (this.ducking ? PHYS.duckJumpBonus : 0);
     for (let i = 0; i < cols.length; i++) {
       const b = cols[i];
       if (b.y1 <= py + stepUp) continue;
@@ -437,14 +483,21 @@ export class Player {
     this.punchPitch += up;
     this.punchYaw -= right;
 
-    // 弹道
+    // 弹道：霰弹枪一发打多颗弹丸，每颗独立走射线和结算
     const origin = new THREE.Vector3(this.pos.x, this.eyeY(), this.pos.z);
     const dir = this.aimDir();
     const spread = this.computeSpread(def);
     const d = applySpread(dir, spread);
     this.game.lastShotDir = d;
 
-    traceBullet(this.game, this, origin, d, def);
+    const pellets = def.pellets || 1;
+    if (pellets === 1) {
+      traceBullet(this.game, this, origin, d, def);
+    } else {
+      for (let i = 0; i < pellets; i++) {
+        traceBullet(this.game, this, origin, applySpread(dir, spread), def);
+      }
+    }
 
     // 枪口火焰 / 音效 / 抛壳
     fx.muzzle(this, def);
@@ -517,6 +570,9 @@ export class Player {
 
   switchSlot(slot) {
     if (!this.alive) return;
+    // 切枪一律取消已经拔掉销的手雷
+    this.priming = false;
+    this.primeT = 0;
     if (slot === 'primary' && !this.slots.primary) return;
     if (slot === 'secondary' && !this.slots.secondary) return;
     if (slot === 'grenade') {
@@ -545,7 +601,7 @@ export class Player {
     Sfx.playZoom(this.zoom > 0);
   }
 
-  throwGrenade() {
+  throwGrenade(fusePenalty = 0) {
     const kind = this.grenadeSel;
     if (!kind || this.grenades[kind] <= 0) return;
     this.grenades[kind]--;
@@ -553,12 +609,32 @@ export class Player {
     this.deployTime = 0.5;
     const origin = new THREE.Vector3(this.pos.x, this.eyeY() - 4, this.pos.z);
     const dir = this.aimDir();
-    this.game.grenades.push(new Grenade(this.game, this, kind, origin, dir));
-    Sfx.playUIClick();
+    const g = new Grenade(this.game, this, kind, origin, dir);
+    // 拔销期间扣掉的引信时间要算进这一颗里
+    g.fuse = Math.max(0, g.fuse - fusePenalty);
+    this.game.grenades.push(g);
+    Sfx.playThrow();
     if (this.grenades[kind] === 0) {
       this.grenadeSel = null;
       this.curSlot = this.slots.primary ? 'primary' : this.slots.secondary ? 'secondary' : 'melee';
+      Sfx.playDeploy(this.weaponDef ? this.weaponDef.id : null);
     }
+  }
+
+  // 拔销：按住左键开始计时，松开才扔出去（1.6 的空爆、提前爆都靠这个）
+  beginPrime() {
+    const kind = this.grenadeSel;
+    if (!kind || this.grenades[kind] <= 0) return;
+    this.priming = true;
+    this.primeT = 0;
+  }
+
+  releaseGrenade() {
+    if (!this.priming) return;
+    this.priming = false;
+    const held = this.primeT;
+    this.primeT = 0;
+    this.throwGrenade(held);
   }
 
   pickUp(weaponId) {

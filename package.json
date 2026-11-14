@@ -4,9 +4,11 @@
   "private": true,
   "description": "Counter-Strike 1.6 规则与手感复刻 · 网页单机版（原创地图与程序化素材）",
   "scripts": {
-    "build": "esbuild src/main.js --bundle --format=iife --target=es2020 --outfile=assets/game.js",
+    "build": "esbuild src/main.js --bundle --format=iife --target=es2020 --minify --outfile=assets/game.js",
+    "build:debug": "esbuild src/main.js --bundle --format=iife --target=es2020 --outfile=assets/game.js",
     "watch": "esbuild src/main.js --bundle --format=iife --target=es2020 --outfile=assets/game.js --watch",
     "serve": "python -m http.server 8123",
+    "test": "node test/run.mjs",
     "shot": "node test/hero.mjs"
   },
   "license": "MIT",

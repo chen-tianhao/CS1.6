@@ -32,6 +32,7 @@ export class GameMap {
     this.propTop = new Float32Array(GRID * GRID); // 每格上道具的最高顶面（烘焙阴影用）
     this.spawns = { T: [], CT: [] };
     this.sites = def.sites;
+    this.ladders = [];         // 攀爬区 {x0,x1,z0,z1,y0,y1}
     this.label = def.label || def.id || '';
     this._build();
   }
@@ -101,7 +102,55 @@ export class GameMap {
     this._buildWalls();
     this._buildSpawns();
     this._buildCeilings();
+    this._buildLadders();
     this._buildLabels();
+  }
+
+  // 站在 (x, z, y) 时是否挂在梯子上
+  ladderAt(x, z, y) {
+    for (let i = 0; i < this.ladders.length; i++) {
+      const L = this.ladders[i];
+      if (x < L.x0 || x > L.x1 || z < L.z0 || z > L.z1) continue;
+      if (y < (L.y0 || 0) - 20 || y > (L.y1 || 400)) continue;
+      return L;
+    }
+    return null;
+  }
+
+  _buildLadders() {
+    this.ladders = this.def.ladders || [];
+    if (!this.ladders.length) return;
+    const mat = new THREE.MeshLambertMaterial({ map: this.tex.metalRed, color: 0xb8b0a4 });
+    for (const L of this.ladders) {
+      const y0 = L.y0 || 0;
+      const y1 = L.y1 || WALL_H;
+      const h = y1 - y0;
+      const midY = (y0 + y1) / 2;
+      const cx = (L.x0 + L.x1) / 2;
+      const cz = (L.z0 + L.z1) / 2;
+      const alongZ = (L.face || 'x+')[0] === 'x';   // 梯面垂直 X 轴 → 横杆沿 Z 铺
+      const span = alongZ ? (L.z1 - L.z0) : (L.x1 - L.x0);
+      const half = Math.max(10, span / 2 - 10);
+      const g = new THREE.Group();
+
+      const railGeo = new THREE.BoxGeometry(6, h, 6);
+      for (const s of [-1, 1]) {
+        const rail = new THREE.Mesh(railGeo, mat);
+        if (alongZ) rail.position.set(cx, midY, cz + s * half);
+        else rail.position.set(cx + s * half, midY, cz);
+        g.add(rail);
+      }
+      const rungGeo = alongZ
+        ? new THREE.BoxGeometry(5, 5, half * 2)
+        : new THREE.BoxGeometry(half * 2, 5, 5);
+      const rungs = Math.max(2, Math.floor(h / 40));
+      for (let i = 1; i < rungs; i++) {
+        const r = new THREE.Mesh(rungGeo, mat);
+        r.position.set(cx, y0 + (h * i) / rungs, cz);
+        g.add(r);
+      }
+      this.scene.add(g);
+    }
   }
 
   _rasterize() {
@@ -333,13 +382,15 @@ export class GameMap {
   }
 
   _buildWalls() {
-    const geos = [];
+    // 三种墙面按格里位置分桶：整张图只有一种砖墙会非常单调
+    const buckets = [[], [], []];
     const t = WALL_T;
     for (let r = 0; r < GRID; r++) {
       for (let c = 0; c < GRID; c++) {
         if (this.grid[r * GRID + c] !== 1) continue;
         const { x, z } = this.tileToWorld(c, r);
         const half = TILE / 2;
+        const bucket = buckets[(c * 7 + r * 13) % 3];
         // 北 / 南 / 西 / 东
         const edges = [
           { dx: 0, dz: -1, nx: 0, nz: -1 },
@@ -358,18 +409,22 @@ export class GameMap {
             g = this._boxGeo(t, h, TILE + t, 128);
             g.translate(x + e.nx * (half + t / 2 - 2), h / 2, z);
           }
-          geos.push(g);
+          bucket.push(g);
         }
       }
     }
-    if (!geos.length) return;
-    const merged = mergeGeometries(geos, false);
-    geos.forEach((g) => g.dispose());
-    this._applyLighting(merged);
-    const mat = new THREE.MeshLambertMaterial({ map: this.tex.sand, vertexColors: true });
-    const mesh = new THREE.Mesh(merged, mat);
-    this.scene.add(mesh);
-    this.solids.push(mesh);
+    const wallTex = [this.tex.sand, this.tex.sand2, this.tex.sand3];
+    for (let i = 0; i < buckets.length; i++) {
+      const geos = buckets[i];
+      if (!geos.length) continue;
+      const merged = mergeGeometries(geos, false);
+      geos.forEach((g) => g.dispose());
+      this._applyLighting(merged);
+      const mat = new THREE.MeshLambertMaterial({ map: wallTex[i], vertexColors: true });
+      const mesh = new THREE.Mesh(merged, mat);
+      this.scene.add(mesh);
+      this.solids.push(mesh);
+    }
 
     // 顶点级碰撞体：把整张墙网按格拆成 AABB（用于射线与玩家碰撞）
     // 用合并后的三角形做碰撞代价过高，这里用格网表达：
@@ -703,45 +758,69 @@ export class GameMap {
     const goalKey = b.cz * GRID + b.cx;
     if (startKey === goalKey) return [];
 
-    const open = new Map();
-    const closed = new Set();
-    const gScore = new Map();
+    const gScore = new Map([[startKey, 0]]);
     const came = new Map();
+    const closed = new Set();
     const h = (cx, cz) => Math.hypot(cx - b.cx, cz - b.cz);
-    gScore.set(startKey, 0);
-    open.set(startKey, { cx: a.cx, cz: a.cz, f: h(a.cx, a.cz) });
+
+    // 二叉堆：原来用 Map 线性找最小 f，每个节点都要扫一遍整个 open 集，
+    // 40×40 网格还撑得住，但每个 BOT 每 2 秒跑一次就白烧 CPU。
+    const heap = [];
+    const push = (node) => {
+      heap.push(node);
+      let i = heap.length - 1;
+      while (i > 0) {
+        const par = (i - 1) >> 1;
+        if (heap[par].f <= heap[i].f) break;
+        const t = heap[par]; heap[par] = heap[i]; heap[i] = t;
+        i = par;
+      }
+    };
+    const pop = () => {
+      const top = heap[0];
+      const last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = i * 2 + 1, r = l + 1;
+          let s = i;
+          if (l < heap.length && heap[l].f < heap[s].f) s = l;
+          if (r < heap.length && heap[r].f < heap[s].f) s = r;
+          if (s === i) break;
+          const t = heap[s]; heap[s] = heap[i]; heap[i] = t;
+          i = s;
+        }
+      }
+      return top;
+    };
+
+    push({ key: startKey, cx: a.cx, cz: a.cz, f: h(a.cx, a.cz) });
 
     let guard = 0;
-    while (open.size && guard++ < 6000) {
-      let bestKey = null, bestF = Infinity;
-      for (const [k, v] of open) {
-        if (v.f < bestF) { bestF = v.f; bestKey = k; }
-      }
-      if (bestKey === null) break;
-      const cur = open.get(bestKey);
-      open.delete(bestKey);
-      if (bestKey === goalKey) {
+    while (heap.length && guard++ < 8000) {
+      const cur = pop();
+      if (closed.has(cur.key)) continue;   // 堆里可能有同一个节点的旧副本
+      closed.add(cur.key);
+      if (cur.key === goalKey) {
         const path = [];
         let k = goalKey;
         while (k !== startKey) {
-          const cx = k % GRID, cz = Math.floor(k / GRID);
-          const p = this.tileToWorld(cx, cz);
-          path.push(p);
+          path.push(this.tileToWorld(k % GRID, Math.floor(k / GRID)));
           k = came.get(k);
           if (k === undefined) break;
         }
         path.reverse();
         return path;
       }
-      closed.add(bestKey);
       for (const nb of this.neighbors(cur.cx, cur.cz)) {
         const nk = nb.cz * GRID + nb.cx;
         if (closed.has(nk)) continue;
-        const tentative = (gScore.get(bestKey) ?? 0) + nb.cost;
+        const tentative = (gScore.get(cur.key) ?? 0) + nb.cost;
         if (tentative < (gScore.get(nk) ?? Infinity)) {
-          came.set(nk, bestKey);
+          came.set(nk, cur.key);
           gScore.set(nk, tentative);
-          open.set(nk, { cx: nb.cx, cz: nb.cz, f: tentative + h(nb.cx, nb.cz) });
+          push({ key: nk, cx: nb.cx, cz: nb.cz, f: tentative + h(nb.cx, nb.cz) });
         }
       }
     }

@@ -8,6 +8,7 @@
 //  灯光数量永远不变。同理，火花/弹孔/曳光/弹壳全部预分配复用。
 // ============================================================
 import * as THREE from 'three';
+import { GRENADE_FUSE } from './config.js';
 import { applyDamage } from './weapons.js';
 import * as Sfx from './audio.js';
 
@@ -469,7 +470,7 @@ export class Grenade {
     this.pos = origin.clone();
     this.vel = dir.clone().multiplyScalar(kind === 'he' ? 1000 : 950);
     this.vel.y += 110;
-    this.fuse = kind === 'he' ? 3.0 : kind === 'flash' ? 2.0 : 1.8;
+    this.fuse = GRENADE_FUSE[kind] || 3.0;
     this.dead = false;
     this.bounces = 0;
 
