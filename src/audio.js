@@ -1,23 +1,119 @@
 // ============================================================
 //  audio.js — WebAudio 程序化音效（无外部音源，规避版权素材）
+//
+//  信号链：
+//    声源 → [距离低通] → [HRTF Panner] ─┬→ master ─→ 压缩器 → 输出
+//                                       └→ 混响发送 → 卷积混响 ─┘
+//
+//  三件事决定"枪声像不像"：
+//    1. 压缩器 —— 把并发枪声粘成一个整体，避免削波糊成一团
+//    2. 卷积混响 —— 补上空间尾音，室外 0.17，室内可上调
+//    3. 分层合成 —— 爆裂 / 枪身 / 胸腔 / 机械，四层各管一段频率
 // ============================================================
 import { SETTINGS_DEFAULT } from './config.js';
 
 let ctx = null;
-let master = null;
+let master = null;      // 总音量，setVolume 控制这里
+let comp = null;        // 总线压缩器
+let reverbIn = null;    // 混响发送量
+let reverbWet = null;   // 混响返回量
+let conv = null;
 let noiseBuf = null;
 export let volume = SETTINGS_DEFAULT.volume;
+
+// 室外混响比例（半开放地图的折中值；纯室内可上调到 0.3+）
+const OUTDOOR_WET = 0.17;
+
+// 各武器四层合成的参数表
+const GUN = {
+  pistol: { crack: 2100, body: 700, sub: 150, decay: 0.10, gain: 0.55, mechFreq: 3800 },
+  deagle: { crack: 1500, body: 520, sub: 92, decay: 0.22, gain: 0.88, mechFreq: 3200 },
+  smg: { crack: 2500, body: 860, sub: 178, decay: 0.07, gain: 0.46, mechFreq: 4300 },
+  ak47: { crack: 1350, body: 430, sub: 108, decay: 0.17, gain: 0.82, mechFreq: 3400 },
+  m4a1: { crack: 1750, body: 520, sub: 122, decay: 0.15, gain: 0.74, mechFreq: 3600 },
+  awp: { crack: 950, body: 300, sub: 68, decay: 0.58, gain: 1.00, mechFreq: 2600 },
+  default: { crack: 2000, body: 650, sub: 140, decay: 0.12, gain: 0.60, mechFreq: 3600 },
+};
+
+// 程序化脉冲响应：指数衰减噪声 + 高频加速衰减 + 稀疏早期反射
+function buildImpulse(seconds = 1.25, decay = 3.1) {
+  const rate = ctx.sampleRate;
+  const len = Math.max(1, Math.floor(rate * seconds));
+  const buf = ctx.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, decay);
+      const n = (Math.random() * 2 - 1) * env;
+      // 系数随 t 变小 → 尾音逐渐变暗，真实空间都是这样
+      const a = 0.34 + 0.62 * (1 - t);
+      lp += (n - lp) * a;
+      d[i] = lp;
+    }
+    // 早期反射：4 个稀疏脉冲，给"墙面"一个定位线索
+    const taps = [0.011, 0.019, 0.031, 0.047];
+    taps.forEach((tt, k) => {
+      const idx = Math.floor(tt * rate) + (ch ? 37 : 0);
+      if (idx < len) d[idx] += (0.55 - k * 0.1) * (ch ? -1 : 1);
+    });
+  }
+  // 峰值归一化：低通会吃掉大量能量，不补偿的话混响几乎听不见
+  let peak = 0;
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      const v = Math.abs(d[i]);
+      if (v > peak) peak = v;
+    }
+  }
+  const k = peak > 0 ? 0.92 / peak : 1;
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] *= k;
+  }
+  return buf;
+}
 
 export function initAudio() {
   if (ctx) return ctx;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return null;
   ctx = new AC();
+
+  // 压缩器放在最末端，作用等同调音台的限幅器。
+  // 参数取"只压峰值"的设定：正常单发音量几乎不变，齐射时才收紧，
+  // 否则阈值压太低会把所有枪声一起闷掉。
+  comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -8;
+  comp.knee.value = 6;
+  comp.ratio.value = 8;
+  comp.attack.value = 0.001;
+  comp.release.value = 0.12;
+
+  // 压缩会削掉峰值，用 makeup 把整体电平补回来（峰值仍低于 1.0，不会削波）
+  const makeup = ctx.createGain();
+  makeup.gain.value = 1.7;
+  comp.connect(makeup);
+  makeup.connect(ctx.destination);
+
   master = ctx.createGain();
   master.gain.value = volume;
-  master.connect(ctx.destination);
+  master.connect(comp);
 
-  // 预生成 2 秒白噪声
+  // 混响支路：send → 卷积 → 返回，返回后同样过压缩器
+  reverbIn = ctx.createGain();
+  reverbIn.gain.value = OUTDOOR_WET;
+  conv = ctx.createConvolver();
+  conv.buffer = buildImpulse();
+  reverbWet = ctx.createGain();
+  reverbWet.gain.value = 1.0;
+  reverbIn.connect(conv);
+  conv.connect(reverbWet);
+  reverbWet.connect(master);
+
+  // 预生成 2 秒白噪声（循环取样，每次随机播放速率去相关）
   const len = ctx.sampleRate * 2;
   noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
   const d = noiseBuf.getChannelData(0);
@@ -40,105 +136,168 @@ function noiseSource() {
   return s;
 }
 
-// 距离衰减 + 声像
-function spatial(pos, listener) {
-  const out = ctx.createGain();
-  const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-  let gain = 1;
-  if (pos && listener) {
-    const dx = pos.x - listener.x, dy = (pos.y || 0) - (listener.y || 0), dz = pos.z - listener.z;
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    gain = Math.max(0, 1 - dist / 2600) ** 1.6;
-    if (pan) {
-      const yaw = listener.yaw || 0;
-      const right = dx * Math.cos(yaw) - dz * Math.sin(yaw);
-      pan.pan.value = Math.max(-1, Math.min(1, right / 900));
+// 同步 AudioListener：PannerNode 用的是世界坐标，listener 不跟着走方位就全错
+export function setListener(l) {
+  if (!ctx || !l) return;
+  const L = ctx.listener;
+  if (!L) return;
+  const yaw = l.yaw || 0;
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  try {
+    if (L.positionX) {
+      L.positionX.value = l.x; L.positionY.value = l.y; L.positionZ.value = l.z;
+      L.forwardX.value = fx; L.forwardY.value = 0; L.forwardZ.value = fz;
+      L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0;
+    } else if (L.setPosition) {
+      L.setPosition(l.x, l.y, l.z);
+      L.setOrientation(fx, 0, fz, 0, 1, 0);
     }
-  }
-  out.gain.value = gain;
-  if (pan) {
-    out.connect(pan);
-    pan.connect(master);
-    return out;
-  }
-  out.connect(master);
-  return out;
+  } catch (e) { /* 老旧实现忽略 */ }
 }
 
-function burst(dest, t, { dur = 0.12, freq = 2400, q = 1, gain = 0.6, type = 'lowpass', decay = 0.09 }) {
+// 返回一个输入节点；内部按距离决定走 2D 直连还是 HRTF 空间化
+function spatial(pos, listener) {
+  const input = ctx.createGain();
+  if (!pos || !listener) {
+    input.connect(master);
+    input.connect(reverbIn);
+    return input;
+  }
+  const dx = pos.x - listener.x;
+  const dy = (pos.y || 0) - (listener.y || 0);
+  const dz = pos.z - listener.z;
+  const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+  // 自己的枪声/脚步不做 HRTF：0 距离附近声像会被甩到侧面，反而不自然
+  if (dist < 110) {
+    input.connect(master);
+    input.connect(reverbIn);
+    return input;
+  }
+
+  setListener(listener);
+
+  // 空气吸收：远处只剩低频，"远方的交火"就是这么来的
+  const air = ctx.createBiquadFilter();
+  air.type = 'lowpass';
+  air.frequency.value = Math.max(420, 18000 * Math.exp(-dist / 1400));
+  air.Q.value = 0.4;
+
+  const pan = ctx.createPanner();
+  pan.panningModel = 'HRTF';
+  pan.distanceModel = 'inverse';
+  pan.refDistance = 140;
+  pan.rolloffFactor = 1.05;
+  pan.maxDistance = 6000;
+  pan.coneInnerAngle = 360;
+  const py = pos.y || 0;
+  if (pan.positionX) {
+    pan.positionX.value = pos.x; pan.positionY.value = py; pan.positionZ.value = pos.z;
+  } else if (pan.setPosition) {
+    pan.setPosition(pos.x, py, pos.z);
+  }
+
+  input.connect(air);
+  air.connect(pan);
+  pan.connect(master);
+  pan.connect(reverbIn);
+  return input;
+}
+
+// 噪声爆裂：attack 是"瞬态"的来源，缺了它声音就是软的
+function burst(dest, t, { dur = 0.12, freq = 2400, q = 1, gain = 0.6, type = 'lowpass', decay = 0.09, attack = 0.002 }) {
   const src = noiseSource();
   const f = ctx.createBiquadFilter();
   f.type = type; f.frequency.value = freq; f.Q.value = q;
   const g = ctx.createGain();
-  g.gain.setValueAtTime(gain, t);
-  g.gain.exponentialRampToValueAtTime(0.0008, t + decay);
+  const peak = Math.max(0.0005, gain);
+  const atkEnd = t + Math.max(0.0005, attack);
+  const relEnd = t + Math.max(attack + 0.012, decay);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, atkEnd);
+  g.gain.exponentialRampToValueAtTime(0.0008, relEnd);
   src.connect(f); f.connect(g); g.connect(dest);
-  src.start(t); src.stop(t + dur + 0.05);
+  src.start(t);
+  src.stop(t + Math.max(dur, relEnd - t) + 0.08);
 }
 
+// 次低频正弦：胸腔冲击
 function thump(dest, t, freq = 90, dur = 0.18, gain = 0.5) {
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'sine';
-  o.frequency.setValueAtTime(freq * 1.6, t);
-  o.frequency.exponentialRampToValueAtTime(freq * 0.55, t + dur);
-  g.gain.setValueAtTime(gain, t);
+  o.frequency.setValueAtTime(freq * 1.7, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(28, freq * 0.55), t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0005, gain), t + 0.004);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   o.connect(g); g.connect(dest);
   o.start(t); o.stop(t + dur + 0.02);
+}
+
+// 机械咬合声：8ms 的窄带脉冲，枪的"金属感"全在这一层
+function click(dest, t, freq = 3800, gain = 0.25) {
+  const src = noiseSource();
+  const f = ctx.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 7;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0004, gain), t + 0.0008);
+  g.gain.exponentialRampToValueAtTime(0.0006, t + 0.014);
+  src.connect(f); f.connect(g); g.connect(dest);
+  src.start(t); src.stop(t + 0.035);
+}
+
+// 四层合成：爆裂（脆）/ 枪身（厚）/ 胸腔（重）/ 机械（金属）
+function gunshot(dest, t, kind) {
+  const G = GUN[kind] || GUN.default;
+  burst(dest, t, {
+    freq: G.crack, gain: G.gain * 0.85, decay: G.decay * 0.55,
+    type: 'highpass', attack: 0.0012,
+  });
+  burst(dest, t, {
+    freq: G.body, gain: G.gain * 0.75, decay: G.decay,
+    type: 'lowpass', q: 0.9, attack: 0.0025,
+  });
+  thump(dest, t, G.sub, G.decay * 1.25, G.gain * 0.5);
+  click(dest, t + 0.004, G.mechFreq, G.gain * 0.3);
 }
 
 export function playShot(kind, pos, listener) {
   if (!ctx) return;
   const t = now();
   const dest = spatial(pos, listener);
-  switch (kind) {
-    case 'pistol':
-      burst(dest, t, { freq: 2100, gain: 0.5, decay: 0.09 });
-      thump(dest, t, 150, 0.1, 0.28);
-      break;
-    case 'deagle':
-      burst(dest, t, { freq: 1500, gain: 0.8, decay: 0.2 });
-      thump(dest, t, 95, 0.22, 0.55);
-      break;
-    case 'smg':
-      burst(dest, t, { freq: 2600, gain: 0.42, decay: 0.06 });
-      thump(dest, t, 180, 0.07, 0.2);
-      break;
-    case 'ak47':
-    case 'm4a1':
-      burst(dest, t, { freq: kind === 'ak47' ? 1400 : 1800, gain: 0.75, decay: 0.16 });
-      burst(dest, t + 0.005, { freq: 5200, gain: 0.25, decay: 0.05, type: 'highpass' });
-      thump(dest, t, 110, 0.16, 0.5);
-      break;
-    case 'awp':
-      burst(dest, t, { freq: 1000, gain: 0.95, decay: 0.5 });
-      burst(dest, t + 0.01, { freq: 6000, gain: 0.3, decay: 0.08, type: 'highpass' });
-      thump(dest, t, 70, 0.45, 0.75);
-      break;
-    case 'knife':
-      burst(dest, t, { freq: 4200, gain: 0.3, decay: 0.07, type: 'highpass' });
-      break;
-    default:
-      burst(dest, t, { freq: 2000, gain: 0.5, decay: 0.1 });
+  if (kind === 'knife') {
+    burst(dest, t, { freq: 4200, gain: 0.28, decay: 0.075, type: 'highpass', attack: 0.005 });
+    burst(dest, t + 0.032, { freq: 1500, gain: 0.12, decay: 0.05, type: 'bandpass', q: 3 });
+    return;
   }
+  gunshot(dest, t, kind);
 }
 
 export function playFootstep(pos, listener, onSand = true) {
   if (!ctx) return;
   const t = now();
   const dest = spatial(pos, listener);
-  burst(dest, t, { freq: onSand ? 900 : 1400, gain: 0.16, decay: 0.06 });
+  const jitter = 0.92 + Math.random() * 0.18;
+  burst(dest, t, {
+    freq: (onSand ? 900 : 1500) * jitter, gain: 0.17, decay: 0.065,
+    type: 'lowpass', q: 1.4, attack: 0.003,
+  });
+  // 沙地上再加一点细碎的摩擦高频
+  if (onSand) burst(dest, t + 0.006, { freq: 5200, gain: 0.05, decay: 0.04, type: 'highpass' });
 }
 
 export function playReload() {
   if (!ctx) return;
   const t = now();
   const dest = spatial(null, null);
-  [0, 0.35].forEach((d, i) => {
-    burst(dest, t + d, { freq: 3000, gain: 0.22, decay: 0.05, type: 'bandpass', q: 4 });
-    thump(dest, t + d, 220, 0.05, 0.14);
-  });
+  // 弹匣脱出 → 插入 → 拉机柄，三段机械动作
+  click(dest, t, 2600, 0.20);
+  burst(dest, t + 0.02, { freq: 900, gain: 0.10, decay: 0.07, type: 'lowpass' });
+  click(dest, t + 0.34, 1800, 0.26);
+  thump(dest, t + 0.34, 240, 0.07, 0.16);
+  click(dest, t + 0.52, 3200, 0.18);
 }
 
 export function playHit(headshot = false) {
@@ -146,9 +305,11 @@ export function playHit(headshot = false) {
   const t = now();
   const dest = spatial(null, null);
   if (headshot) {
-    thump(dest, t, 1200, 0.09, 0.3);
-    burst(dest, t, { freq: 5000, gain: 0.3, decay: 0.06, type: 'bandpass', q: 6 });
+    // 爆头：金属脆响 + 短促提示音，跟枪声要能分开
+    burst(dest, t, { freq: 5000, gain: 0.30, decay: 0.07, type: 'bandpass', q: 6, attack: 0.001 });
+    thump(dest, t, 1200, 0.09, 0.28);
   } else {
+    burst(dest, t, { freq: 1400, gain: 0.14, decay: 0.05, type: 'bandpass', q: 3 });
     thump(dest, t, 500, 0.05, 0.18);
   }
 }
@@ -171,23 +332,36 @@ export function playExplosion(pos, listener) {
   if (!ctx) return;
   const t = now();
   const dest = spatial(pos, listener);
-  burst(dest, t, { freq: 700, gain: 1.0, decay: 1.1, dur: 1.4 });
-  burst(dest, t, { freq: 90, gain: 0.9, decay: 1.4, dur: 1.6, type: 'lowpass' });
+  burst(dest, t, { freq: 700, gain: 1.0, decay: 1.1, dur: 1.4, attack: 0.004 });
+  burst(dest, t, { freq: 90, gain: 0.9, decay: 1.5, dur: 1.6, type: 'lowpass', attack: 0.006 });
   thump(dest, t, 45, 1.2, 0.9);
+  // 碎片飞散的高频尾巴
+  burst(dest, t + 0.18, { freq: 4200, gain: 0.22, decay: 0.6, type: 'highpass', attack: 0.02 });
 }
 
 export function playFlashbang(pos, listener) {
   if (!ctx) return;
   const t = now();
   const dest = spatial(pos, listener);
-  burst(dest, t, { freq: 9000, gain: 0.7, decay: 0.35, type: 'highpass' });
+  burst(dest, t, { freq: 9000, gain: 0.7, decay: 0.35, type: 'highpass', attack: 0.0008 });
   thump(dest, t, 300, 0.5, 0.3);
+  // 耳鸣：2.6kHz 正弦缓慢衰减，模拟暂时性听阈偏移
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(2650, t);
+  o.frequency.linearRampToValueAtTime(2300, t + 1.6);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.05, t + 0.08);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+  o.connect(g); g.connect(master);
+  o.start(t); o.stop(t + 1.9);
 }
 
 export function playPlantTick() {
   if (!ctx) return;
   const t = now();
-  burst(spatial(null, null), t, { freq: 1200, gain: 0.2, decay: 0.04, type: 'bandpass', q: 8 });
+  burst(spatial(null, null), t, { freq: 1200, gain: 0.2, decay: 0.04, type: 'bandpass', q: 8, attack: 0.001 });
 }
 
 export function playPickup() {
@@ -197,7 +371,8 @@ export function playPickup() {
   o.type = 'triangle';
   o.frequency.setValueAtTime(660, t);
   o.frequency.exponentialRampToValueAtTime(1320, t + 0.08);
-  g.gain.setValueAtTime(0.18, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.18, t + 0.006);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
   o.connect(g); g.connect(master);
   o.start(t); o.stop(t + 0.14);
@@ -209,7 +384,8 @@ export function playUIClick() {
   const o = ctx.createOscillator(), g = ctx.createGain();
   o.type = 'square';
   o.frequency.value = 900;
-  g.gain.setValueAtTime(0.08, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.08, t + 0.003);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
   o.connect(g); g.connect(master);
   o.start(t); o.stop(t + 0.06);
@@ -222,7 +398,7 @@ export function playRoundStart() {
   o.type = 'sawtooth';
   o.frequency.setValueAtTime(220, t);
   o.frequency.exponentialRampToValueAtTime(440, t + 0.25);
-  g.gain.setValueAtTime(0.001, t);
+  g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(0.12, t + 0.05);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
   o.connect(g); g.connect(master);

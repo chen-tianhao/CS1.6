@@ -10,27 +10,12 @@ import { getTextures, makeSkyTexture } from './textures.js';
 const WALL_H = 440;
 const WALL_T = 24;
 
-// 区域定义（单位：world units，X 向东，Z 向南）
-const AREAS = [
-  { name: 'T Spawn',      x0: -500, x1: 500,  z0: 1200,  z1: 1900, kind: 'tspawn' },
-  { name: 'T Long',       x0: 400,  x1: 1000, z0: 1380,  z1: 1720, kind: 'road' },
-  { name: 'Long A',       x0: 900,  x1: 1280, z0: -520,  z1: 1700, kind: 'road' },
-  { name: 'A Site',       x0: 900,  x1: 1700, z0: -920,  z1: -380, kind: 'site' },
-  { name: 'CT Ramp',      x0: 320,  x1: 1000, z0: -1120, z1: -700, kind: 'road' },
-  { name: 'CT Spawn',     x0: -620, x1: 420,  z0: -1520, z1: -880, kind: 'ctspawn' },
-  { name: 'CT Mid',       x0: -320, x1: 320,  z0: -1080, z1: -680, kind: 'road' },
-  { name: 'Top Mid',      x0: -320, x1: 320,  z0: -700,  z1: -180, kind: 'road' },
-  { name: 'Mid',          x0: -160, x1: 160,  z0: -250,  z1: 1350, kind: 'road' },
-  { name: 'Lower Tunnel', x0: -980, x1: -120, z0: 700,   z1: 960,  kind: 'tunnel' },
-  { name: 'B Tunnel',     x0: -1280,x1: -880, z0: -470,  z1: 1700, kind: 'tunnel' },
-  { name: 'B Site',       x0: -1720,x1: -880, z0: -920,  z1: -300, kind: 'site' },
-  { name: 'B Doors',      x0: -1480,x1: -380, z0: -1280, z1: -860, kind: 'road' },
-  { name: 'T Tunnel',     x0: -980, x1: -420, z0: 1380,  z1: 1720, kind: 'tunnel' },
-];
-
 export class GameMap {
-  constructor(scene) {
+  // def 来自 src/maps/*.js：纯数据，渲染与碰撞全部由此推导
+  constructor(scene, def) {
+    if (!def) throw new Error('GameMap: 缺少地图定义，见 src/maps/index.js');
     this.scene = scene;
+    this.def = def;
     this.tex = getTextures();
     this.colliders = [];       // {x0,x1,y0,y1,z0,z1}
     this.solids = [];          // 视觉网格
@@ -38,10 +23,8 @@ export class GameMap {
     this.grid = new Uint8Array(GRID * GRID); // 0 = 实心, 1 = 地面
     this.blocked = new Uint8Array(GRID * GRID); // 1 = 道具占位（不可通行）
     this.spawns = { T: [], CT: [] };
-    this.sites = {
-      A: { name: 'A', x0: 950, x1: 1650, z0: -880, z1: -420, label: 'A' },
-      B: { name: 'B', x0: -1680, x1: -920, z0: -880, z1: -340, label: 'B' },
-    };
+    this.sites = def.sites;
+    this.label = def.label || def.id || '';
     this._build();
   }
 
@@ -92,7 +75,7 @@ export class GameMap {
   }
 
   _rasterize() {
-    for (const a of AREAS) {
+    for (const a of this.def.areas) {
       const c0 = Math.floor((a.x0 + WORLD_HALF) / TILE);
       const c1 = Math.floor((a.x1 + WORLD_HALF) / TILE);
       const r0 = Math.floor((a.z0 + WORLD_HALF) / TILE);
@@ -110,10 +93,11 @@ export class GameMap {
     scene.fog = new THREE.Fog(0xd8c9ab, 1800, 5000);
     scene.background = new THREE.Color(0x9fb6cc);
 
-    const hemi = new THREE.HemisphereLight(0xcfe2f2, 0x9c8055, 1.05);
+    // 光强比原实现略低：顶点 AO 只压暗不加亮，整体太亮会让开阔地面过曝
+    const hemi = new THREE.HemisphereLight(0xcfe2f2, 0x9c8055, 0.9);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(0xfff3d6, 1.55);
+    const sun = new THREE.DirectionalLight(0xfff3d6, 1.3);
     sun.position.set(-900, 1500, 700);
     scene.add(sun);
 
@@ -174,13 +158,95 @@ export class GameMap {
     return m;
   }
 
+  // ---------- 顶点级环境光遮蔽 ----------
+  // GoldSrc 的纵深来自每面独立的 lightmap；这里用栅格近似等价信息：
+  // 逐顶点采样周围空间是否被墙体/道具/顶盖占据，把结果写进顶点色。
+  // 成本是 O(顶点数)，纯查表，不需要射线。
+  _openAt(x, y, z) {
+    if (y > WALL_H - 12) return true;   // 高过墙顶，无遮挡
+    if (y < 0) return false;            // 地面以下，被地面挡住
+    const { cx, cz } = this.worldToTile(x, z);
+    if (!this.inBounds(cx, cz)) return false;
+    const i = cz * GRID + cx;
+    if (this.grid[i] !== 1) return false;              // 实心墙
+    if (this.blocked[i] === 1 && y < 140) return false; // 箱体/集装箱
+    if (y > WALL_H - 46 && this._hasCeiling(x, z)) return false;
+    return true;
+  }
+
+  _hasCeiling(x, z) {
+    for (const zn of (this.def.ceilings || [])) {
+      if (x >= zn.x0 && x <= zn.x1 && z >= zn.z0 && z <= zn.z1) return true;
+    }
+    return false;
+  }
+
+  _aoFactor(x, y, z, nx, ny, nz) {
+    let occ = 0, total = 0;
+    const sample = (dx, dy, dz, r, w = 1) => {
+      total += w;
+      if (!this._openAt(x + dx * r, y + dy * r, z + dz * r)) occ += w / (1 + r / 70);
+    };
+    const horiz = Math.abs(ny) > 0.7;
+    if (horiz) {
+      // 顶盖下方的地面：整体压暗，表达"见不到天"
+      if (ny > 0 && this._hasCeiling(x, z)) {
+        for (let k = 0; k < 3; k++) { occ += 1.15; total += 1; }
+      }
+      // 环形采样，抓墙体与道具在脚下的落影。
+      // 半径取小一点，否则每个格子都会整片变暗，形成规则条纹。
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const dx = Math.cos(a), dz = Math.sin(a);
+        for (let k = 1; k <= 3; k++) sample(dx, 0, dz, k * 34);
+      }
+    } else {
+      // 垂直面：沿切线方向与竖直方向采样，跳过法线方向，
+      // 否则墙面会被自己所在的那堵墙整片压暗。
+      const len = Math.hypot(nx, nz) || 1;
+      const ux = -nz / len, uz = nx / len;
+      for (let k = 1; k <= 3; k++) {
+        sample(ux, 0, uz, k * 42);
+        sample(-ux, 0, -uz, k * 42);
+        // 向上是天空光；向下代表被地面挡住的那半环境光，权重加倍
+        sample(0, 1, 0, k * 42, 0.8);
+        sample(0, -1, 0, k * 42, 2.2);
+      }
+    }
+    const ratio = total > 0 ? occ / total : 0;
+    // 地面用较弱的对比，避免砖块之间出现规则条纹；
+    // 墙面需要更强的对比才有 GoldSrc 那种自上而下的光照梯度。
+    const strength = horiz ? 1.35 : 1.9;
+    // 下限保证暗部仍有细节，不压成黑块
+    return Math.max(0.34, 1 - ratio * strength);
+  }
+
+  _applyAO(geo) {
+    const pos = geo.attributes.position;
+    const nor = geo.attributes.normal;
+    if (!pos || !nor) return geo;
+    const n = pos.count;
+    const colors = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const a = this._aoFactor(
+        pos.getX(i), pos.getY(i), pos.getZ(i),
+        nor.getX(i), nor.getY(i), nor.getZ(i),
+      );
+      colors[i * 3] = a;
+      colors[i * 3 + 1] = a;
+      colors[i * 3 + 2] = a;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    return geo;
+  }
+
   _buildFloor() {
     const geos = [];
     for (let r = 0; r < GRID; r++) {
       for (let c = 0; c < GRID; c++) {
         if (this.grid[r * GRID + c] !== 1) continue;
         const { x, z } = this.tileToWorld(c, r);
-        const g = new THREE.PlaneGeometry(TILE, TILE);
+        const g = new THREE.PlaneGeometry(TILE, TILE, 2, 2);
         g.rotateX(-Math.PI / 2);
         // UV 按世界尺寸铺贴
         const uv = g.attributes.uv;
@@ -194,7 +260,8 @@ export class GameMap {
     if (!geos.length) return;
     const merged = mergeGeometries(geos, false);
     geos.forEach((g) => g.dispose());
-    const mat = new THREE.MeshLambertMaterial({ map: this.tex.floor });
+    this._applyAO(merged);
+    const mat = new THREE.MeshLambertMaterial({ map: this.tex.floor, vertexColors: true });
     const mesh = new THREE.Mesh(merged, mat);
     mesh.position.y = 0;
     this.scene.add(mesh);
@@ -234,7 +301,8 @@ export class GameMap {
     if (!geos.length) return;
     const merged = mergeGeometries(geos, false);
     geos.forEach((g) => g.dispose());
-    const mat = new THREE.MeshLambertMaterial({ map: this.tex.sand });
+    this._applyAO(merged);
+    const mat = new THREE.MeshLambertMaterial({ map: this.tex.sand, vertexColors: true });
     const mesh = new THREE.Mesh(merged, mat);
     this.scene.add(mesh);
     this.solids.push(mesh);
@@ -282,133 +350,62 @@ export class GameMap {
   }
 
   _buildProps() {
-    const crateMat = new THREE.MeshLambertMaterial({ map: this.tex.crate });
-    const concMat = new THREE.MeshLambertMaterial({ map: this.tex.concrete });
-    const redMat = new THREE.MeshLambertMaterial({ map: this.tex.metalRed });
-    const blueMat = new THREE.MeshLambertMaterial({ map: this.tex.metalBlue });
-    const greenMat = new THREE.MeshLambertMaterial({ map: this.tex.metalGreen });
-
-    const addCrate = (x, z, size = 96, h = 96, rot = 0, mat = crateMat) => {
-      const g = this._boxGeo(size, h, size, 96);
-      this._addSolid(g, mat, x, h / 2, z, true, rot);
-      // 顶部暗影
-      const top = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({
-        color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false,
-      }));
-      top.rotation.x = -Math.PI / 2;
-      top.position.set(x, h + 0.6, z);
-      this.scene.add(top);
+    const mats = {
+      crate: new THREE.MeshLambertMaterial({ map: this.tex.crate }),
+      concrete: new THREE.MeshLambertMaterial({ map: this.tex.concrete }),
+      metalRed: new THREE.MeshLambertMaterial({ map: this.tex.metalRed }),
+      metalBlue: new THREE.MeshLambertMaterial({ map: this.tex.metalBlue }),
+      metalGreen: new THREE.MeshLambertMaterial({ map: this.tex.metalGreen }),
     };
+    const pick = (name) => mats[name] || mats.concrete;
 
-    const addBarrel = (x, z) => {
-      const g = new THREE.CylinderGeometry(30, 30, 96, 12);
-      const m = new THREE.Mesh(g, redMat);
-      m.position.set(x, 48, z);
-      this.scene.add(m);
-      this.solids.push(m);
-      this.colliders.push({ x0: x - 30, x1: x + 30, y0: 0, y1: 96, z0: z - 30, z1: z + 30 });
-    };
-
-    // ---- A 点箱堆 ----
-    const aCrates = [
-      [1150, -700, 120, 120], [1270, -700, 120, 120], [1150, -580, 100, 100],
-      [1450, -820, 110, 110], [1560, -800, 110, 110], [1500, -620, 120, 120],
-    ];
-    for (const [x, z, s, h] of aCrates) addCrate(x, z, s, h, (Math.random() - 0.5) * 0.1);
-
-    // ---- B 点箱堆 + 集装箱 ----
-    addCrate(-1450, -700, 120, 120);
-    addCrate(-1330, -700, 120, 120);
-    addCrate(-1450, -560, 110, 110);
-    addCrate(-1120, -800, 120, 120);
-    addCrate(-1000, -640, 110, 110);
-    {
-      const g = this._boxGeo(340, 250, 120, 128);
-      this._addSolid(g, blueMat, -1250, 125, -430, true);
-    }
-    {
-      const g = this._boxGeo(120, 250, 300, 128);
-      this._addSolid(g, greenMat, -960, 125, -600, true);
-    }
-
-    // ---- T Spawn ----
-    addCrate(300, 1500, 110, 110);
-    addCrate(300, 1610, 110, 110);
-    {
-      const g = this._boxGeo(200, 120, 90, 128);
-      this._addSolid(g, concMat, -300, 60, 1700, true);
-    }
-    addBarrel(-420, 1350);
-    addBarrel(-380, 1420);
-
-    // ---- Long A 掩体（长通道上的车） ----
-    {
-      const g1 = this._boxGeo(200, 90, 110, 96);
-      this._addSolid(g1, blueMat, 1120, 45, 980, true);
-      const g2 = this._boxGeo(130, 70, 108, 96);
-      this._addSolid(g2, blueMat, 1120, 125, 980, true);
-    }
-    addCrate(1010, 460, 100, 100);
-    addCrate(1180, -100, 100, 100);
-
-    // ---- Long 大门（双门框） ----
-    {
-      const g = this._boxGeo(24, WALL_H, 90, 128);
-      this._addSolid(g, concMat, 900, WALL_H / 2, 620, true);
-      this._addSolid(this._boxGeo(24, WALL_H, 90, 128), concMat, 1280, WALL_H / 2, 620, true);
-      this._addSolid(this._boxGeo(400, 60, 30, 128), concMat, 1090, WALL_H - 30, 620, true);
+    for (const p of this.def.props || []) {
+      switch (p.t) {
+        case 'crate': {
+          const size = p.s ?? 100;
+          const h = p.h ?? size;
+          // 确定性微抖动：同一张地图每次生成的摆放角度一致
+          const rot = p.rot ?? (((p.x * 13 + p.z * 7) % 100) / 1000 - 0.05);
+          this._addSolid(this._boxGeo(size, h, size, 96), pick('crate'), p.x, h / 2, p.z, true, rot);
+          const top = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({
+            color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false,
+          }));
+          top.rotation.x = -Math.PI / 2;
+          top.position.set(p.x, h + 0.6, p.z);
+          this.scene.add(top);
+          break;
+        }
+        case 'barrel': {
+          const r = p.r ?? 30;
+          const h = p.h ?? 96;
+          const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 12), pick(p.mat || 'metalRed'));
+          m.position.set(p.x, h / 2, p.z);
+          this.scene.add(m);
+          this.solids.push(m);
+          this.colliders.push({ x0: p.x - r, x1: p.x + r, y0: 0, y1: h, z0: p.z - r, z1: p.z + r });
+          break;
+        }
+        case 'box': {
+          const g = this._boxGeo(p.w, p.h, p.d, p.uv ?? 128);
+          this._addSolid(g, pick(p.mat), p.x, p.y ?? p.h / 2, p.z, p.solid !== false, p.rot || 0);
+          break;
+        }
+        case 'blocker':
+          this._addTileBlocker(p.cx, p.cz, pick(p.mat));
+          break;
+        default:
+          break;
+      }
     }
 
-    // ---- Mid 折线（打断 T 出生点到 CT 的直线视野，dust 风格的中路掩体） ----
-    this._addTileBlocker(19, 23, concMat);
-    this._addTileBlocker(18, 17, concMat);
-    this._addTileBlocker(20, 29, concMat);
-
-    // ---- Mid 大门 ----
-    {
-      this._addSolid(this._boxGeo(30, WALL_H, 100, 128), concMat, -160, WALL_H / 2, 300, true);
-      this._addSolid(this._boxGeo(30, WALL_H, 100, 128), concMat, 160, WALL_H / 2, 300, true);
-      this._addSolid(this._boxGeo(360, 60, 30, 128), concMat, 0, WALL_H - 30, 300, true);
-      addCrate(120, 180, 100, 100);
+    // 无碰撞装饰
+    for (const d of this.def.decor || []) {
+      if (d.kind === 'cylinder') {
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(d.r0, d.r1, d.h, 8), pick(d.mat));
+        m.position.set(d.x, d.y, d.z);
+        this.scene.add(m);
+      }
     }
-
-    // ---- Top mid / CT mid ----
-    addCrate(-240, -400, 110, 110);
-    addCrate(240, -420, 110, 110);
-    addBarrel(180, -820);
-
-    // ---- CT Spawn ----
-    {
-      const g = this._boxGeo(240, 130, 110, 128);
-      this._addSolid(g, concMat, -450, 65, -1000, true);
-      this._addSolid(this._boxGeo(180, 90, 100, 128), concMat, 250, 45, -1050, true);
-    }
-    addBarrel(-560, -1400);
-    addCrate(120, -1300, 100, 100);
-
-    // ---- B 通道 ----
-    addCrate(-1180, 900, 100, 100);
-    addCrate(-1000, 300, 100, 100);
-    addBarrel(-1220, 1400);
-    addBarrel(-1180, 1450);
-
-    // ---- Lower tunnel ----
-    addCrate(-500, 830, 100, 100);
-
-    // ---- CT 上 A 坡道 ----
-    addCrate(520, -940, 100, 100);
-    addCrate(760, -1050, 110, 110);
-
-    // ---- B 门 ----
-    this._addSolid(this._boxGeo(30, WALL_H, 110, 128), concMat, -1150, WALL_H / 2, -1000, true);
-    this._addSolid(this._boxGeo(30, WALL_H, 110, 128), concMat, -700, WALL_H / 2, -1000, true);
-    addCrate(-1000, -1120, 100, 100);
-    addCrate(-620, -1140, 100, 100);
-
-    // 地图中心装饰：水塔
-    const towerBase = new THREE.Mesh(new THREE.CylinderGeometry(10, 14, 380, 8), concMat);
-    towerBase.position.set(1780, 190, -700);
-    this.scene.add(towerBase);
   }
 
   // 把地面道具占用的格子在导航栅格中标记为不可通行（防止 BOT 撞箱子）
@@ -435,32 +432,28 @@ export class GameMap {
   }
 
   _buildSpawns() {
-    const tBase = { x: 0, z: 1550 };
-    const ctBase = { x: -100, z: -1300 };
-    for (let i = 0; i < 5; i++) {
-      const ang = (i / 5) * Math.PI * 2;
-      this.spawns.T.push({
-        x: tBase.x + Math.cos(ang) * 190,
-        z: tBase.z + Math.sin(ang) * 110,
-        yaw: 0, // 面向北（-Z，朝地图内部）
-      });
-      const ang2 = (i / 5) * Math.PI * 2 + 0.6;
-      this.spawns.CT.push({
-        x: ctBase.x + Math.cos(ang2) * 200,
-        z: ctBase.z + Math.sin(ang2) * 110,
-        yaw: Math.PI, // 面向南（+Z，朝地图内部）
-      });
+    for (const team of ['T', 'CT']) {
+      const cfg = this.def.spawns && this.def.spawns[team];
+      if (!cfg) continue;
+      const n = cfg.count ?? 5;
+      const phase = cfg.phase || 0;
+      for (let i = 0; i < n; i++) {
+        const ang = (i / n) * Math.PI * 2 + phase;
+        this.spawns[team].push({
+          x: cfg.x + Math.cos(ang) * (cfg.rx ?? 190),
+          z: cfg.z + Math.sin(ang) * (cfg.rz ?? 110),
+          yaw: cfg.yaw || 0,
+        });
+      }
     }
   }
 
   _buildCeilings() {
-    const mat = new THREE.MeshLambertMaterial({ map: this.tex.concrete, side: THREE.DoubleSide });
-    const zones = [
-      { x0: -980, x1: -120, z0: 700, z1: 960 },
-      { x0: -1280, x1: -880, z0: 300, z1: 1700 },
-      { x0: -980, x1: -420, z0: 1380, z1: 1720 },
-    ];
-    for (const zn of zones) {
+    // 隧道顶：压暗一档，配合地面 AO 表达"见不到天"的空间
+    const mat = new THREE.MeshLambertMaterial({
+      map: this.tex.concrete, side: THREE.DoubleSide, color: 0x6f6c66,
+    });
+    for (const zn of (this.def.ceilings || [])) {
       const w = zn.x1 - zn.x0, d = zn.z1 - zn.z0;
       const g = this._boxGeo(w, 30, d, 200);
       const m = new THREE.Mesh(g, mat);
@@ -487,7 +480,7 @@ export class GameMap {
       t.colorSpace = THREE.SRGBColorSpace;
       return t;
     };
-    for (const key of ['A', 'B']) {
+    for (const key of Object.keys(this.sites)) {
       const s = this.sites[key];
       const m = new THREE.Mesh(
         new THREE.PlaneGeometry(420, 420),
@@ -500,7 +493,7 @@ export class GameMap {
   }
 
   siteAt(x, z) {
-    for (const key of ['A', 'B']) {
+    for (const key of Object.keys(this.sites)) {
       const s = this.sites[key];
       if (x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1) return key;
     }

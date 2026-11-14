@@ -6,6 +6,8 @@ import {
   PHYS, RULES, WEAPONS, GEAR, SETTINGS_DEFAULT, BOT_NAMES, TILE, GRID, WORLD_HALF,
 } from './config.js';
 import { GameMap } from './map.js';
+import { getMap, DEFAULT_MAP } from './maps/index.js';
+import { setAnisotropy } from './textures.js';
 import { Player } from './player.js';
 import { BotController } from './bots.js';
 import { Round } from './round.js';
@@ -52,7 +54,13 @@ class Game {
     const canvas = document.getElementById('gl');
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    // 渲染分辨率：上限跟随设备 DPR，但允许在掉帧时降到 1.0
+    this.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    this.pixelRatio = Math.min(this.maxPixelRatio, 1.5);
+    this.renderer.setPixelRatio(this.pixelRatio);
+    this.adaptTimer = 0;
+    // 各向异性取 GPU 上限（通常 16），地面斜视时远处清晰度差别很明显
+    setAnisotropy(this.renderer.capabilities.getMaxAnisotropy());
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.autoClear = false;
@@ -62,7 +70,9 @@ class Game {
     this.camera.rotation.order = 'YXZ';
     this.scene.add(this.camera);
 
-    this.map = new GameMap(this.scene);
+    this.map = new GameMap(this.scene, getMap(this.settings.map || DEFAULT_MAP));
+    const rl = document.querySelector('.radar-label');
+    if (rl) rl.textContent = this.map.label;
     fx.init(this.scene, this.camera, this);
     this.hud = new HUD(this);
     this.round = new Round(this);
@@ -80,6 +90,12 @@ class Game {
 
   resize() {
     const w = window.innerWidth, h = window.innerHeight;
+    // 拖到不同 DPR 的显示器时重新取上限，避免渲染分辨率和屏幕不匹配
+    this.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    if (this.pixelRatio > this.maxPixelRatio) {
+      this.pixelRatio = this.maxPixelRatio;
+      this.renderer.setPixelRatio(this.pixelRatio);
+    }
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
@@ -103,6 +119,12 @@ class Game {
     for (const p of this.players) {
       if (p !== this.localPlayer) {
         if (p.mesh) this.scene.remove(p.mesh);
+        if (p._shadow) {
+          this.scene.remove(p._shadow);
+          p._shadow.geometry.dispose();
+          p._shadow.material.dispose();
+          p._shadow = null;
+        }
       }
     }
     this.players = [this.localPlayer];
@@ -112,6 +134,12 @@ class Game {
     lp.resetInventory();
     lp.kills = 0; lp.deaths = 0; lp.damageDealt = 0; lp.money = RULES.startMoney;
     if (lp.mesh) this.scene.remove(lp.mesh);
+    if (lp._shadow) {
+      this.scene.remove(lp._shadow);
+      lp._shadow.geometry.dispose();
+      lp._shadow.material.dispose();
+      lp._shadow = null;
+    }
     lp.buildMesh(this.scene);
     lp.mesh.visible = false;
 
@@ -385,9 +413,11 @@ class Game {
 
   // ---------- 服务接口 ----------
   listenerPos() {
-    const p = this.localPlayer;
-    if (!p) return { x: 0, y: 0, z: 0, yaw: 0 };
-    return { x: p.pos.x, y: p.eyeY(), z: p.pos.z, yaw: p.yaw };
+    // 用摄像机而非玩家坐标：死亡观战时听觉中心要跟着视角走，
+    // 否则爆炸声会从"自己尸体"的方向传来。
+    const c = this.camera;
+    if (!c) return { x: 0, y: 0, z: 0, yaw: 0 };
+    return { x: c.position.x, y: c.position.y, z: c.position.z, yaw: c.rotation.y };
   }
 
   tracePlayers(origin, dir, maxDist, shooter) {
@@ -510,6 +540,19 @@ class Game {
     const dt = Math.min(0.05, Math.max(0.0001, raw));
     if (raw > 0) this.fps += (1 / raw - this.fps) * 0.08;
 
+    // 每 2 秒评估一次渲染分辨率：低于 48fps 降档，高于 58fps 再升回来
+    this.adaptTimer += Math.min(0.25, raw);
+    if (this.adaptTimer > 2) {
+      this.adaptTimer = 0;
+      if (this.fps < 48 && this.pixelRatio > 1.0) {
+        this.pixelRatio = Math.max(1.0, this.pixelRatio - 0.25);
+        this.renderer.setPixelRatio(this.pixelRatio);
+      } else if (this.fps > 58 && this.pixelRatio < this.maxPixelRatio) {
+        this.pixelRatio = Math.min(this.maxPixelRatio, this.pixelRatio + 0.25);
+        this.renderer.setPixelRatio(this.pixelRatio);
+      }
+    }
+
     if (this.started && !this.paused) {
       this.update(dt);
     }
@@ -565,6 +608,9 @@ class Game {
     this.updateCamera(dt);
     this.viewModel.update(dt, p);
     this.hud.update(dt);
+
+    // 同步音频监听者：HRTF 方位与混响都依赖它每帧跟随视角
+    Sfx.setListener(this.listenerPos());
   }
 
   updateCamera(dt) {

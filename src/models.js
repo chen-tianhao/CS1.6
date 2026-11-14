@@ -1,0 +1,556 @@
+// ============================================================
+//  models.js — 角色与武器几何体（全部程序化，无外部资产）
+//
+//  为什么不引入 glTF 模型：
+//  本项目承诺「双击 index.html 即可运行」，而 loader 走 fetch，
+//  在 file:// 下会被 CORS 拦死。外部资产只能 base64 内联，
+//  代价是包体膨胀且风格不可控。这里用几何体拼装，保持零依赖。
+//
+//  人物按 72 单位总高（与 PHYS.standHeight 一致）搭建，分髋/膝/肩/肘
+//  四级关节，行走时做二级摆动而不是整条腿刚性旋转。
+// ============================================================
+import * as THREE from 'three';
+import { getWeaponTextures } from './textures.js';
+
+const WT = getWeaponTextures();
+
+// ---------- 共享材质 ----------
+// map 与 color 相乘：贴图负责纹理细节，color 负责明暗档位。
+const W = {
+  steel: new THREE.MeshLambertMaterial({ map: WT.metal, color: 0xa6acb6 }),
+  steelDark: new THREE.MeshLambertMaterial({ map: WT.metal, color: 0x646972 }),
+  poly: new THREE.MeshLambertMaterial({ map: WT.poly, color: 0x9297a0 }),
+  black: new THREE.MeshLambertMaterial({ color: 0x141518 }),
+  wood: new THREE.MeshLambertMaterial({ map: WT.wood, color: 0xd2ac82 }),
+  woodDark: new THREE.MeshLambertMaterial({ map: WT.wood, color: 0x8a6a48 }),
+  accent: new THREE.MeshLambertMaterial({ color: 0x8d8b80 }),
+  glass: new THREE.MeshLambertMaterial({ color: 0x11303c }),
+  glove: new THREE.MeshLambertMaterial({ color: 0x33332b }),
+  sleeve: new THREE.MeshLambertMaterial({ color: 0x3b4034 }),
+  skin: new THREE.MeshLambertMaterial({ color: 0xb8825a }),
+  skinDark: new THREE.MeshLambertMaterial({ color: 0x8f6242 }),
+};
+
+// ---------- 几何体缓存 ----------
+function boxGeo(w, h, d) { return new THREE.BoxGeometry(w, h, d); }
+function capGeo(r, len, seg = 8) { return new THREE.CapsuleGeometry(r, len, 3, seg); }
+function cylGeo(r1, r2, h, seg = 10) { return new THREE.CylinderGeometry(r1, r2, h, seg); }
+
+function b(w, h, d, m, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
+  const mesh = new THREE.Mesh(boxGeo(w, h, d), m);
+  mesh.position.set(x, y, z);
+  mesh.rotation.set(rx, ry, rz);
+  return mesh;
+}
+
+// 沿 Z 轴的圆柱（枪管用）
+function tube(r1, r2, len, m, x = 0, y = 0, z = 0, seg = 10) {
+  const mesh = new THREE.Mesh(cylGeo(r1, r2, len, seg), m);
+  mesh.rotation.x = Math.PI / 2;
+  mesh.position.set(x, y, z);
+  return mesh;
+}
+
+// ============================================================
+//  角色
+// ============================================================
+
+// 面部贴图：区分 T（面罩）与 CT（护目镜）
+const faceCache = {};
+function faceTexture(team) {
+  if (faceCache[team]) return faceCache[team];
+  const S = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const x = c.getContext('2d');
+  x.fillStyle = team === 'T' ? '#a8784e' : '#c19474';
+  x.fillRect(0, 0, S, S);
+  // 额头阴影
+  const g = x.createLinearGradient(0, 0, 0, S);
+  g.addColorStop(0, 'rgba(60,40,26,0.45)');
+  g.addColorStop(0.35, 'rgba(60,40,26,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, S, S);
+
+  if (team === 'T') {
+    // 黑面罩遮住下半脸
+    x.fillStyle = '#1d1b19';
+    x.fillRect(0, 36, S, S - 36);
+    x.fillStyle = '#2a2724';
+    x.fillRect(0, 36, S, 3);
+    // 眼睛
+    x.fillStyle = '#f0e6d8';
+    x.fillRect(14, 24, 12, 6);
+    x.fillRect(38, 24, 12, 6);
+    x.fillStyle = '#241a12';
+    x.fillRect(19, 25, 5, 5);
+    x.fillRect(43, 25, 5, 5);
+  } else {
+    // 护目镜
+    x.fillStyle = '#1b2831';
+    x.fillRect(4, 18, S - 8, 16);
+    x.fillStyle = 'rgba(120,170,200,0.5)';
+    x.fillRect(8, 21, 18, 6);
+    x.fillStyle = '#0e1a22';
+    x.fillRect(0, 33, S, 2);
+    // 下巴阴影
+    x.fillStyle = 'rgba(50,34,22,0.22)';
+    x.fillRect(0, 46, S, S - 46);
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  faceCache[team] = t;
+  return t;
+}
+
+const charMatCache = {};
+function charMats(team) {
+  if (charMatCache[team]) return charMatCache[team];
+  const skinC = team === 'T' ? 0xa87b52 : 0xc49773;
+  const clothC = team === 'T' ? 0x8a7148 : 0x5d6b7a;
+  const vestC = team === 'T' ? 0x54452c : 0x39434f;
+  const M = {
+    skin: new THREE.MeshLambertMaterial({ color: skinC }),
+    cloth: new THREE.MeshLambertMaterial({ color: clothC }),
+    vest: new THREE.MeshLambertMaterial({ color: vestC }),
+    belt: new THREE.MeshLambertMaterial({ color: 0x2b2823 }),
+    pouch: new THREE.MeshLambertMaterial({ color: team === 'T' ? 0x3f3626 : 0x2c343d }),
+    boot: new THREE.MeshLambertMaterial({ color: 0x241f1a }),
+    pack: new THREE.MeshLambertMaterial({ color: team === 'T' ? 0x4a4030 : 0x323b45 }),
+    hat: new THREE.MeshLambertMaterial({ color: team === 'T' ? 0x1f1d1a : 0x2b3540 }),
+    glove: new THREE.MeshLambertMaterial({ color: 0x2e2c25 }),
+    face: new THREE.MeshLambertMaterial({ map: faceTexture(team) }),
+  };
+  charMatCache[team] = M;
+  return M;
+}
+
+// 共享几何体（尺寸固定，所有角色复用）
+const CG = {
+  thigh: capGeo(3.9, 7),
+  shin: capGeo(3.3, 6),
+  upperArm: capGeo(3.4, 7),
+  forearm: capGeo(3.0, 6),
+  boot: boxGeo(6.5, 5, 11),
+  hand: boxGeo(4.6, 5.4, 5),
+  head: boxGeo(9.4, 10.6, 9.6),
+  neck: cylGeo(3.0, 3.0, 4, 8),
+  helm: new THREE.SphereGeometry(5.9, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.56),
+  // 第三人称简化枪：机匣 + 枪管 + 弹匣
+  gunBody: boxGeo(4.5, 4.5, 24),
+  gunBarrel: boxGeo(2, 2, 14),
+  gunMag: boxGeo(3.4, 7, 4.4),
+};
+
+export function buildCharacterMesh(team) {
+  const M = charMats(team);
+  const g = new THREE.Group();
+
+  // ---- 躯干 ----
+  g.add(b(19, 9, 12, M.cloth, 0, 29.5, 0));          // 髋
+  g.add(b(20, 2.8, 13, M.belt, 0, 33.8, 0));         // 腰带
+  g.add(b(17.5, 9, 11, M.cloth, 0, 38.6, 0));        // 腹
+  g.add(b(21, 14, 12.5, M.vest, 0, 47, 0));          // 胸（战术背心）
+  g.add(b(6, 3.2, 8.5, M.vest, -10, 53.5, 0));       // 左肩垫
+  g.add(b(6, 3.2, 8.5, M.vest, 10, 53.5, 0));        // 右肩垫
+  // 胸前弹匣袋
+  g.add(b(5.4, 5, 2.6, M.pouch, -6.2, 45.6, -6.6));
+  g.add(b(5.4, 5, 2.6, M.pouch, 0, 45.6, -6.6));
+  g.add(b(5.4, 5, 2.6, M.pouch, 6.2, 45.6, -6.6));
+  g.add(b(15, 15.5, 6, M.pack, 0, 45.5, 9.2));       // 背包
+
+  // ---- 颈与头 ----
+  g.add(b(9.8, 4.2, 9.8, M.cloth, 0, 57, 0));       // 衣领，遮住脖子根部
+  const neck = new THREE.Mesh(CG.neck, M.skin);
+  neck.position.set(0, 57.4, 0);
+  g.add(neck);
+
+  // BoxGeometry 材质顺序 +X,-X,+Y,-Y,+Z,-Z；模型朝 -Z，脸贴在 -Z
+  const headMats = [M.skin, M.skin, M.hat, M.skin, M.skin, M.face];
+  const head = new THREE.Mesh(CG.head, headMats);
+  head.position.set(0, 63.4, 0);
+  g.add(head);
+
+  // 头盔只给 CT；T 用头巾
+  let helmet = null;
+  if (team === 'CT') {
+    helmet = new THREE.Mesh(CG.helm, M.hat);
+    helmet.position.set(0, 65.6, 0);
+    g.add(helmet);
+  } else {
+    const wrap = b(10.1, 4.4, 10.3, M.hat, 0, 67.4, 0);
+    g.add(wrap);
+    const tail = b(4.2, 6.5, 3, M.hat, 0, 63, 5.4, 0.3);
+    g.add(tail);
+  }
+
+  // ---- 腿：髋 → 膝 → 靴 ----
+  const makeLeg = (side) => {
+    const hip = new THREE.Group();
+    hip.position.set(side * 5.6, 28, 0);
+    const thigh = new THREE.Mesh(CG.thigh, M.cloth);
+    thigh.position.y = -6.5;
+    hip.add(thigh);
+
+    const knee = new THREE.Group();
+    knee.position.y = -13;
+    const shin = new THREE.Mesh(CG.shin, M.cloth);
+    shin.position.y = -6;
+    knee.add(shin);
+    const boot = new THREE.Mesh(CG.boot, M.boot);
+    boot.position.set(0, -12.4, -1.4);
+    knee.add(boot);
+    hip.add(knee);
+    g.add(hip);
+    return { hip, knee, base: 0 };
+  };
+  const legL = makeLeg(-1);
+  const legR = makeLeg(1);
+
+  // ---- 臂：肩 → 肘 → 手，持枪姿态 ----
+  const makeArm = (side) => {
+    const shoulder = new THREE.Group();
+    shoulder.position.set(side * 10.4, 52.6, 0);
+    const upper = new THREE.Mesh(CG.upperArm, M.cloth);
+    upper.position.y = -6;
+    shoulder.add(upper);
+    // 护肘
+    const pad = b(6.2, 3, 6.4, M.vest, 0, -11, 0);
+    shoulder.add(pad);
+
+    const elbow = new THREE.Group();
+    elbow.position.y = -11.8;
+    const fore = new THREE.Mesh(CG.forearm, M.cloth);
+    fore.position.y = -5.4;
+    elbow.add(fore);
+    const hand = new THREE.Mesh(CG.hand, M.glove);
+    hand.position.set(0, -11.4, 0);
+    elbow.add(hand);
+    shoulder.add(elbow);
+    g.add(shoulder);
+    return { shoulder, elbow };
+  };
+  const armL = makeArm(-1);
+  const armR = makeArm(1);
+
+  // 持枪姿态：右臂下垂略前、屈肘握把；左臂横过胸前托护木
+  armR.shoulder.rotation.set(0.3, 0, -0.2);
+  armR.elbow.rotation.set(1.0, 0, 0);
+  armL.shoulder.rotation.set(0.7, 0, 0.6);
+  armL.elbow.rotation.set(0.65, 0, 0);
+  const idleL = armL.shoulder.rotation.x;
+  const idleR = armR.shoulder.rotation.x;
+
+  // ---- 第三人称简化武器 ----
+  const gun = new THREE.Group();
+  const body = new THREE.Mesh(CG.gunBody, W.black);
+  gun.add(body);
+  const barrel = new THREE.Mesh(CG.gunBarrel, W.steelDark);
+  barrel.position.set(0, 0.6, -19);
+  gun.add(barrel);
+  const mag = new THREE.Mesh(CG.gunMag, W.black);
+  mag.position.set(0, -4.8, 1.2);
+  mag.rotation.x = 0.25;
+  gun.add(mag);
+  gun.position.set(6.2, 40.6, -7);
+  gun.rotation.set(-0.04, 0.06, 0);
+  g.add(gun);
+
+  return {
+    group: g,
+    head,
+    helmet,
+    gun,
+    legL: legL.hip,
+    kneeL: legL.knee,
+    legR: legR.hip,
+    kneeR: legR.knee,
+    armL: armL.shoulder,
+    elbowL: armL.elbow,
+    armR: armR.shoulder,
+    elbowR: armR.elbow,
+    idleArmL: idleL,
+    idleArmR: idleR,
+  };
+}
+
+// ============================================================
+//  武器（第一人称）
+//  每种枪的辨识度靠轮廓特征：AK 的弯弹匣与木护木、M4 的提把与圆护木、
+//  AWP 的大镜与长管、沙鹰的方套筒。零件数量比之前多 3 倍，但都是方块。
+// ============================================================
+
+// 弯曲弹匣：用若干段盒子旋转拼出弧度
+function curvedMag(m, { segs = 4, w = 3.4, h = 3.0, d = 4.4, y = -2.6, z = -4, curve = 0.19, rx = 0 }) {
+  const g = new THREE.Group();
+  for (let i = 0; i < segs; i++) {
+    const seg = b(w, h + 0.4, d, m, 0, -i * (h - 0.5), -i * curve * 3.6, -i * curve);
+    g.add(seg);
+  }
+  g.position.set(0, y, z);
+  g.rotation.x = rx;
+  return g;
+}
+
+// 手与手套：第一人称只看得到手套和袖口，不要露出肉色前臂
+function glovedHand(mirror = 1) {
+  const g = new THREE.Group();
+  g.add(b(4.4, 5.6, 5.8, W.glove, 0, 0, 0));
+  g.add(b(4.0, 4.6, 9.5, W.sleeve, mirror * 1.4, -0.8, 6.8));
+  return g;
+}
+
+function buildAK47() {
+  const g = new THREE.Group();
+  // 机匣
+  g.add(b(3.5, 3.6, 20, W.steel, 0, 0, -2));
+  g.add(b(3.2, 1.3, 13, W.steelDark, 0, 2.6, -3.2));       // 上盖
+  g.add(b(3.7, 1.0, 4.2, W.accent, 0, -1.9, -8.5));        // 下护木座
+  // 木质护木 + 导气管
+  g.add(b(3.3, 3.1, 11.5, W.wood, 0, -0.9, -14.6));
+  g.add(b(2.3, 2.0, 11.5, W.steelDark, 0, 2.1, -14.6));
+  g.add(b(2.0, 0.9, 11.5, W.accent, 0, 3.2, -14.6));       // 导气管上棱
+  // 枪管与消焰器
+  g.add(tube(0.85, 0.85, 12, W.steelDark, 0, 1.2, -23));
+  g.add(tube(1.15, 1.15, 3.4, W.steel, 0, 1.2, -29.4));
+  // 准星座（斜切柱 + 护环）
+  g.add(b(1.1, 3.0, 1.4, W.steel, 0, 2.9, -26.2));
+  g.add(b(0.7, 1.4, 0.7, W.accent, 0, 4.3, -26.2));
+  // 照门
+  g.add(b(1.7, 1.3, 1.2, W.steel, 0, 3.3, -8.6));
+  g.add(b(0.6, 1.0, 0.5, W.black, 0, 3.6, -8.9));
+  // 弯弹匣
+  g.add(curvedMag(W.black, { segs: 4, y: -2.2, z: -4.4, curve: 0.22 }));
+  // 握把
+  g.add(b(2.9, 7.2, 4.4, W.poly, 0, -5.4, 3.4, 0.3));
+  // 枪托（木质，下折）
+  g.add(b(2.7, 3.2, 13.0, W.wood, 0, -1.2, 13.8, 0.1));
+  g.add(b(3.0, 4.4, 2.0, W.woodDark, 0, -2.0, 20.2, 0.1)); // 托底板
+  // 拉机柄
+  g.add(b(0.9, 0.9, 3.4, W.steel, 2.0, 1.5, -3.2));
+  // 手
+  const rh = glovedHand(1);
+  rh.position.set(0.2, -4.6, 3.6);
+  g.add(rh);
+  const lh = glovedHand(-1);
+  lh.position.set(-0.4, -2.0, -11.4);
+  g.add(lh);
+  return g;
+}
+
+function buildM4() {
+  const g = new THREE.Group();
+  // 上下机匣
+  g.add(b(3.3, 2.6, 18, W.steel, 0, 0.9, -2));              // 上机匣（比护木亮一档）
+  g.add(b(3.0, 2.2, 14, W.steel, 0, -1.6, -1));             // 下机匣
+  // 提把（U 形，三段围合）
+  g.add(b(1.5, 0.8, 11, W.black, 0, 3.0, -3));
+  g.add(b(1.5, 1.5, 0.9, W.black, 0, 2.4, -8.2));
+  g.add(b(1.5, 1.5, 0.9, W.black, 0, 2.4, 2.0));
+  // 圆护木
+  g.add(tube(2.2, 2.2, 13, W.poly, 0, 0.6, -13.5, 12));
+  for (let i = 0; i < 5; i++) {
+    g.add(b(4.4, 0.5, 1.1, W.black, 0, 0.6, -9.5 - i * 2.2));
+  }
+  // 枪管 + 消焰器
+  g.add(tube(0.8, 0.8, 11, W.steelDark, 0, 0.9, -24));
+  g.add(tube(1.05, 1.05, 3.0, W.steel, 0, 0.9, -30));
+  // 三角准星（前后两柱构成 A 形）
+  g.add(b(0.8, 3.2, 0.8, W.steel, 0, 2.6, -25.4));
+  g.add(b(2.2, 0.7, 0.8, W.steel, 0, 1.3, -25.4));
+  // 直弹匣（轻微前倾）
+  g.add(b(3.2, 7.8, 4.6, W.black, 0, -5.4, -4.2, 0.12));
+  // 握把
+  g.add(b(2.8, 6.8, 4.2, W.poly, 0, -4.6, 3.6, 0.28));
+  // 伸缩枪托（多段管 + 托底）
+  g.add(tube(1.2, 1.2, 9, W.steelDark, 0, -0.4, 12.4, 8));
+  g.add(b(3.2, 4.2, 3.6, W.poly, 0, -1.0, 17.4));
+  // 手
+  const rh = glovedHand(1);
+  rh.position.set(0.2, -4.0, 3.8);
+  g.add(rh);
+  const lh = glovedHand(-1);
+  lh.position.set(-0.4, -1.6, -12.6);
+  g.add(lh);
+  return g;
+}
+
+function buildAWP() {
+  const g = new THREE.Group();
+  // 机匣与枪身
+  g.add(b(3.4, 4.0, 24, W.steelDark, 0, 0, -6));
+  // 长枪管
+  g.add(tube(0.95, 0.95, 26, W.steel, 0, 0.6, -30));
+  g.add(tube(1.3, 1.3, 3.6, W.black, 0, 0.6, -43.6));   // 制退器
+  // 大瞄镜：主镜筒 + 前后喇叭口
+  g.add(tube(2.6, 2.6, 15, W.black, 0, 4.0, -10, 12));
+  g.add(tube(3.2, 2.6, 3.0, W.black, 0, 4.0, -19.5, 12));
+  g.add(tube(2.7, 3.1, 2.6, W.black, 0, 4.0, -1.2, 12));
+  g.add(tube(2.2, 2.2, 0.6, W.glass, 0, 4.0, -21.2, 12)); // 前镜片
+  // 镜桥
+  g.add(b(2.0, 2.4, 2.2, W.steel, 0, 2.2, -5.4));
+  g.add(b(2.0, 2.4, 2.2, W.steel, 0, 2.2, -15.2));
+  // 枪托（拇指孔用四段围合）
+  g.add(b(3.2, 2.0, 14, W.poly, 0, -1.4, 13.2, 0.06));
+  g.add(b(3.0, 2.4, 12, W.poly, 0, -3.4, 14.4, 0.22));
+  g.add(b(3.4, 5.0, 2.2, W.black, 0, -2.6, 20.2, 0.22));
+  // 弹匣
+  g.add(b(2.8, 4.2, 5.4, W.black, 0, -3.4, -6.4));
+  // 握把
+  g.add(b(2.8, 6.4, 4.2, W.poly, 0, -5.2, 2.6, 0.3));
+  // 两脚架（收起）
+  g.add(b(0.7, 0.7, 9, W.steelDark, 0, -1.4, -22.4, 0.18));
+  // 手
+  const rh = glovedHand(1);
+  rh.position.set(0.2, -4.4, 2.8);
+  g.add(rh);
+  const lh = glovedHand(-1);
+  lh.position.set(-0.4, -1.4, -18.4);
+  g.add(lh);
+  return g;
+}
+
+function buildSMG(variant) {
+  const g = new THREE.Group();
+  const bodyLen = variant === 'p90' ? 26 : 18;
+  const bodyZ = variant === 'p90' ? -2 : -3;
+  g.add(b(3.4, 4.6, bodyLen, W.poly, 0, 0, bodyZ));
+  g.add(tube(0.8, 0.8, 8, W.steelDark, 0, 0.9, bodyZ - bodyLen / 2 - 3.2));
+  if (variant === 'p90') {
+    // P90：顶部一体式弹匣与握把圈
+    g.add(b(3.0, 2.2, 20, W.steelDark, 0, 2.8, -2));
+    g.add(b(2.2, 1.2, 16, W.black, 0, 2.0, -4));
+    g.add(b(4.4, 3.0, 5, W.black, 0, -2.4, 4));
+  } else {
+    // MP5：细长弹匣 + 环形护木
+    g.add(b(2.6, 9.5, 3.4, W.black, 0, -6.2, -5.4, 0.14));
+    g.add(tube(2.0, 2.0, 7, W.poly, 0, 0.4, -11.4, 12));
+    g.add(b(1.8, 4.6, 3.6, W.poly, 0, -4.2, 3.2, 0.26));
+    g.add(b(2.2, 0.8, 12, W.steelDark, 0, 2.6, -4));
+  }
+  const rh = glovedHand(1);
+  rh.position.set(0.2, -3.6, 3.2);
+  g.add(rh);
+  const lh = glovedHand(-1);
+  lh.position.set(-0.4, -1.6, -10.6);
+  g.add(lh);
+  return g;
+}
+
+function buildPistol(kind) {
+  const g = new THREE.Group();
+  const big = kind === 'deagle';
+  const slW = big ? 3.9 : 3.1;
+  const slH = big ? 4.2 : 3.3;
+  const slL = big ? 16 : 14;
+  // 套筒
+  g.add(b(slW, slH, slL, W.steel, 0, 1.0, -3));
+  // 套筒座
+  g.add(b(slW - 0.4, 2.0, slL - 2.5, W.steelDark, 0, -1.4, -3));
+  // 枪口
+  g.add(b(slW - 1.2, slH - 1.4, 1.8, W.black, 0, 1.0, -3 - slL / 2));
+  // 握把
+  g.add(b(slW - 0.6, big ? 8.6 : 7.8, big ? 5.2 : 4.6, W.poly, 0, -5.4, 2.2, 0.22));
+  // 扳机护圈
+  g.add(b(slW - 1.4, 0.9, 4.4, W.black, 0, -2.6, -1.2));
+  // 击锤
+  g.add(b(1.1, 1.4, 1.6, W.black, 0, 2.9, 3.4, -0.2));
+  // 准星
+  g.add(b(0.9, 1.2, 1.4, W.accent, 0, slH / 2 + 1.2, -3 - slL / 2 + 2));
+  g.add(b(1.3, 1.0, 1.0, W.accent, 0, slH / 2 + 1.1, 2.8));
+  if (big) {
+    // 沙鹰的顶部散热槽与粗枪管
+    for (let i = 0; i < 3; i++) {
+      g.add(b(slW - 1.0, 0.5, 2.2, W.black, 0, slH / 2 + 0.9, -6 + i * 3));
+    }
+    g.add(tube(1.0, 1.0, 2.6, W.steelDark, 0, 0.7, -11.2));
+  }
+  const rh = glovedHand(1);
+  rh.position.set(0.2, -4.2, 2.4);
+  g.add(rh);
+  return g;
+}
+
+function buildKnife() {
+  const g = new THREE.Group();
+  // 刀身：两段叠出刃口斜面
+  g.add(b(0.9, 2.6, 15, W.steel, 0, 0, -8));
+  g.add(b(0.5, 1.4, 14, W.accent, -0.5, -0.6, -8.4));
+  g.add(b(0.6, 0.9, 8, W.steelDark, 0, 1.4, -6));      // 刀背
+  g.add(b(1.6, 0.5, 1.0, W.accent, 0, 0, -15.2));      // 刀尖
+  // 护手
+  g.add(b(3.2, 1.2, 2.2, W.steelDark, 0, -0.4, 0.4));
+  // 刀柄
+  g.add(b(2.5, 2.7, 7.4, W.black, 0, -0.6, 5.2));
+  g.add(b(2.7, 0.7, 1.2, W.accent, 0, -0.6, 9.0));
+  const rh = glovedHand(1);
+  rh.position.set(0.4, -1.2, 5.2);
+  g.add(rh);
+  // 匕首斜握：刀尖朝前上偏左，是 CS 的挥刀预备式
+  g.rotation.set(-0.32, 0.48, 0.16);
+  return g;
+}
+
+const WEAPON_CACHE = {};
+export function buildWeaponModel(id) {
+  if (WEAPON_CACHE[id]) return WEAPON_CACHE[id];
+  let g;
+  switch (id) {
+    case 'ak47': g = buildAK47(); break;
+    case 'm4a1': g = buildM4(); break;
+    case 'aug': {
+      g = buildM4();
+      // AUG 的辨识特征是整体式光学瞄具
+      g.add(b(2.4, 2.0, 9, W.black, 0, 3.6, -6));
+      g.add(b(1.8, 1.2, 1.0, W.glass, 0, 3.6, -10.2));
+      break;
+    }
+    case 'sg552': {
+      g = buildM4();
+      // SIG 的短枪管与折叠托
+      g.add(b(1.4, 1.6, 6, W.black, 0, 3.2, -2));
+      break;
+    }
+    case 'awp': g = buildAWP(); break;
+    case 'scout': {
+      g = buildAWP();
+      // Scout 的镜筒更细更短
+      break;
+    }
+    case 'mp5navy': g = buildSMG('mp5'); break;
+    case 'p90': g = buildSMG('p90'); break;
+    case 'deagle': g = buildPistol('deagle'); break;
+    case 'usp45': g = buildPistol('usp'); break;
+    case 'glock18': g = buildPistol('glock'); break;
+    case 'knife': g = buildKnife(); break;
+    default: g = buildM4();
+  }
+  WEAPON_CACHE[id] = g;
+  return g;
+}
+
+// 第三人称：只保留轮廓，按枪型调整长度
+export function buildWeaponProp(id) {
+  const g = new THREE.Group();
+  const long = id === 'awp' || id === 'scout';
+  const pistol = id === 'deagle' || id === 'usp45' || id === 'glock18';
+  if (id === 'knife') {
+    g.add(b(0.8, 2.2, 13, W.steel, 0, 0, -6));
+    g.add(b(2.4, 2.6, 6, W.black, 0, 0, 4));
+    return g;
+  }
+  if (pistol) {
+    g.add(b(3.2, 3.6, 13, W.steelDark, 0, 0, -3));
+    g.add(b(2.6, 7, 4.4, W.black, 0, -4.4, 2));
+    return g;
+  }
+  g.add(b(4, 4, long ? 26 : 20, W.black, 0, 0, -4));
+  g.add(b(1.8, 1.8, long ? 18 : 11, W.steelDark, 0, 0.7, long ? -24 : -18));
+  if (!long) {
+    g.add(b(3, 6.5, 4, W.black, 0, -4.4, 0));
+  } else {
+    g.add(b(2.6, 2.6, 13, W.black, 0, 3.4, -8));
+  }
+  return g;
+}

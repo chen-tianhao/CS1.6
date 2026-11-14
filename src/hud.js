@@ -98,15 +98,17 @@ export class HUD {
     x.font = 'bold 15px Arial';
     x.textAlign = 'center';
     x.textBaseline = 'middle';
-    for (const key of ['A', 'B']) {
+    // 包点从地图数据读，不写死 A/B
+    Object.keys(map.sites).forEach((key, idx) => {
       const s2 = map.sites[key];
+      if (!s2) return;
       const px = offX + ((s2.x0 + s2.x1) / 2 + WORLD_HALF) / TILE * cell;
       const py = offY + ((s2.z0 + s2.z1) / 2 + WORLD_HALF) / TILE * cell;
       x.fillStyle = 'rgba(20,24,16,.55)';
       x.beginPath(); x.arc(px, py, 9, 0, 7); x.fill();
-      x.fillStyle = key === 'A' ? 'rgba(240,200,120,.95)' : 'rgba(150,195,235,.95)';
+      x.fillStyle = idx === 0 ? 'rgba(240,200,120,.95)' : 'rgba(150,195,235,.95)';
       x.fillText(key, px, py + 1);
-    }
+    });
     this.radarStatic = c;
   }
 

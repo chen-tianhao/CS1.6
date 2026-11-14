@@ -343,9 +343,9 @@
       this.y += s;
       return this;
     }
-    addVectors(a, b) {
-      this.x = a.x + b.x;
-      this.y = a.y + b.y;
+    addVectors(a, b2) {
+      this.x = a.x + b2.x;
+      this.y = a.y + b2.y;
       return this;
     }
     addScaledVector(v, s) {
@@ -363,9 +363,9 @@
       this.y -= s;
       return this;
     }
-    subVectors(a, b) {
-      this.x = a.x - b.x;
-      this.y = a.y - b.y;
+    subVectors(a, b2) {
+      this.x = a.x - b2.x;
+      this.y = a.y - b2.y;
       return this;
     }
     multiply(v) {
@@ -615,9 +615,9 @@
     premultiply(m) {
       return this.multiplyMatrices(m, this);
     }
-    multiplyMatrices(a, b) {
+    multiplyMatrices(a, b2) {
       const ae = a.elements;
-      const be = b.elements;
+      const be = b2.elements;
       const te = this.elements;
       const a11 = ae[0], a12 = ae[3], a13 = ae[6];
       const a21 = ae[1], a22 = ae[4], a23 = ae[7];
@@ -651,8 +651,8 @@
     }
     determinant() {
       const te = this.elements;
-      const a = te[0], b = te[1], c = te[2], d = te[3], e = te[4], f = te[5], g = te[6], h = te[7], i = te[8];
-      return a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
+      const a = te[0], b2 = te[1], c = te[2], d = te[3], e = te[4], f = te[5], g = te[6], h = te[7], i = te[8];
+      return a * e * i - a * f * h - b2 * d * i + b2 * f * g + c * d * h - c * e * g;
     }
     invert() {
       const te = this.elements, n11 = te[0], n21 = te[1], n31 = te[2], n12 = te[3], n22 = te[4], n32 = te[5], n13 = te[6], n23 = te[7], n33 = te[8], t11 = n33 * n22 - n32 * n23, t12 = n32 * n13 - n33 * n12, t13 = n23 * n12 - n22 * n13, det = n11 * t11 + n21 * t12 + n31 * t13;
@@ -670,17 +670,17 @@
       return this;
     }
     transpose() {
-      let tmp;
+      let tmp2;
       const m = this.elements;
-      tmp = m[1];
+      tmp2 = m[1];
       m[1] = m[3];
-      m[3] = tmp;
-      tmp = m[2];
+      m[3] = tmp2;
+      tmp2 = m[2];
       m[2] = m[6];
-      m[6] = tmp;
-      tmp = m[5];
+      m[6] = tmp2;
+      tmp2 = m[5];
       m[5] = m[7];
-      m[7] = tmp;
+      m[7] = tmp2;
       return this;
     }
     getNormalMatrix(matrix4) {
@@ -1347,11 +1347,11 @@
       this.w += s;
       return this;
     }
-    addVectors(a, b) {
-      this.x = a.x + b.x;
-      this.y = a.y + b.y;
-      this.z = a.z + b.z;
-      this.w = a.w + b.w;
+    addVectors(a, b2) {
+      this.x = a.x + b2.x;
+      this.y = a.y + b2.y;
+      this.z = a.z + b2.z;
+      this.w = a.w + b2.w;
       return this;
     }
     addScaledVector(v, s) {
@@ -1375,11 +1375,11 @@
       this.w -= s;
       return this;
     }
-    subVectors(a, b) {
-      this.x = a.x - b.x;
-      this.y = a.y - b.y;
-      this.z = a.z - b.z;
-      this.w = a.w - b.w;
+    subVectors(a, b2) {
+      this.x = a.x - b2.x;
+      this.y = a.y - b2.y;
+      this.z = a.z - b2.z;
+      this.w = a.w - b2.w;
       return this;
     }
     multiply(v) {
@@ -2002,9 +2002,9 @@
     premultiply(q) {
       return this.multiplyQuaternions(q, this);
     }
-    multiplyQuaternions(a, b) {
+    multiplyQuaternions(a, b2) {
       const qax = a._x, qay = a._y, qaz = a._z, qaw = a._w;
-      const qbx = b._x, qby = b._y, qbz = b._z, qbw = b._w;
+      const qbx = b2._x, qby = b2._y, qbz = b2._z, qbw = b2._w;
       this._x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
       this._y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
       this._z = qaz * qbw + qaw * qbz + qax * qby - qay * qbx;
@@ -2192,10 +2192,10 @@
       this.z += s;
       return this;
     }
-    addVectors(a, b) {
-      this.x = a.x + b.x;
-      this.y = a.y + b.y;
-      this.z = a.z + b.z;
+    addVectors(a, b2) {
+      this.x = a.x + b2.x;
+      this.y = a.y + b2.y;
+      this.z = a.z + b2.z;
       return this;
     }
     addScaledVector(v, s) {
@@ -2216,10 +2216,10 @@
       this.z -= s;
       return this;
     }
-    subVectors(a, b) {
-      this.x = a.x - b.x;
-      this.y = a.y - b.y;
-      this.z = a.z - b.z;
+    subVectors(a, b2) {
+      this.x = a.x - b2.x;
+      this.y = a.y - b2.y;
+      this.z = a.z - b2.z;
       return this;
     }
     multiply(v) {
@@ -2234,10 +2234,10 @@
       this.z *= scalar;
       return this;
     }
-    multiplyVectors(a, b) {
-      this.x = a.x * b.x;
-      this.y = a.y * b.y;
-      this.z = a.z * b.z;
+    multiplyVectors(a, b2) {
+      this.x = a.x * b2.x;
+      this.y = a.y * b2.y;
+      this.z = a.z * b2.z;
       return this;
     }
     applyEuler(euler) {
@@ -2392,9 +2392,9 @@
     cross(v) {
       return this.crossVectors(this, v);
     }
-    crossVectors(a, b) {
+    crossVectors(a, b2) {
       const ax = a.x, ay = a.y, az = a.z;
-      const bx = b.x, by = b.y, bz = b.z;
+      const bx = b2.x, by = b2.y, bz = b2.z;
       this.x = ay * bz - az * by;
       this.y = az * bx - ax * bz;
       this.z = ax * by - ay * bx;
@@ -2571,9 +2571,9 @@
     clone() {
       return new this.constructor().copy(this);
     }
-    copy(box2) {
-      this.min.copy(box2.min);
-      this.max.copy(box2.max);
+    copy(box) {
+      this.min.copy(box.min);
+      this.max.copy(box.max);
       return this;
     }
     makeEmpty() {
@@ -2645,8 +2645,8 @@
     containsPoint(point) {
       return point.x < this.min.x || point.x > this.max.x || point.y < this.min.y || point.y > this.max.y || point.z < this.min.z || point.z > this.max.z ? false : true;
     }
-    containsBox(box2) {
-      return this.min.x <= box2.min.x && box2.max.x <= this.max.x && this.min.y <= box2.min.y && box2.max.y <= this.max.y && this.min.z <= box2.min.z && box2.max.z <= this.max.z;
+    containsBox(box) {
+      return this.min.x <= box.min.x && box.max.x <= this.max.x && this.min.y <= box.min.y && box.max.y <= this.max.y && this.min.z <= box.min.z && box.max.z <= this.max.z;
     }
     getParameter(point, target) {
       return target.set(
@@ -2655,8 +2655,8 @@
         (point.z - this.min.z) / (this.max.z - this.min.z)
       );
     }
-    intersectsBox(box2) {
-      return box2.max.x < this.min.x || box2.min.x > this.max.x || box2.max.y < this.min.y || box2.min.y > this.max.y || box2.max.z < this.min.z || box2.min.z > this.max.z ? false : true;
+    intersectsBox(box) {
+      return box.max.x < this.min.x || box.min.x > this.max.x || box.max.y < this.min.y || box.min.y > this.max.y || box.max.z < this.min.z || box.min.z > this.max.z ? false : true;
     }
     intersectsSphere(sphere) {
       this.clampPoint(sphere.center, _vector$b);
@@ -2754,15 +2754,15 @@
       }
       return target;
     }
-    intersect(box2) {
-      this.min.max(box2.min);
-      this.max.min(box2.max);
+    intersect(box) {
+      this.min.max(box.min);
+      this.max.min(box.max);
       if (this.isEmpty()) this.makeEmpty();
       return this;
     }
-    union(box2) {
-      this.min.min(box2.min);
-      this.max.max(box2.max);
+    union(box) {
+      this.min.min(box.min);
+      this.max.max(box.max);
       return this;
     }
     applyMatrix4(matrix) {
@@ -2783,8 +2783,8 @@
       this.max.add(offset);
       return this;
     }
-    equals(box2) {
-      return box2.min.equals(this.min) && box2.max.equals(this.max);
+    equals(box) {
+      return box.min.equals(this.min) && box.max.equals(this.max);
     }
   };
   var _points = [
@@ -2873,8 +2873,8 @@
       const radiusSum = this.radius + sphere.radius;
       return sphere.center.distanceToSquared(this.center) <= radiusSum * radiusSum;
     }
-    intersectsBox(box2) {
-      return box2.intersectsSphere(this);
+    intersectsBox(box) {
+      return box.intersectsSphere(this);
     }
     intersectsPlane(plane) {
       return Math.abs(plane.distanceToPoint(this.center)) <= this.radius;
@@ -3103,33 +3103,33 @@
       }
       return false;
     }
-    intersectBox(box2, target) {
+    intersectBox(box, target) {
       let tmin, tmax, tymin, tymax, tzmin, tzmax;
       const invdirx = 1 / this.direction.x, invdiry = 1 / this.direction.y, invdirz = 1 / this.direction.z;
       const origin = this.origin;
       if (invdirx >= 0) {
-        tmin = (box2.min.x - origin.x) * invdirx;
-        tmax = (box2.max.x - origin.x) * invdirx;
+        tmin = (box.min.x - origin.x) * invdirx;
+        tmax = (box.max.x - origin.x) * invdirx;
       } else {
-        tmin = (box2.max.x - origin.x) * invdirx;
-        tmax = (box2.min.x - origin.x) * invdirx;
+        tmin = (box.max.x - origin.x) * invdirx;
+        tmax = (box.min.x - origin.x) * invdirx;
       }
       if (invdiry >= 0) {
-        tymin = (box2.min.y - origin.y) * invdiry;
-        tymax = (box2.max.y - origin.y) * invdiry;
+        tymin = (box.min.y - origin.y) * invdiry;
+        tymax = (box.max.y - origin.y) * invdiry;
       } else {
-        tymin = (box2.max.y - origin.y) * invdiry;
-        tymax = (box2.min.y - origin.y) * invdiry;
+        tymin = (box.max.y - origin.y) * invdiry;
+        tymax = (box.min.y - origin.y) * invdiry;
       }
       if (tmin > tymax || tymin > tmax) return null;
       if (tymin > tmin || isNaN(tmin)) tmin = tymin;
       if (tymax < tmax || isNaN(tmax)) tmax = tymax;
       if (invdirz >= 0) {
-        tzmin = (box2.min.z - origin.z) * invdirz;
-        tzmax = (box2.max.z - origin.z) * invdirz;
+        tzmin = (box.min.z - origin.z) * invdirz;
+        tzmax = (box.max.z - origin.z) * invdirz;
       } else {
-        tzmin = (box2.max.z - origin.z) * invdirz;
-        tzmax = (box2.min.z - origin.z) * invdirz;
+        tzmin = (box.max.z - origin.z) * invdirz;
+        tzmax = (box.min.z - origin.z) * invdirz;
       }
       if (tmin > tzmax || tzmin > tmax) return null;
       if (tzmin > tmin || tmin !== tmin) tmin = tzmin;
@@ -3137,11 +3137,11 @@
       if (tmax < 0) return null;
       return this.at(tmin >= 0 ? tmin : tmax, target);
     }
-    intersectsBox(box2) {
-      return this.intersectBox(box2, _vector$a) !== null;
+    intersectsBox(box) {
+      return this.intersectBox(box, _vector$a) !== null;
     }
-    intersectTriangle(a, b, c, backfaceCulling, target) {
-      _edge1.subVectors(b, a);
+    intersectTriangle(a, b2, c, backfaceCulling, target) {
+      _edge1.subVectors(b2, a);
       _edge2.subVectors(c, a);
       _normal$1.crossVectors(_edge1, _edge2);
       let DdN = this.direction.dot(_normal$1);
@@ -3358,44 +3358,44 @@
     makeRotationFromEuler(euler) {
       const te = this.elements;
       const x = euler.x, y = euler.y, z = euler.z;
-      const a = Math.cos(x), b = Math.sin(x);
+      const a = Math.cos(x), b2 = Math.sin(x);
       const c = Math.cos(y), d = Math.sin(y);
       const e = Math.cos(z), f = Math.sin(z);
       if (euler.order === "XYZ") {
-        const ae = a * e, af = a * f, be = b * e, bf = b * f;
+        const ae = a * e, af = a * f, be = b2 * e, bf = b2 * f;
         te[0] = c * e;
         te[4] = -c * f;
         te[8] = d;
         te[1] = af + be * d;
         te[5] = ae - bf * d;
-        te[9] = -b * c;
+        te[9] = -b2 * c;
         te[2] = bf - ae * d;
         te[6] = be + af * d;
         te[10] = a * c;
       } else if (euler.order === "YXZ") {
         const ce = c * e, cf = c * f, de = d * e, df = d * f;
-        te[0] = ce + df * b;
-        te[4] = de * b - cf;
+        te[0] = ce + df * b2;
+        te[4] = de * b2 - cf;
         te[8] = a * d;
         te[1] = a * f;
         te[5] = a * e;
-        te[9] = -b;
-        te[2] = cf * b - de;
-        te[6] = df + ce * b;
+        te[9] = -b2;
+        te[2] = cf * b2 - de;
+        te[6] = df + ce * b2;
         te[10] = a * c;
       } else if (euler.order === "ZXY") {
         const ce = c * e, cf = c * f, de = d * e, df = d * f;
-        te[0] = ce - df * b;
+        te[0] = ce - df * b2;
         te[4] = -a * f;
-        te[8] = de + cf * b;
-        te[1] = cf + de * b;
+        te[8] = de + cf * b2;
+        te[1] = cf + de * b2;
         te[5] = a * e;
-        te[9] = df - ce * b;
+        te[9] = df - ce * b2;
         te[2] = -a * d;
-        te[6] = b;
+        te[6] = b2;
         te[10] = a * c;
       } else if (euler.order === "ZYX") {
-        const ae = a * e, af = a * f, be = b * e, bf = b * f;
+        const ae = a * e, af = a * f, be = b2 * e, bf = b2 * f;
         te[0] = c * e;
         te[4] = be * d - af;
         te[8] = ae * d + bf;
@@ -3403,21 +3403,21 @@
         te[5] = bf * d + ae;
         te[9] = af * d - be;
         te[2] = -d;
-        te[6] = b * c;
+        te[6] = b2 * c;
         te[10] = a * c;
       } else if (euler.order === "YZX") {
-        const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+        const ac = a * c, ad = a * d, bc = b2 * c, bd = b2 * d;
         te[0] = c * e;
         te[4] = bd - ac * f;
         te[8] = bc * f + ad;
         te[1] = f;
         te[5] = a * e;
-        te[9] = -b * e;
+        te[9] = -b2 * e;
         te[2] = -d * e;
         te[6] = ad * f + bc;
         te[10] = ac - bd * f;
       } else if (euler.order === "XZY") {
-        const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+        const ac = a * c, ad = a * d, bc = b2 * c, bd = b2 * d;
         te[0] = c * e;
         te[4] = -f;
         te[8] = d * e;
@@ -3425,7 +3425,7 @@
         te[5] = a * e;
         te[9] = ad * f - bc;
         te[2] = bc * f - ad;
-        te[6] = b * e;
+        te[6] = b2 * e;
         te[10] = bd * f + ac;
       }
       te[3] = 0;
@@ -3476,9 +3476,9 @@
     premultiply(m) {
       return this.multiplyMatrices(m, this);
     }
-    multiplyMatrices(a, b) {
+    multiplyMatrices(a, b2) {
       const ae = a.elements;
-      const be = b.elements;
+      const be = b2.elements;
       const te = this.elements;
       const a11 = ae[0], a12 = ae[4], a13 = ae[8], a14 = ae[12];
       const a21 = ae[1], a22 = ae[5], a23 = ae[9], a24 = ae[13];
@@ -3536,25 +3536,25 @@
     }
     transpose() {
       const te = this.elements;
-      let tmp;
-      tmp = te[1];
+      let tmp2;
+      tmp2 = te[1];
       te[1] = te[4];
-      te[4] = tmp;
-      tmp = te[2];
+      te[4] = tmp2;
+      tmp2 = te[2];
       te[2] = te[8];
-      te[8] = tmp;
-      tmp = te[6];
+      te[8] = tmp2;
+      tmp2 = te[6];
       te[6] = te[9];
-      te[9] = tmp;
-      tmp = te[3];
+      te[9] = tmp2;
+      tmp2 = te[3];
       te[3] = te[12];
-      te[12] = tmp;
-      tmp = te[7];
+      te[12] = tmp2;
+      tmp2 = te[7];
       te[7] = te[13];
-      te[13] = tmp;
-      tmp = te[11];
+      te[13] = tmp2;
+      tmp2 = te[11];
       te[11] = te[14];
-      te[14] = tmp;
+      te[14] = tmp2;
       return this;
     }
     setPosition(x, y, z) {
@@ -3853,7 +3853,7 @@
       const x = 2 * near / (right - left);
       const y = 2 * near / (top - bottom);
       const a = (right + left) / (right - left);
-      const b = (top + bottom) / (top - bottom);
+      const b2 = (top + bottom) / (top - bottom);
       let c, d;
       if (coordinateSystem === WebGLCoordinateSystem) {
         c = -(far + near) / (far - near);
@@ -3870,7 +3870,7 @@
       te[12] = 0;
       te[1] = 0;
       te[5] = y;
-      te[9] = b;
+      te[9] = b2;
       te[13] = 0;
       te[2] = 0;
       te[6] = 0;
@@ -4718,14 +4718,14 @@
   var _vcp = /* @__PURE__ */ new Vector3();
   var warnedGetUV = false;
   var Triangle = class _Triangle {
-    constructor(a = new Vector3(), b = new Vector3(), c = new Vector3()) {
+    constructor(a = new Vector3(), b2 = new Vector3(), c = new Vector3()) {
       this.a = a;
-      this.b = b;
+      this.b = b2;
       this.c = c;
     }
-    static getNormal(a, b, c, target) {
-      target.subVectors(c, b);
-      _v0$1.subVectors(a, b);
+    static getNormal(a, b2, c, target) {
+      target.subVectors(c, b2);
+      _v0$1.subVectors(a, b2);
       target.cross(_v0$1);
       const targetLengthSq = target.lengthSq();
       if (targetLengthSq > 0) {
@@ -4735,9 +4735,9 @@
     }
     // static/instance method to calculate barycentric coordinates
     // based on: http://www.blackpawn.com/texts/pointinpoly/default.html
-    static getBarycoord(point, a, b, c, target) {
+    static getBarycoord(point, a, b2, c, target) {
       _v0$1.subVectors(c, a);
-      _v1$3.subVectors(b, a);
+      _v1$3.subVectors(b2, a);
       _v2$2.subVectors(point, a);
       const dot00 = _v0$1.dot(_v0$1);
       const dot01 = _v0$1.dot(_v1$3);
@@ -4754,8 +4754,8 @@
       const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
       return target.set(1 - u - v, v, u);
     }
-    static containsPoint(point, a, b, c) {
-      if (this.getBarycoord(point, a, b, c, _v3$1) === null) {
+    static containsPoint(point, a, b2, c) {
+      if (this.getBarycoord(point, a, b2, c, _v3$1) === null) {
         return false;
       }
       return _v3$1.x >= 0 && _v3$1.y >= 0 && _v3$1.x + _v3$1.y <= 1;
@@ -4781,14 +4781,14 @@
       target.addScaledVector(v3, _v3$1.z);
       return target;
     }
-    static isFrontFacing(a, b, c, direction) {
-      _v0$1.subVectors(c, b);
-      _v1$3.subVectors(a, b);
+    static isFrontFacing(a, b2, c, direction) {
+      _v0$1.subVectors(c, b2);
+      _v1$3.subVectors(a, b2);
       return _v0$1.cross(_v1$3).dot(direction) < 0 ? true : false;
     }
-    set(a, b, c) {
+    set(a, b2, c) {
       this.a.copy(a);
-      this.b.copy(b);
+      this.b.copy(b2);
       this.c.copy(c);
       return this;
     }
@@ -4846,13 +4846,13 @@
     isFrontFacing(direction) {
       return _Triangle.isFrontFacing(this.a, this.b, this.c, direction);
     }
-    intersectsBox(box2) {
-      return box2.intersectsTriangle(this);
+    intersectsBox(box) {
+      return box.intersectsTriangle(this);
     }
     closestPointToPoint(p, target) {
-      const a = this.a, b = this.b, c = this.c;
+      const a = this.a, b2 = this.b, c = this.c;
       let v, w;
-      _vab.subVectors(b, a);
+      _vab.subVectors(b2, a);
       _vac.subVectors(c, a);
       _vap.subVectors(p, a);
       const d1 = _vab.dot(_vap);
@@ -4860,11 +4860,11 @@
       if (d1 <= 0 && d2 <= 0) {
         return target.copy(a);
       }
-      _vbp.subVectors(p, b);
+      _vbp.subVectors(p, b2);
       const d3 = _vab.dot(_vbp);
       const d4 = _vac.dot(_vbp);
       if (d3 >= 0 && d4 <= d3) {
-        return target.copy(b);
+        return target.copy(b2);
       }
       const vc = d1 * d4 - d3 * d2;
       if (vc <= 0 && d1 >= 0 && d3 <= 0) {
@@ -4884,9 +4884,9 @@
       }
       const va = d3 * d6 - d5 * d4;
       if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) {
-        _vbc.subVectors(c, b);
+        _vbc.subVectors(c, b2);
         w = (d4 - d3) / (d4 - d3 + (d5 - d6));
-        return target.copy(b).addScaledVector(_vbc, w);
+        return target.copy(b2).addScaledVector(_vbc, w);
       }
       const denom = 1 / (va + vb + vc);
       v = vb * denom;
@@ -5058,15 +5058,15 @@
     return p;
   }
   var Color = class {
-    constructor(r, g, b) {
+    constructor(r, g, b2) {
       this.isColor = true;
       this.r = 1;
       this.g = 1;
       this.b = 1;
-      return this.set(r, g, b);
+      return this.set(r, g, b2);
     }
-    set(r, g, b) {
-      if (g === void 0 && b === void 0) {
+    set(r, g, b2) {
+      if (g === void 0 && b2 === void 0) {
         const value = r;
         if (value && value.isColor) {
           this.copy(value);
@@ -5076,7 +5076,7 @@
           this.setStyle(value);
         }
       } else {
-        this.setRGB(r, g, b);
+        this.setRGB(r, g, b2);
       }
       return this;
     }
@@ -5094,10 +5094,10 @@
       ColorManagement.toWorkingColorSpace(this, colorSpace);
       return this;
     }
-    setRGB(r, g, b, colorSpace = ColorManagement.workingColorSpace) {
+    setRGB(r, g, b2, colorSpace = ColorManagement.workingColorSpace) {
       this.r = r;
       this.g = g;
-      this.b = b;
+      this.b = b2;
       ColorManagement.toWorkingColorSpace(this, colorSpace);
       return this;
     }
@@ -5233,9 +5233,9 @@
     }
     getHSL(target, colorSpace = ColorManagement.workingColorSpace) {
       ColorManagement.fromWorkingColorSpace(_color.copy(this), colorSpace);
-      const r = _color.r, g = _color.g, b = _color.b;
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
+      const r = _color.r, g = _color.g, b2 = _color.b;
+      const max = Math.max(r, g, b2);
+      const min = Math.min(r, g, b2);
       let hue, saturation;
       const lightness = (min + max) / 2;
       if (min === max) {
@@ -5246,12 +5246,12 @@
         saturation = lightness <= 0.5 ? delta / (max + min) : delta / (2 - max - min);
         switch (max) {
           case r:
-            hue = (g - b) / delta + (g < b ? 6 : 0);
+            hue = (g - b2) / delta + (g < b2 ? 6 : 0);
             break;
           case g:
-            hue = (b - r) / delta + 2;
+            hue = (b2 - r) / delta + 2;
             break;
-          case b:
+          case b2:
             hue = (r - g) / delta + 4;
             break;
         }
@@ -5271,11 +5271,11 @@
     }
     getStyle(colorSpace = SRGBColorSpace) {
       ColorManagement.fromWorkingColorSpace(_color.copy(this), colorSpace);
-      const r = _color.r, g = _color.g, b = _color.b;
+      const r = _color.r, g = _color.g, b2 = _color.b;
       if (colorSpace !== SRGBColorSpace) {
-        return `color(${colorSpace} ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)})`;
+        return `color(${colorSpace} ${r.toFixed(3)} ${g.toFixed(3)} ${b2.toFixed(3)})`;
       }
-      return `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`;
+      return `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b2 * 255)})`;
     }
     offsetHSL(h, s, l) {
       this.getHSL(_hslA);
@@ -5345,11 +5345,11 @@
       return this;
     }
     applyMatrix3(m) {
-      const r = this.r, g = this.g, b = this.b;
+      const r = this.r, g = this.g, b2 = this.b;
       const e = m.elements;
-      this.r = e[0] * r + e[3] * g + e[6] * b;
-      this.g = e[1] * r + e[4] * g + e[7] * b;
-      this.b = e[2] * r + e[5] * g + e[8] * b;
+      this.r = e[0] * r + e[3] * g + e[6] * b2;
+      this.g = e[1] * r + e[4] * g + e[7] * b2;
+      this.b = e[2] * r + e[5] * g + e[8] * b2;
       return this;
     }
     equals(c) {
@@ -6238,12 +6238,12 @@
         tan2[i] = new Vector3();
       }
       const vA = new Vector3(), vB = new Vector3(), vC = new Vector3(), uvA = new Vector2(), uvB = new Vector2(), uvC = new Vector2(), sdir = new Vector3(), tdir = new Vector3();
-      function handleTriangle(a, b, c) {
+      function handleTriangle(a, b2, c) {
         vA.fromArray(positions, a * 3);
-        vB.fromArray(positions, b * 3);
+        vB.fromArray(positions, b2 * 3);
         vC.fromArray(positions, c * 3);
         uvA.fromArray(uvs, a * 2);
-        uvB.fromArray(uvs, b * 2);
+        uvB.fromArray(uvs, b2 * 2);
         uvC.fromArray(uvs, c * 2);
         vB.sub(vA);
         vC.sub(vA);
@@ -6254,10 +6254,10 @@
         sdir.copy(vB).multiplyScalar(uvC.y).addScaledVector(vC, -uvB.y).multiplyScalar(r);
         tdir.copy(vC).multiplyScalar(uvB.x).addScaledVector(vB, -uvC.x).multiplyScalar(r);
         tan1[a].add(sdir);
-        tan1[b].add(sdir);
+        tan1[b2].add(sdir);
         tan1[c].add(sdir);
         tan2[a].add(tdir);
-        tan2[b].add(tdir);
+        tan2[b2].add(tdir);
         tan2[c].add(tdir);
       }
       let groups = this.groups;
@@ -6279,20 +6279,20 @@
           );
         }
       }
-      const tmp = new Vector3(), tmp2 = new Vector3();
+      const tmp2 = new Vector3(), tmp22 = new Vector3();
       const n = new Vector3(), n2 = new Vector3();
       function handleVertex(v) {
         n.fromArray(normals, v * 3);
         n2.copy(n);
         const t = tan1[v];
-        tmp.copy(t);
-        tmp.sub(n.multiplyScalar(n.dot(t))).normalize();
-        tmp2.crossVectors(n2, t);
-        const test = tmp2.dot(tan2[v]);
+        tmp2.copy(t);
+        tmp2.sub(n.multiplyScalar(n.dot(t))).normalize();
+        tmp22.crossVectors(n2, t);
+        const test = tmp22.dot(tan2[v]);
         const w = test < 0 ? -1 : 1;
-        tangents[v * 4] = tmp.x;
-        tangents[v * 4 + 1] = tmp.y;
-        tangents[v * 4 + 2] = tmp.z;
+        tangents[v * 4] = tmp2.x;
+        tangents[v * 4 + 1] = tmp2.y;
+        tangents[v * 4 + 2] = tmp2.z;
         tangents[v * 4 + 3] = w;
       }
       for (let i = 0, il = groups.length; i < il; ++i) {
@@ -6653,9 +6653,9 @@
             const end = Math.min(index.count, Math.min(group.start + group.count, drawRange.start + drawRange.count));
             for (let j = start, jl = end; j < jl; j += 3) {
               const a = index.getX(j);
-              const b = index.getX(j + 1);
+              const b2 = index.getX(j + 1);
               const c = index.getX(j + 2);
-              intersection = checkGeometryIntersection(this, groupMaterial, raycaster, rayLocalSpace, uv, uv1, normal, a, b, c);
+              intersection = checkGeometryIntersection(this, groupMaterial, raycaster, rayLocalSpace, uv, uv1, normal, a, b2, c);
               if (intersection) {
                 intersection.faceIndex = Math.floor(j / 3);
                 intersection.face.materialIndex = group.materialIndex;
@@ -6668,9 +6668,9 @@
           const end = Math.min(index.count, drawRange.start + drawRange.count);
           for (let i = start, il = end; i < il; i += 3) {
             const a = index.getX(i);
-            const b = index.getX(i + 1);
+            const b2 = index.getX(i + 1);
             const c = index.getX(i + 2);
-            intersection = checkGeometryIntersection(this, material, raycaster, rayLocalSpace, uv, uv1, normal, a, b, c);
+            intersection = checkGeometryIntersection(this, material, raycaster, rayLocalSpace, uv, uv1, normal, a, b2, c);
             if (intersection) {
               intersection.faceIndex = Math.floor(i / 3);
               intersects.push(intersection);
@@ -6686,9 +6686,9 @@
             const end = Math.min(position.count, Math.min(group.start + group.count, drawRange.start + drawRange.count));
             for (let j = start, jl = end; j < jl; j += 3) {
               const a = j;
-              const b = j + 1;
+              const b2 = j + 1;
               const c = j + 2;
-              intersection = checkGeometryIntersection(this, groupMaterial, raycaster, rayLocalSpace, uv, uv1, normal, a, b, c);
+              intersection = checkGeometryIntersection(this, groupMaterial, raycaster, rayLocalSpace, uv, uv1, normal, a, b2, c);
               if (intersection) {
                 intersection.faceIndex = Math.floor(j / 3);
                 intersection.face.materialIndex = group.materialIndex;
@@ -6701,9 +6701,9 @@
           const end = Math.min(position.count, drawRange.start + drawRange.count);
           for (let i = start, il = end; i < il; i += 3) {
             const a = i;
-            const b = i + 1;
+            const b2 = i + 1;
             const c = i + 2;
-            intersection = checkGeometryIntersection(this, material, raycaster, rayLocalSpace, uv, uv1, normal, a, b, c);
+            intersection = checkGeometryIntersection(this, material, raycaster, rayLocalSpace, uv, uv1, normal, a, b2, c);
             if (intersection) {
               intersection.faceIndex = Math.floor(i / 3);
               intersects.push(intersection);
@@ -6731,28 +6731,28 @@
       object
     };
   }
-  function checkGeometryIntersection(object, material, raycaster, ray, uv, uv1, normal, a, b, c) {
+  function checkGeometryIntersection(object, material, raycaster, ray, uv, uv1, normal, a, b2, c) {
     object.getVertexPosition(a, _vA$1);
-    object.getVertexPosition(b, _vB$1);
+    object.getVertexPosition(b2, _vB$1);
     object.getVertexPosition(c, _vC$1);
     const intersection = checkIntersection(object, material, raycaster, ray, _vA$1, _vB$1, _vC$1, _intersectionPoint);
     if (intersection) {
       if (uv) {
         _uvA$1.fromBufferAttribute(uv, a);
-        _uvB$1.fromBufferAttribute(uv, b);
+        _uvB$1.fromBufferAttribute(uv, b2);
         _uvC$1.fromBufferAttribute(uv, c);
         intersection.uv = Triangle.getInterpolation(_intersectionPoint, _vA$1, _vB$1, _vC$1, _uvA$1, _uvB$1, _uvC$1, new Vector2());
       }
       if (uv1) {
         _uvA$1.fromBufferAttribute(uv1, a);
-        _uvB$1.fromBufferAttribute(uv1, b);
+        _uvB$1.fromBufferAttribute(uv1, b2);
         _uvC$1.fromBufferAttribute(uv1, c);
         intersection.uv1 = Triangle.getInterpolation(_intersectionPoint, _vA$1, _vB$1, _vC$1, _uvA$1, _uvB$1, _uvC$1, new Vector2());
         intersection.uv2 = intersection.uv1;
       }
       if (normal) {
         _normalA.fromBufferAttribute(normal, a);
-        _normalB.fromBufferAttribute(normal, b);
+        _normalB.fromBufferAttribute(normal, b2);
         _normalC.fromBufferAttribute(normal, c);
         intersection.normal = Triangle.getInterpolation(_intersectionPoint, _vA$1, _vB$1, _vC$1, _normalA, _normalB, _normalC, new Vector3());
         if (intersection.normal.dot(ray.direction) > 0) {
@@ -6761,7 +6761,7 @@
       }
       const face = {
         a,
-        b,
+        b: b2,
         c,
         normal: new Vector3(),
         materialIndex: 0
@@ -6834,11 +6834,11 @@
         for (let iy = 0; iy < gridY; iy++) {
           for (let ix = 0; ix < gridX; ix++) {
             const a = numberOfVertices + ix + gridX1 * iy;
-            const b = numberOfVertices + ix + gridX1 * (iy + 1);
+            const b2 = numberOfVertices + ix + gridX1 * (iy + 1);
             const c = numberOfVertices + (ix + 1) + gridX1 * (iy + 1);
             const d = numberOfVertices + (ix + 1) + gridX1 * iy;
-            indices.push(a, b, d);
-            indices.push(b, c, d);
+            indices.push(a, b2, d);
+            indices.push(b2, c, d);
             groupCount += 6;
           }
         }
@@ -6881,9 +6881,9 @@
   function mergeUniforms(uniforms) {
     const merged = {};
     for (let u = 0; u < uniforms.length; u++) {
-      const tmp = cloneUniforms(uniforms[u]);
-      for (const p in tmp) {
-        merged[p] = tmp[p];
+      const tmp2 = cloneUniforms(uniforms[u]);
+      for (const p in tmp2) {
+        merged[p] = tmp2[p];
       }
     }
     return merged;
@@ -7448,8 +7448,8 @@
       this.constant = -point.dot(this.normal);
       return this;
     }
-    setFromCoplanarPoints(a, b, c) {
-      const normal = _vector1.subVectors(c, b).cross(_vector2.subVectors(a, b)).normalize();
+    setFromCoplanarPoints(a, b2, c) {
+      const normal = _vector1.subVectors(c, b2).cross(_vector2.subVectors(a, b2)).normalize();
       this.setFromNormalAndCoplanarPoint(normal, a);
       return this;
     }
@@ -7498,8 +7498,8 @@
       const endSign = this.distanceToPoint(line.end);
       return startSign < 0 && endSign > 0 || endSign < 0 && startSign > 0;
     }
-    intersectsBox(box2) {
-      return box2.intersectsPlane(this);
+    intersectsBox(box) {
+      return box.intersectsPlane(this);
     }
     intersectsSphere(sphere) {
       return sphere.intersectsPlane(this);
@@ -7598,13 +7598,13 @@
       }
       return true;
     }
-    intersectsBox(box2) {
+    intersectsBox(box) {
       const planes = this.planes;
       for (let i = 0; i < 6; i++) {
         const plane = planes[i];
-        _vector$7.x = plane.normal.x > 0 ? box2.max.x : box2.min.x;
-        _vector$7.y = plane.normal.y > 0 ? box2.max.y : box2.min.y;
-        _vector$7.z = plane.normal.z > 0 ? box2.max.z : box2.min.z;
+        _vector$7.x = plane.normal.x > 0 ? box.max.x : box.min.x;
+        _vector$7.y = plane.normal.y > 0 ? box.max.y : box.min.y;
+        _vector$7.z = plane.normal.z > 0 ? box.max.z : box.min.z;
         if (plane.distanceToPoint(_vector$7) < 0) {
           return false;
         }
@@ -7826,11 +7826,11 @@
       for (let iy = 0; iy < gridY; iy++) {
         for (let ix = 0; ix < gridX; ix++) {
           const a = ix + gridX1 * iy;
-          const b = ix + gridX1 * (iy + 1);
+          const b2 = ix + gridX1 * (iy + 1);
           const c = ix + 1 + gridX1 * (iy + 1);
           const d = ix + 1 + gridX1 * iy;
-          indices.push(a, b, d);
-          indices.push(b, c, d);
+          indices.push(a, b2, d);
+          indices.push(b2, c, d);
         }
       }
       this.setIndex(indices);
@@ -10192,18 +10192,18 @@
         version = geometryIndex.version;
         for (let i = 0, l = array.length; i < l; i += 3) {
           const a = array[i + 0];
-          const b = array[i + 1];
+          const b2 = array[i + 1];
           const c = array[i + 2];
-          indices.push(a, b, b, c, c, a);
+          indices.push(a, b2, b2, c, c, a);
         }
       } else if (geometryPosition !== void 0) {
         const array = geometryPosition.array;
         version = geometryPosition.version;
         for (let i = 0, l = array.length / 3 - 1; i < l; i += 3) {
           const a = i + 0;
-          const b = i + 1;
+          const b2 = i + 1;
           const c = i + 2;
-          indices.push(a, b, b, c, c, a);
+          indices.push(a, b2, b2, c, c, a);
         }
       } else {
         return;
@@ -10338,11 +10338,11 @@
       update
     };
   }
-  function numericalSort(a, b) {
-    return a[0] - b[0];
+  function numericalSort(a, b2) {
+    return a[0] - b2[0];
   }
-  function absNumericalSort(a, b) {
-    return Math.abs(b[1]) - Math.abs(a[1]);
+  function absNumericalSort(a, b2) {
+    return Math.abs(b2[1]) - Math.abs(a[1]);
   }
   function WebGLMorphtargets(gl, capabilities, textures) {
     const influencesList = {};
@@ -10597,16 +10597,16 @@
     }
     return r;
   }
-  function arraysEqual(a, b) {
-    if (a.length !== b.length) return false;
+  function arraysEqual(a, b2) {
+    if (a.length !== b2.length) return false;
     for (let i = 0, l = a.length; i < l; i++) {
-      if (a[i] !== b[i]) return false;
+      if (a[i] !== b2[i]) return false;
     }
     return true;
   }
-  function copyArray(a, b) {
-    for (let i = 0, l = b.length; i < l; i++) {
-      a[i] = b[i];
+  function copyArray(a, b2) {
+    for (let i = 0, l = b2.length; i < l; i++) {
+      a[i] = b2[i];
     }
   }
   function allocTexUnits(textures, n) {
@@ -12407,28 +12407,28 @@
       dispose
     };
   }
-  function painterSortStable(a, b) {
-    if (a.groupOrder !== b.groupOrder) {
-      return a.groupOrder - b.groupOrder;
-    } else if (a.renderOrder !== b.renderOrder) {
-      return a.renderOrder - b.renderOrder;
-    } else if (a.material.id !== b.material.id) {
-      return a.material.id - b.material.id;
-    } else if (a.z !== b.z) {
-      return a.z - b.z;
+  function painterSortStable(a, b2) {
+    if (a.groupOrder !== b2.groupOrder) {
+      return a.groupOrder - b2.groupOrder;
+    } else if (a.renderOrder !== b2.renderOrder) {
+      return a.renderOrder - b2.renderOrder;
+    } else if (a.material.id !== b2.material.id) {
+      return a.material.id - b2.material.id;
+    } else if (a.z !== b2.z) {
+      return a.z - b2.z;
     } else {
-      return a.id - b.id;
+      return a.id - b2.id;
     }
   }
-  function reversePainterSortStable(a, b) {
-    if (a.groupOrder !== b.groupOrder) {
-      return a.groupOrder - b.groupOrder;
-    } else if (a.renderOrder !== b.renderOrder) {
-      return a.renderOrder - b.renderOrder;
-    } else if (a.z !== b.z) {
-      return b.z - a.z;
+  function reversePainterSortStable(a, b2) {
+    if (a.groupOrder !== b2.groupOrder) {
+      return a.groupOrder - b2.groupOrder;
+    } else if (a.renderOrder !== b2.renderOrder) {
+      return a.renderOrder - b2.renderOrder;
+    } else if (a.z !== b2.z) {
+      return b2.z - a.z;
     } else {
-      return a.id - b.id;
+      return a.id - b2.id;
     }
   }
   function WebGLRenderList() {
@@ -12687,7 +12687,7 @@
     const matrix4 = new Matrix4();
     const matrix42 = new Matrix4();
     function setup(lights, useLegacyLights) {
-      let r = 0, g = 0, b = 0;
+      let r = 0, g = 0, b2 = 0;
       for (let i = 0; i < 9; i++) state.probe[i].set(0, 0, 0);
       let directionalLength = 0;
       let pointLength = 0;
@@ -12711,7 +12711,7 @@
         if (light.isAmbientLight) {
           r += color.r * intensity * scaleFactor;
           g += color.g * intensity * scaleFactor;
-          b += color.b * intensity * scaleFactor;
+          b2 += color.b * intensity * scaleFactor;
         } else if (light.isLightProbe) {
           for (let j = 0; j < 9; j++) {
             state.probe[j].addScaledVector(light.sh.coefficients[j], intensity);
@@ -12821,7 +12821,7 @@
       }
       state.ambient[0] = r;
       state.ambient[1] = g;
-      state.ambient[2] = b;
+      state.ambient[2] = b2;
       const hash = state.hash;
       if (hash.directionalLength !== directionalLength || hash.pointLength !== pointLength || hash.spotLength !== spotLength || hash.rectAreaLength !== rectAreaLength || hash.hemiLength !== hemiLength || hash.numDirectionalShadows !== numDirectionalShadows || hash.numPointShadows !== numPointShadows || hash.numSpotShadows !== numSpotShadows || hash.numSpotMaps !== numSpotMaps || hash.numLightProbes !== numLightProbes) {
         state.directional.length = directionalLength;
@@ -13263,15 +13263,15 @@
         setLocked: function(lock) {
           locked = lock;
         },
-        setClear: function(r, g, b, a, premultipliedAlpha) {
+        setClear: function(r, g, b2, a, premultipliedAlpha) {
           if (premultipliedAlpha === true) {
             r *= a;
             g *= a;
-            b *= a;
+            b2 *= a;
           }
-          color.set(r, g, b, a);
+          color.set(r, g, b2, a);
           if (currentColorClear.equals(color) === false) {
-            gl.clearColor(r, g, b, a);
+            gl.clearColor(r, g, b2, a);
             currentColorClear.copy(color);
           }
         },
@@ -16633,17 +16633,17 @@
             const a = background.getClearAlpha();
             const r = clearColor.r;
             const g = clearColor.g;
-            const b = clearColor.b;
+            const b2 = clearColor.b;
             if (isUnsignedType) {
               uintClearColor[0] = r;
               uintClearColor[1] = g;
-              uintClearColor[2] = b;
+              uintClearColor[2] = b2;
               uintClearColor[3] = a;
               _gl.clearBufferuiv(_gl.COLOR, 0, uintClearColor);
             } else {
               intClearColor[0] = r;
               intClearColor[1] = g;
-              intClearColor[2] = b;
+              intClearColor[2] = b2;
               intClearColor[3] = a;
               _gl.clearBufferiv(_gl.COLOR, 0, intClearColor);
             }
@@ -18220,9 +18220,9 @@
         const end = Math.min(index.count, drawRange.start + drawRange.count);
         for (let i = start, l = end - 1; i < l; i += step) {
           const a = index.getX(i);
-          const b = index.getX(i + 1);
+          const b2 = index.getX(i + 1);
           vStart.fromBufferAttribute(positionAttribute, a);
-          vEnd.fromBufferAttribute(positionAttribute, b);
+          vEnd.fromBufferAttribute(positionAttribute, b2);
           const distSq = _ray$1.distanceSqToSegment(vStart, vEnd, interRay, interSegment);
           if (distSq > localThresholdSq) continue;
           interRay.applyMatrix4(this.matrixWorld);
@@ -18288,6 +18288,1142 @@
       this.needsUpdate = true;
     }
   };
+  var Curve = class {
+    constructor() {
+      this.type = "Curve";
+      this.arcLengthDivisions = 200;
+    }
+    // Virtual base class method to overwrite and implement in subclasses
+    //	- t [0 .. 1]
+    getPoint() {
+      console.warn("THREE.Curve: .getPoint() not implemented.");
+      return null;
+    }
+    // Get point at relative position in curve according to arc length
+    // - u [0 .. 1]
+    getPointAt(u, optionalTarget) {
+      const t = this.getUtoTmapping(u);
+      return this.getPoint(t, optionalTarget);
+    }
+    // Get sequence of points using getPoint( t )
+    getPoints(divisions = 5) {
+      const points = [];
+      for (let d = 0; d <= divisions; d++) {
+        points.push(this.getPoint(d / divisions));
+      }
+      return points;
+    }
+    // Get sequence of points using getPointAt( u )
+    getSpacedPoints(divisions = 5) {
+      const points = [];
+      for (let d = 0; d <= divisions; d++) {
+        points.push(this.getPointAt(d / divisions));
+      }
+      return points;
+    }
+    // Get total curve arc length
+    getLength() {
+      const lengths = this.getLengths();
+      return lengths[lengths.length - 1];
+    }
+    // Get list of cumulative segment lengths
+    getLengths(divisions = this.arcLengthDivisions) {
+      if (this.cacheArcLengths && this.cacheArcLengths.length === divisions + 1 && !this.needsUpdate) {
+        return this.cacheArcLengths;
+      }
+      this.needsUpdate = false;
+      const cache2 = [];
+      let current, last = this.getPoint(0);
+      let sum = 0;
+      cache2.push(0);
+      for (let p = 1; p <= divisions; p++) {
+        current = this.getPoint(p / divisions);
+        sum += current.distanceTo(last);
+        cache2.push(sum);
+        last = current;
+      }
+      this.cacheArcLengths = cache2;
+      return cache2;
+    }
+    updateArcLengths() {
+      this.needsUpdate = true;
+      this.getLengths();
+    }
+    // Given u ( 0 .. 1 ), get a t to find p. This gives you points which are equidistant
+    getUtoTmapping(u, distance) {
+      const arcLengths = this.getLengths();
+      let i = 0;
+      const il = arcLengths.length;
+      let targetArcLength;
+      if (distance) {
+        targetArcLength = distance;
+      } else {
+        targetArcLength = u * arcLengths[il - 1];
+      }
+      let low = 0, high = il - 1, comparison;
+      while (low <= high) {
+        i = Math.floor(low + (high - low) / 2);
+        comparison = arcLengths[i] - targetArcLength;
+        if (comparison < 0) {
+          low = i + 1;
+        } else if (comparison > 0) {
+          high = i - 1;
+        } else {
+          high = i;
+          break;
+        }
+      }
+      i = high;
+      if (arcLengths[i] === targetArcLength) {
+        return i / (il - 1);
+      }
+      const lengthBefore = arcLengths[i];
+      const lengthAfter = arcLengths[i + 1];
+      const segmentLength = lengthAfter - lengthBefore;
+      const segmentFraction = (targetArcLength - lengthBefore) / segmentLength;
+      const t = (i + segmentFraction) / (il - 1);
+      return t;
+    }
+    // Returns a unit vector tangent at t
+    // In case any sub curve does not implement its tangent derivation,
+    // 2 points a small delta apart will be used to find its gradient
+    // which seems to give a reasonable approximation
+    getTangent(t, optionalTarget) {
+      const delta = 1e-4;
+      let t1 = t - delta;
+      let t2 = t + delta;
+      if (t1 < 0) t1 = 0;
+      if (t2 > 1) t2 = 1;
+      const pt1 = this.getPoint(t1);
+      const pt2 = this.getPoint(t2);
+      const tangent = optionalTarget || (pt1.isVector2 ? new Vector2() : new Vector3());
+      tangent.copy(pt2).sub(pt1).normalize();
+      return tangent;
+    }
+    getTangentAt(u, optionalTarget) {
+      const t = this.getUtoTmapping(u);
+      return this.getTangent(t, optionalTarget);
+    }
+    computeFrenetFrames(segments, closed) {
+      const normal = new Vector3();
+      const tangents = [];
+      const normals = [];
+      const binormals = [];
+      const vec = new Vector3();
+      const mat = new Matrix4();
+      for (let i = 0; i <= segments; i++) {
+        const u = i / segments;
+        tangents[i] = this.getTangentAt(u, new Vector3());
+      }
+      normals[0] = new Vector3();
+      binormals[0] = new Vector3();
+      let min = Number.MAX_VALUE;
+      const tx = Math.abs(tangents[0].x);
+      const ty = Math.abs(tangents[0].y);
+      const tz = Math.abs(tangents[0].z);
+      if (tx <= min) {
+        min = tx;
+        normal.set(1, 0, 0);
+      }
+      if (ty <= min) {
+        min = ty;
+        normal.set(0, 1, 0);
+      }
+      if (tz <= min) {
+        normal.set(0, 0, 1);
+      }
+      vec.crossVectors(tangents[0], normal).normalize();
+      normals[0].crossVectors(tangents[0], vec);
+      binormals[0].crossVectors(tangents[0], normals[0]);
+      for (let i = 1; i <= segments; i++) {
+        normals[i] = normals[i - 1].clone();
+        binormals[i] = binormals[i - 1].clone();
+        vec.crossVectors(tangents[i - 1], tangents[i]);
+        if (vec.length() > Number.EPSILON) {
+          vec.normalize();
+          const theta = Math.acos(clamp(tangents[i - 1].dot(tangents[i]), -1, 1));
+          normals[i].applyMatrix4(mat.makeRotationAxis(vec, theta));
+        }
+        binormals[i].crossVectors(tangents[i], normals[i]);
+      }
+      if (closed === true) {
+        let theta = Math.acos(clamp(normals[0].dot(normals[segments]), -1, 1));
+        theta /= segments;
+        if (tangents[0].dot(vec.crossVectors(normals[0], normals[segments])) > 0) {
+          theta = -theta;
+        }
+        for (let i = 1; i <= segments; i++) {
+          normals[i].applyMatrix4(mat.makeRotationAxis(tangents[i], theta * i));
+          binormals[i].crossVectors(tangents[i], normals[i]);
+        }
+      }
+      return {
+        tangents,
+        normals,
+        binormals
+      };
+    }
+    clone() {
+      return new this.constructor().copy(this);
+    }
+    copy(source) {
+      this.arcLengthDivisions = source.arcLengthDivisions;
+      return this;
+    }
+    toJSON() {
+      const data = {
+        metadata: {
+          version: 4.6,
+          type: "Curve",
+          generator: "Curve.toJSON"
+        }
+      };
+      data.arcLengthDivisions = this.arcLengthDivisions;
+      data.type = this.type;
+      return data;
+    }
+    fromJSON(json) {
+      this.arcLengthDivisions = json.arcLengthDivisions;
+      return this;
+    }
+  };
+  var EllipseCurve = class extends Curve {
+    constructor(aX = 0, aY = 0, xRadius = 1, yRadius = 1, aStartAngle = 0, aEndAngle = Math.PI * 2, aClockwise = false, aRotation = 0) {
+      super();
+      this.isEllipseCurve = true;
+      this.type = "EllipseCurve";
+      this.aX = aX;
+      this.aY = aY;
+      this.xRadius = xRadius;
+      this.yRadius = yRadius;
+      this.aStartAngle = aStartAngle;
+      this.aEndAngle = aEndAngle;
+      this.aClockwise = aClockwise;
+      this.aRotation = aRotation;
+    }
+    getPoint(t, optionalTarget) {
+      const point = optionalTarget || new Vector2();
+      const twoPi = Math.PI * 2;
+      let deltaAngle = this.aEndAngle - this.aStartAngle;
+      const samePoints = Math.abs(deltaAngle) < Number.EPSILON;
+      while (deltaAngle < 0) deltaAngle += twoPi;
+      while (deltaAngle > twoPi) deltaAngle -= twoPi;
+      if (deltaAngle < Number.EPSILON) {
+        if (samePoints) {
+          deltaAngle = 0;
+        } else {
+          deltaAngle = twoPi;
+        }
+      }
+      if (this.aClockwise === true && !samePoints) {
+        if (deltaAngle === twoPi) {
+          deltaAngle = -twoPi;
+        } else {
+          deltaAngle = deltaAngle - twoPi;
+        }
+      }
+      const angle = this.aStartAngle + t * deltaAngle;
+      let x = this.aX + this.xRadius * Math.cos(angle);
+      let y = this.aY + this.yRadius * Math.sin(angle);
+      if (this.aRotation !== 0) {
+        const cos = Math.cos(this.aRotation);
+        const sin = Math.sin(this.aRotation);
+        const tx = x - this.aX;
+        const ty = y - this.aY;
+        x = tx * cos - ty * sin + this.aX;
+        y = tx * sin + ty * cos + this.aY;
+      }
+      return point.set(x, y);
+    }
+    copy(source) {
+      super.copy(source);
+      this.aX = source.aX;
+      this.aY = source.aY;
+      this.xRadius = source.xRadius;
+      this.yRadius = source.yRadius;
+      this.aStartAngle = source.aStartAngle;
+      this.aEndAngle = source.aEndAngle;
+      this.aClockwise = source.aClockwise;
+      this.aRotation = source.aRotation;
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.aX = this.aX;
+      data.aY = this.aY;
+      data.xRadius = this.xRadius;
+      data.yRadius = this.yRadius;
+      data.aStartAngle = this.aStartAngle;
+      data.aEndAngle = this.aEndAngle;
+      data.aClockwise = this.aClockwise;
+      data.aRotation = this.aRotation;
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.aX = json.aX;
+      this.aY = json.aY;
+      this.xRadius = json.xRadius;
+      this.yRadius = json.yRadius;
+      this.aStartAngle = json.aStartAngle;
+      this.aEndAngle = json.aEndAngle;
+      this.aClockwise = json.aClockwise;
+      this.aRotation = json.aRotation;
+      return this;
+    }
+  };
+  var ArcCurve = class extends EllipseCurve {
+    constructor(aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise) {
+      super(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);
+      this.isArcCurve = true;
+      this.type = "ArcCurve";
+    }
+  };
+  function CubicPoly() {
+    let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+    function init(x0, x1, t0, t1) {
+      c0 = x0;
+      c1 = t0;
+      c2 = -3 * x0 + 3 * x1 - 2 * t0 - t1;
+      c3 = 2 * x0 - 2 * x1 + t0 + t1;
+    }
+    return {
+      initCatmullRom: function(x0, x1, x2, x3, tension) {
+        init(x1, x2, tension * (x2 - x0), tension * (x3 - x1));
+      },
+      initNonuniformCatmullRom: function(x0, x1, x2, x3, dt0, dt1, dt2) {
+        let t1 = (x1 - x0) / dt0 - (x2 - x0) / (dt0 + dt1) + (x2 - x1) / dt1;
+        let t2 = (x2 - x1) / dt1 - (x3 - x1) / (dt1 + dt2) + (x3 - x2) / dt2;
+        t1 *= dt1;
+        t2 *= dt1;
+        init(x1, x2, t1, t2);
+      },
+      calc: function(t) {
+        const t2 = t * t;
+        const t3 = t2 * t;
+        return c0 + c1 * t + c2 * t2 + c3 * t3;
+      }
+    };
+  }
+  var tmp = /* @__PURE__ */ new Vector3();
+  var px = /* @__PURE__ */ new CubicPoly();
+  var py = /* @__PURE__ */ new CubicPoly();
+  var pz = /* @__PURE__ */ new CubicPoly();
+  var CatmullRomCurve3 = class extends Curve {
+    constructor(points = [], closed = false, curveType = "centripetal", tension = 0.5) {
+      super();
+      this.isCatmullRomCurve3 = true;
+      this.type = "CatmullRomCurve3";
+      this.points = points;
+      this.closed = closed;
+      this.curveType = curveType;
+      this.tension = tension;
+    }
+    getPoint(t, optionalTarget = new Vector3()) {
+      const point = optionalTarget;
+      const points = this.points;
+      const l = points.length;
+      const p = (l - (this.closed ? 0 : 1)) * t;
+      let intPoint = Math.floor(p);
+      let weight = p - intPoint;
+      if (this.closed) {
+        intPoint += intPoint > 0 ? 0 : (Math.floor(Math.abs(intPoint) / l) + 1) * l;
+      } else if (weight === 0 && intPoint === l - 1) {
+        intPoint = l - 2;
+        weight = 1;
+      }
+      let p0, p3;
+      if (this.closed || intPoint > 0) {
+        p0 = points[(intPoint - 1) % l];
+      } else {
+        tmp.subVectors(points[0], points[1]).add(points[0]);
+        p0 = tmp;
+      }
+      const p1 = points[intPoint % l];
+      const p2 = points[(intPoint + 1) % l];
+      if (this.closed || intPoint + 2 < l) {
+        p3 = points[(intPoint + 2) % l];
+      } else {
+        tmp.subVectors(points[l - 1], points[l - 2]).add(points[l - 1]);
+        p3 = tmp;
+      }
+      if (this.curveType === "centripetal" || this.curveType === "chordal") {
+        const pow = this.curveType === "chordal" ? 0.5 : 0.25;
+        let dt0 = Math.pow(p0.distanceToSquared(p1), pow);
+        let dt1 = Math.pow(p1.distanceToSquared(p2), pow);
+        let dt2 = Math.pow(p2.distanceToSquared(p3), pow);
+        if (dt1 < 1e-4) dt1 = 1;
+        if (dt0 < 1e-4) dt0 = dt1;
+        if (dt2 < 1e-4) dt2 = dt1;
+        px.initNonuniformCatmullRom(p0.x, p1.x, p2.x, p3.x, dt0, dt1, dt2);
+        py.initNonuniformCatmullRom(p0.y, p1.y, p2.y, p3.y, dt0, dt1, dt2);
+        pz.initNonuniformCatmullRom(p0.z, p1.z, p2.z, p3.z, dt0, dt1, dt2);
+      } else if (this.curveType === "catmullrom") {
+        px.initCatmullRom(p0.x, p1.x, p2.x, p3.x, this.tension);
+        py.initCatmullRom(p0.y, p1.y, p2.y, p3.y, this.tension);
+        pz.initCatmullRom(p0.z, p1.z, p2.z, p3.z, this.tension);
+      }
+      point.set(
+        px.calc(weight),
+        py.calc(weight),
+        pz.calc(weight)
+      );
+      return point;
+    }
+    copy(source) {
+      super.copy(source);
+      this.points = [];
+      for (let i = 0, l = source.points.length; i < l; i++) {
+        const point = source.points[i];
+        this.points.push(point.clone());
+      }
+      this.closed = source.closed;
+      this.curveType = source.curveType;
+      this.tension = source.tension;
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.points = [];
+      for (let i = 0, l = this.points.length; i < l; i++) {
+        const point = this.points[i];
+        data.points.push(point.toArray());
+      }
+      data.closed = this.closed;
+      data.curveType = this.curveType;
+      data.tension = this.tension;
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.points = [];
+      for (let i = 0, l = json.points.length; i < l; i++) {
+        const point = json.points[i];
+        this.points.push(new Vector3().fromArray(point));
+      }
+      this.closed = json.closed;
+      this.curveType = json.curveType;
+      this.tension = json.tension;
+      return this;
+    }
+  };
+  function CatmullRom(t, p0, p1, p2, p3) {
+    const v0 = (p2 - p0) * 0.5;
+    const v1 = (p3 - p1) * 0.5;
+    const t2 = t * t;
+    const t3 = t * t2;
+    return (2 * p1 - 2 * p2 + v0 + v1) * t3 + (-3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 + v0 * t + p1;
+  }
+  function QuadraticBezierP0(t, p) {
+    const k = 1 - t;
+    return k * k * p;
+  }
+  function QuadraticBezierP1(t, p) {
+    return 2 * (1 - t) * t * p;
+  }
+  function QuadraticBezierP2(t, p) {
+    return t * t * p;
+  }
+  function QuadraticBezier(t, p0, p1, p2) {
+    return QuadraticBezierP0(t, p0) + QuadraticBezierP1(t, p1) + QuadraticBezierP2(t, p2);
+  }
+  function CubicBezierP0(t, p) {
+    const k = 1 - t;
+    return k * k * k * p;
+  }
+  function CubicBezierP1(t, p) {
+    const k = 1 - t;
+    return 3 * k * k * t * p;
+  }
+  function CubicBezierP2(t, p) {
+    return 3 * (1 - t) * t * t * p;
+  }
+  function CubicBezierP3(t, p) {
+    return t * t * t * p;
+  }
+  function CubicBezier(t, p0, p1, p2, p3) {
+    return CubicBezierP0(t, p0) + CubicBezierP1(t, p1) + CubicBezierP2(t, p2) + CubicBezierP3(t, p3);
+  }
+  var CubicBezierCurve = class extends Curve {
+    constructor(v0 = new Vector2(), v1 = new Vector2(), v2 = new Vector2(), v3 = new Vector2()) {
+      super();
+      this.isCubicBezierCurve = true;
+      this.type = "CubicBezierCurve";
+      this.v0 = v0;
+      this.v1 = v1;
+      this.v2 = v2;
+      this.v3 = v3;
+    }
+    getPoint(t, optionalTarget = new Vector2()) {
+      const point = optionalTarget;
+      const v0 = this.v0, v1 = this.v1, v2 = this.v2, v3 = this.v3;
+      point.set(
+        CubicBezier(t, v0.x, v1.x, v2.x, v3.x),
+        CubicBezier(t, v0.y, v1.y, v2.y, v3.y)
+      );
+      return point;
+    }
+    copy(source) {
+      super.copy(source);
+      this.v0.copy(source.v0);
+      this.v1.copy(source.v1);
+      this.v2.copy(source.v2);
+      this.v3.copy(source.v3);
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.v0 = this.v0.toArray();
+      data.v1 = this.v1.toArray();
+      data.v2 = this.v2.toArray();
+      data.v3 = this.v3.toArray();
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.v0.fromArray(json.v0);
+      this.v1.fromArray(json.v1);
+      this.v2.fromArray(json.v2);
+      this.v3.fromArray(json.v3);
+      return this;
+    }
+  };
+  var CubicBezierCurve3 = class extends Curve {
+    constructor(v0 = new Vector3(), v1 = new Vector3(), v2 = new Vector3(), v3 = new Vector3()) {
+      super();
+      this.isCubicBezierCurve3 = true;
+      this.type = "CubicBezierCurve3";
+      this.v0 = v0;
+      this.v1 = v1;
+      this.v2 = v2;
+      this.v3 = v3;
+    }
+    getPoint(t, optionalTarget = new Vector3()) {
+      const point = optionalTarget;
+      const v0 = this.v0, v1 = this.v1, v2 = this.v2, v3 = this.v3;
+      point.set(
+        CubicBezier(t, v0.x, v1.x, v2.x, v3.x),
+        CubicBezier(t, v0.y, v1.y, v2.y, v3.y),
+        CubicBezier(t, v0.z, v1.z, v2.z, v3.z)
+      );
+      return point;
+    }
+    copy(source) {
+      super.copy(source);
+      this.v0.copy(source.v0);
+      this.v1.copy(source.v1);
+      this.v2.copy(source.v2);
+      this.v3.copy(source.v3);
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.v0 = this.v0.toArray();
+      data.v1 = this.v1.toArray();
+      data.v2 = this.v2.toArray();
+      data.v3 = this.v3.toArray();
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.v0.fromArray(json.v0);
+      this.v1.fromArray(json.v1);
+      this.v2.fromArray(json.v2);
+      this.v3.fromArray(json.v3);
+      return this;
+    }
+  };
+  var LineCurve = class extends Curve {
+    constructor(v1 = new Vector2(), v2 = new Vector2()) {
+      super();
+      this.isLineCurve = true;
+      this.type = "LineCurve";
+      this.v1 = v1;
+      this.v2 = v2;
+    }
+    getPoint(t, optionalTarget = new Vector2()) {
+      const point = optionalTarget;
+      if (t === 1) {
+        point.copy(this.v2);
+      } else {
+        point.copy(this.v2).sub(this.v1);
+        point.multiplyScalar(t).add(this.v1);
+      }
+      return point;
+    }
+    // Line curve is linear, so we can overwrite default getPointAt
+    getPointAt(u, optionalTarget) {
+      return this.getPoint(u, optionalTarget);
+    }
+    getTangent(t, optionalTarget = new Vector2()) {
+      return optionalTarget.subVectors(this.v2, this.v1).normalize();
+    }
+    getTangentAt(u, optionalTarget) {
+      return this.getTangent(u, optionalTarget);
+    }
+    copy(source) {
+      super.copy(source);
+      this.v1.copy(source.v1);
+      this.v2.copy(source.v2);
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.v1 = this.v1.toArray();
+      data.v2 = this.v2.toArray();
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.v1.fromArray(json.v1);
+      this.v2.fromArray(json.v2);
+      return this;
+    }
+  };
+  var LineCurve3 = class extends Curve {
+    constructor(v1 = new Vector3(), v2 = new Vector3()) {
+      super();
+      this.isLineCurve3 = true;
+      this.type = "LineCurve3";
+      this.v1 = v1;
+      this.v2 = v2;
+    }
+    getPoint(t, optionalTarget = new Vector3()) {
+      const point = optionalTarget;
+      if (t === 1) {
+        point.copy(this.v2);
+      } else {
+        point.copy(this.v2).sub(this.v1);
+        point.multiplyScalar(t).add(this.v1);
+      }
+      return point;
+    }
+    // Line curve is linear, so we can overwrite default getPointAt
+    getPointAt(u, optionalTarget) {
+      return this.getPoint(u, optionalTarget);
+    }
+    getTangent(t, optionalTarget = new Vector3()) {
+      return optionalTarget.subVectors(this.v2, this.v1).normalize();
+    }
+    getTangentAt(u, optionalTarget) {
+      return this.getTangent(u, optionalTarget);
+    }
+    copy(source) {
+      super.copy(source);
+      this.v1.copy(source.v1);
+      this.v2.copy(source.v2);
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.v1 = this.v1.toArray();
+      data.v2 = this.v2.toArray();
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.v1.fromArray(json.v1);
+      this.v2.fromArray(json.v2);
+      return this;
+    }
+  };
+  var QuadraticBezierCurve = class extends Curve {
+    constructor(v0 = new Vector2(), v1 = new Vector2(), v2 = new Vector2()) {
+      super();
+      this.isQuadraticBezierCurve = true;
+      this.type = "QuadraticBezierCurve";
+      this.v0 = v0;
+      this.v1 = v1;
+      this.v2 = v2;
+    }
+    getPoint(t, optionalTarget = new Vector2()) {
+      const point = optionalTarget;
+      const v0 = this.v0, v1 = this.v1, v2 = this.v2;
+      point.set(
+        QuadraticBezier(t, v0.x, v1.x, v2.x),
+        QuadraticBezier(t, v0.y, v1.y, v2.y)
+      );
+      return point;
+    }
+    copy(source) {
+      super.copy(source);
+      this.v0.copy(source.v0);
+      this.v1.copy(source.v1);
+      this.v2.copy(source.v2);
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.v0 = this.v0.toArray();
+      data.v1 = this.v1.toArray();
+      data.v2 = this.v2.toArray();
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.v0.fromArray(json.v0);
+      this.v1.fromArray(json.v1);
+      this.v2.fromArray(json.v2);
+      return this;
+    }
+  };
+  var QuadraticBezierCurve3 = class extends Curve {
+    constructor(v0 = new Vector3(), v1 = new Vector3(), v2 = new Vector3()) {
+      super();
+      this.isQuadraticBezierCurve3 = true;
+      this.type = "QuadraticBezierCurve3";
+      this.v0 = v0;
+      this.v1 = v1;
+      this.v2 = v2;
+    }
+    getPoint(t, optionalTarget = new Vector3()) {
+      const point = optionalTarget;
+      const v0 = this.v0, v1 = this.v1, v2 = this.v2;
+      point.set(
+        QuadraticBezier(t, v0.x, v1.x, v2.x),
+        QuadraticBezier(t, v0.y, v1.y, v2.y),
+        QuadraticBezier(t, v0.z, v1.z, v2.z)
+      );
+      return point;
+    }
+    copy(source) {
+      super.copy(source);
+      this.v0.copy(source.v0);
+      this.v1.copy(source.v1);
+      this.v2.copy(source.v2);
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.v0 = this.v0.toArray();
+      data.v1 = this.v1.toArray();
+      data.v2 = this.v2.toArray();
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.v0.fromArray(json.v0);
+      this.v1.fromArray(json.v1);
+      this.v2.fromArray(json.v2);
+      return this;
+    }
+  };
+  var SplineCurve = class extends Curve {
+    constructor(points = []) {
+      super();
+      this.isSplineCurve = true;
+      this.type = "SplineCurve";
+      this.points = points;
+    }
+    getPoint(t, optionalTarget = new Vector2()) {
+      const point = optionalTarget;
+      const points = this.points;
+      const p = (points.length - 1) * t;
+      const intPoint = Math.floor(p);
+      const weight = p - intPoint;
+      const p0 = points[intPoint === 0 ? intPoint : intPoint - 1];
+      const p1 = points[intPoint];
+      const p2 = points[intPoint > points.length - 2 ? points.length - 1 : intPoint + 1];
+      const p3 = points[intPoint > points.length - 3 ? points.length - 1 : intPoint + 2];
+      point.set(
+        CatmullRom(weight, p0.x, p1.x, p2.x, p3.x),
+        CatmullRom(weight, p0.y, p1.y, p2.y, p3.y)
+      );
+      return point;
+    }
+    copy(source) {
+      super.copy(source);
+      this.points = [];
+      for (let i = 0, l = source.points.length; i < l; i++) {
+        const point = source.points[i];
+        this.points.push(point.clone());
+      }
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.points = [];
+      for (let i = 0, l = this.points.length; i < l; i++) {
+        const point = this.points[i];
+        data.points.push(point.toArray());
+      }
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.points = [];
+      for (let i = 0, l = json.points.length; i < l; i++) {
+        const point = json.points[i];
+        this.points.push(new Vector2().fromArray(point));
+      }
+      return this;
+    }
+  };
+  var Curves = /* @__PURE__ */ Object.freeze({
+    __proto__: null,
+    ArcCurve,
+    CatmullRomCurve3,
+    CubicBezierCurve,
+    CubicBezierCurve3,
+    EllipseCurve,
+    LineCurve,
+    LineCurve3,
+    QuadraticBezierCurve,
+    QuadraticBezierCurve3,
+    SplineCurve
+  });
+  var CurvePath = class extends Curve {
+    constructor() {
+      super();
+      this.type = "CurvePath";
+      this.curves = [];
+      this.autoClose = false;
+    }
+    add(curve) {
+      this.curves.push(curve);
+    }
+    closePath() {
+      const startPoint = this.curves[0].getPoint(0);
+      const endPoint = this.curves[this.curves.length - 1].getPoint(1);
+      if (!startPoint.equals(endPoint)) {
+        const lineType = startPoint.isVector2 === true ? "LineCurve" : "LineCurve3";
+        this.curves.push(new Curves[lineType](endPoint, startPoint));
+      }
+      return this;
+    }
+    // To get accurate point with reference to
+    // entire path distance at time t,
+    // following has to be done:
+    // 1. Length of each sub path have to be known
+    // 2. Locate and identify type of curve
+    // 3. Get t for the curve
+    // 4. Return curve.getPointAt(t')
+    getPoint(t, optionalTarget) {
+      const d = t * this.getLength();
+      const curveLengths = this.getCurveLengths();
+      let i = 0;
+      while (i < curveLengths.length) {
+        if (curveLengths[i] >= d) {
+          const diff = curveLengths[i] - d;
+          const curve = this.curves[i];
+          const segmentLength = curve.getLength();
+          const u = segmentLength === 0 ? 0 : 1 - diff / segmentLength;
+          return curve.getPointAt(u, optionalTarget);
+        }
+        i++;
+      }
+      return null;
+    }
+    // We cannot use the default THREE.Curve getPoint() with getLength() because in
+    // THREE.Curve, getLength() depends on getPoint() but in THREE.CurvePath
+    // getPoint() depends on getLength
+    getLength() {
+      const lens = this.getCurveLengths();
+      return lens[lens.length - 1];
+    }
+    // cacheLengths must be recalculated.
+    updateArcLengths() {
+      this.needsUpdate = true;
+      this.cacheLengths = null;
+      this.getCurveLengths();
+    }
+    // Compute lengths and cache them
+    // We cannot overwrite getLengths() because UtoT mapping uses it.
+    getCurveLengths() {
+      if (this.cacheLengths && this.cacheLengths.length === this.curves.length) {
+        return this.cacheLengths;
+      }
+      const lengths = [];
+      let sums = 0;
+      for (let i = 0, l = this.curves.length; i < l; i++) {
+        sums += this.curves[i].getLength();
+        lengths.push(sums);
+      }
+      this.cacheLengths = lengths;
+      return lengths;
+    }
+    getSpacedPoints(divisions = 40) {
+      const points = [];
+      for (let i = 0; i <= divisions; i++) {
+        points.push(this.getPoint(i / divisions));
+      }
+      if (this.autoClose) {
+        points.push(points[0]);
+      }
+      return points;
+    }
+    getPoints(divisions = 12) {
+      const points = [];
+      let last;
+      for (let i = 0, curves = this.curves; i < curves.length; i++) {
+        const curve = curves[i];
+        const resolution = curve.isEllipseCurve ? divisions * 2 : curve.isLineCurve || curve.isLineCurve3 ? 1 : curve.isSplineCurve ? divisions * curve.points.length : divisions;
+        const pts = curve.getPoints(resolution);
+        for (let j = 0; j < pts.length; j++) {
+          const point = pts[j];
+          if (last && last.equals(point)) continue;
+          points.push(point);
+          last = point;
+        }
+      }
+      if (this.autoClose && points.length > 1 && !points[points.length - 1].equals(points[0])) {
+        points.push(points[0]);
+      }
+      return points;
+    }
+    copy(source) {
+      super.copy(source);
+      this.curves = [];
+      for (let i = 0, l = source.curves.length; i < l; i++) {
+        const curve = source.curves[i];
+        this.curves.push(curve.clone());
+      }
+      this.autoClose = source.autoClose;
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.autoClose = this.autoClose;
+      data.curves = [];
+      for (let i = 0, l = this.curves.length; i < l; i++) {
+        const curve = this.curves[i];
+        data.curves.push(curve.toJSON());
+      }
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.autoClose = json.autoClose;
+      this.curves = [];
+      for (let i = 0, l = json.curves.length; i < l; i++) {
+        const curve = json.curves[i];
+        this.curves.push(new Curves[curve.type]().fromJSON(curve));
+      }
+      return this;
+    }
+  };
+  var Path = class extends CurvePath {
+    constructor(points) {
+      super();
+      this.type = "Path";
+      this.currentPoint = new Vector2();
+      if (points) {
+        this.setFromPoints(points);
+      }
+    }
+    setFromPoints(points) {
+      this.moveTo(points[0].x, points[0].y);
+      for (let i = 1, l = points.length; i < l; i++) {
+        this.lineTo(points[i].x, points[i].y);
+      }
+      return this;
+    }
+    moveTo(x, y) {
+      this.currentPoint.set(x, y);
+      return this;
+    }
+    lineTo(x, y) {
+      const curve = new LineCurve(this.currentPoint.clone(), new Vector2(x, y));
+      this.curves.push(curve);
+      this.currentPoint.set(x, y);
+      return this;
+    }
+    quadraticCurveTo(aCPx, aCPy, aX, aY) {
+      const curve = new QuadraticBezierCurve(
+        this.currentPoint.clone(),
+        new Vector2(aCPx, aCPy),
+        new Vector2(aX, aY)
+      );
+      this.curves.push(curve);
+      this.currentPoint.set(aX, aY);
+      return this;
+    }
+    bezierCurveTo(aCP1x, aCP1y, aCP2x, aCP2y, aX, aY) {
+      const curve = new CubicBezierCurve(
+        this.currentPoint.clone(),
+        new Vector2(aCP1x, aCP1y),
+        new Vector2(aCP2x, aCP2y),
+        new Vector2(aX, aY)
+      );
+      this.curves.push(curve);
+      this.currentPoint.set(aX, aY);
+      return this;
+    }
+    splineThru(pts) {
+      const npts = [this.currentPoint.clone()].concat(pts);
+      const curve = new SplineCurve(npts);
+      this.curves.push(curve);
+      this.currentPoint.copy(pts[pts.length - 1]);
+      return this;
+    }
+    arc(aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise) {
+      const x0 = this.currentPoint.x;
+      const y0 = this.currentPoint.y;
+      this.absarc(
+        aX + x0,
+        aY + y0,
+        aRadius,
+        aStartAngle,
+        aEndAngle,
+        aClockwise
+      );
+      return this;
+    }
+    absarc(aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise) {
+      this.absellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);
+      return this;
+    }
+    ellipse(aX, aY, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise, aRotation) {
+      const x0 = this.currentPoint.x;
+      const y0 = this.currentPoint.y;
+      this.absellipse(aX + x0, aY + y0, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise, aRotation);
+      return this;
+    }
+    absellipse(aX, aY, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise, aRotation) {
+      const curve = new EllipseCurve(aX, aY, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise, aRotation);
+      if (this.curves.length > 0) {
+        const firstPoint = curve.getPoint(0);
+        if (!firstPoint.equals(this.currentPoint)) {
+          this.lineTo(firstPoint.x, firstPoint.y);
+        }
+      }
+      this.curves.push(curve);
+      const lastPoint = curve.getPoint(1);
+      this.currentPoint.copy(lastPoint);
+      return this;
+    }
+    copy(source) {
+      super.copy(source);
+      this.currentPoint.copy(source.currentPoint);
+      return this;
+    }
+    toJSON() {
+      const data = super.toJSON();
+      data.currentPoint = this.currentPoint.toArray();
+      return data;
+    }
+    fromJSON(json) {
+      super.fromJSON(json);
+      this.currentPoint.fromArray(json.currentPoint);
+      return this;
+    }
+  };
+  var LatheGeometry = class _LatheGeometry extends BufferGeometry {
+    constructor(points = [new Vector2(0, -0.5), new Vector2(0.5, 0), new Vector2(0, 0.5)], segments = 12, phiStart = 0, phiLength = Math.PI * 2) {
+      super();
+      this.type = "LatheGeometry";
+      this.parameters = {
+        points,
+        segments,
+        phiStart,
+        phiLength
+      };
+      segments = Math.floor(segments);
+      phiLength = clamp(phiLength, 0, Math.PI * 2);
+      const indices = [];
+      const vertices = [];
+      const uvs = [];
+      const initNormals = [];
+      const normals = [];
+      const inverseSegments = 1 / segments;
+      const vertex2 = new Vector3();
+      const uv = new Vector2();
+      const normal = new Vector3();
+      const curNormal = new Vector3();
+      const prevNormal = new Vector3();
+      let dx = 0;
+      let dy = 0;
+      for (let j = 0; j <= points.length - 1; j++) {
+        switch (j) {
+          case 0:
+            dx = points[j + 1].x - points[j].x;
+            dy = points[j + 1].y - points[j].y;
+            normal.x = dy * 1;
+            normal.y = -dx;
+            normal.z = dy * 0;
+            prevNormal.copy(normal);
+            normal.normalize();
+            initNormals.push(normal.x, normal.y, normal.z);
+            break;
+          case points.length - 1:
+            initNormals.push(prevNormal.x, prevNormal.y, prevNormal.z);
+            break;
+          default:
+            dx = points[j + 1].x - points[j].x;
+            dy = points[j + 1].y - points[j].y;
+            normal.x = dy * 1;
+            normal.y = -dx;
+            normal.z = dy * 0;
+            curNormal.copy(normal);
+            normal.x += prevNormal.x;
+            normal.y += prevNormal.y;
+            normal.z += prevNormal.z;
+            normal.normalize();
+            initNormals.push(normal.x, normal.y, normal.z);
+            prevNormal.copy(curNormal);
+        }
+      }
+      for (let i = 0; i <= segments; i++) {
+        const phi = phiStart + i * inverseSegments * phiLength;
+        const sin = Math.sin(phi);
+        const cos = Math.cos(phi);
+        for (let j = 0; j <= points.length - 1; j++) {
+          vertex2.x = points[j].x * sin;
+          vertex2.y = points[j].y;
+          vertex2.z = points[j].x * cos;
+          vertices.push(vertex2.x, vertex2.y, vertex2.z);
+          uv.x = i / segments;
+          uv.y = j / (points.length - 1);
+          uvs.push(uv.x, uv.y);
+          const x = initNormals[3 * j + 0] * sin;
+          const y = initNormals[3 * j + 1];
+          const z = initNormals[3 * j + 0] * cos;
+          normals.push(x, y, z);
+        }
+      }
+      for (let i = 0; i < segments; i++) {
+        for (let j = 0; j < points.length - 1; j++) {
+          const base = j + i * points.length;
+          const a = base;
+          const b2 = base + points.length;
+          const c = base + points.length + 1;
+          const d = base + 1;
+          indices.push(a, b2, d);
+          indices.push(c, d, b2);
+        }
+      }
+      this.setIndex(indices);
+      this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+      this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+      this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+    }
+    copy(source) {
+      super.copy(source);
+      this.parameters = Object.assign({}, source.parameters);
+      return this;
+    }
+    static fromJSON(data) {
+      return new _LatheGeometry(data.points, data.segments, data.phiStart, data.phiLength);
+    }
+  };
+  var CapsuleGeometry = class _CapsuleGeometry extends LatheGeometry {
+    constructor(radius = 1, length = 1, capSegments = 4, radialSegments = 8) {
+      const path = new Path();
+      path.absarc(0, -length / 2, radius, Math.PI * 1.5, 0);
+      path.absarc(0, length / 2, radius, 0, Math.PI * 0.5);
+      super(path.getPoints(capSegments), radialSegments);
+      this.type = "CapsuleGeometry";
+      this.parameters = {
+        radius,
+        length,
+        capSegments,
+        radialSegments
+      };
+    }
+    static fromJSON(data) {
+      return new _CapsuleGeometry(data.radius, data.length, data.capSegments, data.radialSegments);
+    }
+  };
   var CylinderGeometry = class _CylinderGeometry extends BufferGeometry {
     constructor(radiusTop = 1, radiusBottom = 1, height = 1, radialSegments = 32, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2) {
       super();
@@ -18350,11 +19486,11 @@
         for (let x = 0; x < radialSegments; x++) {
           for (let y = 0; y < heightSegments; y++) {
             const a = indexArray[y][x];
-            const b = indexArray[y + 1][x];
+            const b2 = indexArray[y + 1][x];
             const c = indexArray[y + 1][x + 1];
             const d = indexArray[y][x + 1];
-            indices.push(a, b, d);
-            indices.push(b, c, d);
+            indices.push(a, b2, d);
+            indices.push(b2, c, d);
             groupCount += 6;
           }
         }
@@ -18462,11 +19598,11 @@
       for (let iy = 0; iy < heightSegments; iy++) {
         for (let ix = 0; ix < widthSegments; ix++) {
           const a = grid[iy][ix + 1];
-          const b = grid[iy][ix];
+          const b2 = grid[iy][ix];
           const c = grid[iy + 1][ix];
           const d = grid[iy + 1][ix + 1];
-          if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
-          if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
+          if (iy !== 0 || thetaStart > 0) indices.push(a, b2, d);
+          if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b2, c, d);
         }
       }
       this.setIndex(indices);
@@ -20131,10 +21267,6 @@
     T: ["glock18", "deagle", "ak47", "sg552", "awp", "scout", "mp5navy", "p90"],
     CT: ["usp45", "deagle", "m4a1", "aug", "awp", "scout", "mp5navy", "p90"]
   };
-  var TEAM_COLOR = {
-    T: 12755051,
-    CT: 8360885
-  };
   var SETTINGS_DEFAULT = {
     sensitivity: 1,
     fov: 90,
@@ -20309,13 +21441,61 @@
   }
 
   // src/textures.js
+  var MAX_ANISO = 4;
+  function setAnisotropy(v) {
+    MAX_ANISO = Math.max(1, Math.min(16, v | 0 || 1));
+  }
   function cv(w, h) {
     const c = document.createElement("canvas");
     c.width = w;
     c.height = h;
+    c.getContext("2d", { willReadFrequently: true });
     return c;
   }
-  function noise(ctx2, w, h, amount, alpha = 1) {
+  function hash2(x, y, s) {
+    let h = (x | 0) * 374761393 + (y | 0) * 668265263 + (s | 0) * 1442695041;
+    h = (h ^ h >> 13) * 1274126177;
+    return ((h ^ h >> 16) >>> 0) / 4294967295;
+  }
+  function vnoiseP(x, y, s, per) {
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const fx2 = x - xi, fy = y - yi;
+    const u = fx2 * fx2 * (3 - 2 * fx2);
+    const v = fy * fy * (3 - 2 * fy);
+    const wrap = (n) => (n % per + per) % per;
+    const x0 = wrap(xi), x1 = wrap(xi + 1);
+    const y0 = wrap(yi), y1 = wrap(yi + 1);
+    const a = hash2(x0, y0, s), b2 = hash2(x1, y0, s);
+    const c = hash2(x0, y1, s), d = hash2(x1, y1, s);
+    return (a * (1 - u) + b2 * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+  }
+  function fbmP(x, y, oct, s, basePer) {
+    let sum = 0, amp = 0.55, norm = 0, per = basePer, f = 1;
+    for (let i = 0; i < oct; i++) {
+      sum += vnoiseP(x * f, y * f, s + i * 131, per) * amp;
+      norm += amp;
+      amp *= 0.55;
+      f *= 2;
+      per *= 2;
+    }
+    return sum / norm;
+  }
+  function overlayFbm(ctx2, S, { basePer = 4, oct = 4, strength = 0.22, seed = 7 } = {}) {
+    const img = ctx2.getImageData(0, 0, S, S);
+    const d = img.data;
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        const n = fbmP(x / S * basePer, y / S * basePer, oct, seed, basePer);
+        const k = 1 + (n - 0.5) * strength;
+        const i = (y * S + x) * 4;
+        d[i] = Math.min(255, Math.max(0, d[i] * k));
+        d[i + 1] = Math.min(255, Math.max(0, d[i + 1] * k));
+        d[i + 2] = Math.min(255, Math.max(0, d[i + 2] * k));
+      }
+    }
+    ctx2.putImageData(img, 0, 0);
+  }
+  function grain(ctx2, w, h, amount) {
     const img = ctx2.getImageData(0, 0, w, h);
     const d = img.data;
     for (let i = 0; i < d.length; i += 4) {
@@ -20323,7 +21503,6 @@
       d[i] = Math.max(0, Math.min(255, d[i] + n));
       d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n));
       d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n));
-      d[i + 3] = Math.max(0, Math.min(255, d[i + 3] * alpha));
     }
     ctx2.putImageData(img, 0, 0);
   }
@@ -20331,75 +21510,120 @@
     const t = new CanvasTexture(canvas);
     t.wrapS = t.wrapT = RepeatWrapping;
     t.colorSpace = SRGBColorSpace;
-    t.anisotropy = 4;
+    t.anisotropy = MAX_ANISO;
     t.repeat.set(repeat, repeat);
     return t;
   }
   function sandWall() {
     const S = 256, c = cv(S, S), x = c.getContext("2d");
-    x.fillStyle = "#b99a68";
+    x.fillStyle = "#8f7350";
     x.fillRect(0, 0, S, S);
     const rowH = 32;
     for (let r = 0; r < S / rowH; r++) {
       const off = r % 2 * 42;
       for (let bx = -1; bx < 4; bx++) {
         const w = 78, h = rowH - 3;
-        const px = bx * 84 + off + 2;
-        const py = r * rowH + 2;
+        const px2 = bx * 84 + off + 2;
+        const py2 = r * rowH + 2;
         const v = 20 * Math.random();
-        x.fillStyle = `rgb(${184 - v | 0},${156 - v | 0},${106 - v | 0})`;
-        x.fillRect(px, py, w, h);
-        x.fillStyle = "rgba(255,255,255,0.07)";
-        x.fillRect(px, py, w, 3);
-        x.fillStyle = "rgba(0,0,0,0.12)";
-        x.fillRect(px, py + h - 3, w, 3);
+        x.fillStyle = `rgb(${188 - v | 0},${160 - v | 0},${112 - v | 0})`;
+        x.fillRect(px2, py2, w, h);
+        const gv = x.createLinearGradient(0, py2, 0, py2 + h);
+        gv.addColorStop(0, "rgba(64,48,30,0.42)");
+        gv.addColorStop(0.14, "rgba(64,48,30,0)");
+        gv.addColorStop(0.84, "rgba(52,38,24,0)");
+        gv.addColorStop(1, "rgba(46,34,22,0.5)");
+        x.fillStyle = gv;
+        x.fillRect(px2, py2, w, h);
+        const gh = x.createLinearGradient(px2, 0, px2 + w, 0);
+        gh.addColorStop(0, "rgba(64,48,30,0.34)");
+        gh.addColorStop(0.1, "rgba(64,48,30,0)");
+        gh.addColorStop(0.9, "rgba(52,38,24,0)");
+        gh.addColorStop(1, "rgba(46,34,22,0.38)");
+        x.fillStyle = gh;
+        x.fillRect(px2, py2, w, h);
       }
     }
-    for (let i = 0; i < 40; i++) {
-      const g = x.createRadialGradient(Math.random() * S, Math.random() * S, 2, Math.random() * S, Math.random() * S, 30);
-      g.addColorStop(0, "rgba(90,70,45,0.10)");
-      g.addColorStop(1, "rgba(90,70,45,0)");
+    for (let i = 0; i < 14; i++) {
+      const sx = Math.random() * S;
+      const wdt = 2 + Math.random() * 6;
+      const g = x.createLinearGradient(0, 0, 0, S);
+      g.addColorStop(0, "rgba(72,56,34,0)");
+      g.addColorStop(0.35, `rgba(72,56,34,${0.05 + Math.random() * 0.07})`);
+      g.addColorStop(0.75, `rgba(64,50,30,${0.04 + Math.random() * 0.06})`);
+      g.addColorStop(1, "rgba(72,56,34,0)");
       x.fillStyle = g;
-      x.fillRect(0, 0, S, S);
+      x.fillRect(sx, 0, wdt, S);
     }
-    noise(x, S, S, 26);
+    overlayFbm(x, S, { basePer: 3, oct: 4, strength: 0.26, seed: 11 });
+    grain(x, S, S, 22);
     return toTex(c);
   }
   function sandFloor() {
     const S = 256, c = cv(S, S), x = c.getContext("2d");
-    x.fillStyle = "#c4a878";
+    x.fillStyle = "#b29469";
     x.fillRect(0, 0, S, S);
-    for (let i = 0; i < 2600; i++) {
-      const v = Math.random() * 40 - 20;
-      x.fillStyle = `rgba(${190 + v | 0},${164 + v | 0},${118 + v | 0},0.55)`;
-      x.fillRect(Math.random() * S, Math.random() * S, 2 + Math.random() * 3, 1 + Math.random() * 2);
-    }
-    for (let i = 0; i < 14; i++) {
-      x.strokeStyle = "rgba(140,116,80,0.24)";
-      x.lineWidth = 1 + Math.random() * 2;
+    for (let i = 0; i < 22; i++) {
+      const y0 = Math.random() * S;
+      const amp = 3 + Math.random() * 7;
+      x.strokeStyle = `rgba(${205 + Math.random() * 18 | 0},${182 + Math.random() * 16 | 0},${142 + Math.random() * 14 | 0},0.22)`;
+      x.lineWidth = 1 + Math.random() * 2.4;
       x.beginPath();
-      let px = Math.random() * S, py = Math.random() * S;
-      x.moveTo(px, py);
-      for (let k = 0; k < 6; k++) {
-        px += (Math.random() - 0.5) * 40;
-        py += (Math.random() - 0.5) * 40;
-        x.lineTo(px, py);
+      for (let px2 = 0; px2 <= S; px2 += 6) {
+        const py2 = y0 + Math.sin(px2 / S * Math.PI * 2 * (1 + i % 3)) * amp;
+        if (px2 === 0) x.moveTo(px2, py2);
+        else x.lineTo(px2, py2);
       }
       x.stroke();
     }
-    noise(x, S, S, 16);
-    return toTex(c, 1);
+    for (let i = 0; i < 1400; i++) {
+      const v = Math.random() * 46 - 23;
+      x.fillStyle = `rgba(${178 + v | 0},${154 + v | 0},${110 + v | 0},${0.35 + Math.random() * 0.4})`;
+      x.fillRect(Math.random() * S, Math.random() * S, 1 + Math.random() * 2.4, 1 + Math.random() * 1.8);
+    }
+    for (let i = 0; i < 12; i++) {
+      const g = x.createRadialGradient(
+        Math.random() * S,
+        Math.random() * S,
+        2,
+        Math.random() * S,
+        Math.random() * S,
+        26 + Math.random() * 30
+      );
+      g.addColorStop(0, "rgba(120,98,68,0.16)");
+      g.addColorStop(1, "rgba(120,98,68,0)");
+      x.fillStyle = g;
+      x.fillRect(0, 0, S, S);
+    }
+    overlayFbm(x, S, { basePer: 5, oct: 4, strength: 0.2, seed: 23 });
+    grain(x, S, S, 14);
+    return toTex(c);
   }
   function crate() {
     const S = 128, c = cv(S, S), x = c.getContext("2d");
-    x.fillStyle = "#9c7442";
+    x.fillStyle = "#8d6840";
     x.fillRect(0, 0, S, S);
+    const plank = S / 7;
     for (let i = 0; i < 7; i++) {
-      const y = i * (S / 7);
-      x.fillStyle = i % 2 ? "#a87e49" : "#93693a";
-      x.fillRect(0, y + 1, S, S / 7 - 2);
-      x.fillStyle = "rgba(0,0,0,0.18)";
-      x.fillRect(0, y, S, 1.5);
+      const y = i * plank;
+      x.fillStyle = i % 2 ? "#98724a" : "#825f36";
+      x.fillRect(0, y + 1, S, plank - 2);
+      const g = x.createLinearGradient(0, y, 0, y + plank);
+      g.addColorStop(0, "rgba(48,32,18,0.34)");
+      g.addColorStop(0.25, "rgba(48,32,18,0)");
+      g.addColorStop(0.8, "rgba(40,26,14,0)");
+      g.addColorStop(1, "rgba(40,26,14,0.38)");
+      x.fillStyle = g;
+      x.fillRect(0, y, S, plank);
+      for (let k = 0; k < 9; k++) {
+        const fy = y + 2 + Math.random() * (plank - 5);
+        x.strokeStyle = `rgba(${90 + Math.random() * 40 | 0},${64 + Math.random() * 30 | 0},${36 + Math.random() * 22 | 0},${0.1 + Math.random() * 0.16})`;
+        x.lineWidth = 0.7;
+        x.beginPath();
+        x.moveTo(Math.random() * 20, fy);
+        x.bezierCurveTo(S * 0.3, fy + Math.random() * 2 - 1, S * 0.7, fy + Math.random() * 2 - 1, S, fy);
+        x.stroke();
+      }
     }
     x.strokeStyle = "#6d4c26";
     x.lineWidth = 7;
@@ -20408,24 +21632,42 @@
     x.moveTo(6, 6);
     x.lineTo(S - 6, S - 6);
     x.stroke();
+    x.strokeStyle = "rgba(40,26,14,0.42)";
+    x.lineWidth = 2;
+    x.strokeRect(8, 8, S - 16, S - 16);
     x.fillStyle = "#4a3520";
-    [[14, 14], [S - 14, 14], [14, S - 14], [S - 14, S - 14]].forEach(([px, py]) => {
+    [[14, 14], [S - 14, 14], [14, S - 14], [S - 14, S - 14]].forEach(([px2, py2]) => {
       x.beginPath();
-      x.arc(px, py, 2.6, 0, 7);
+      x.arc(px2, py2, 2.6, 0, 7);
       x.fill();
     });
-    noise(x, S, S, 18);
+    overlayFbm(x, S, { basePer: 3, oct: 3, strength: 0.2, seed: 41 });
+    grain(x, S, S, 16);
     return toTex(c);
   }
   function concrete() {
     const S = 128, c = cv(S, S), x = c.getContext("2d");
     x.fillStyle = "#8d8a82";
     x.fillRect(0, 0, S, S);
-    for (let i = 0; i < 26; i++) {
-      x.fillStyle = `rgba(${110 + Math.random() * 50 | 0},${108 + Math.random() * 46 | 0},${100 + Math.random() * 40 | 0},0.5)`;
+    for (let i = 0; i < 30; i++) {
+      x.fillStyle = `rgba(${110 + Math.random() * 50 | 0},${108 + Math.random() * 46 | 0},${100 + Math.random() * 40 | 0},0.45)`;
       x.fillRect(Math.random() * S, Math.random() * S, 8 + Math.random() * 30, 6 + Math.random() * 20);
     }
-    noise(x, S, S, 24);
+    for (let i = 0; i < 5; i++) {
+      x.strokeStyle = `rgba(58,56,50,${0.18 + Math.random() * 0.2})`;
+      x.lineWidth = 0.8 + Math.random() * 0.6;
+      x.beginPath();
+      let px2 = Math.random() * S, py2 = Math.random() * S;
+      x.moveTo(px2, py2);
+      for (let k = 0; k < 5; k++) {
+        px2 += (Math.random() - 0.5) * 26;
+        py2 += (Math.random() - 0.5) * 26;
+        x.lineTo(px2, py2);
+      }
+      x.stroke();
+    }
+    overlayFbm(x, S, { basePer: 4, oct: 4, strength: 0.28, seed: 53 });
+    grain(x, S, S, 20);
     return toTex(c);
   }
   function metal(color) {
@@ -20433,16 +21675,28 @@
     x.fillStyle = color;
     x.fillRect(0, 0, S, S);
     for (let i = 0; i < S; i += 8) {
-      x.fillStyle = "rgba(255,255,255,0.07)";
-      x.fillRect(i, 0, 2, S);
-      x.fillStyle = "rgba(0,0,0,0.10)";
-      x.fillRect(i + 4, 0, 2, S);
+      const g = x.createLinearGradient(i, 0, i + 8, 0);
+      g.addColorStop(0, "rgba(255,255,255,0.10)");
+      g.addColorStop(0.45, "rgba(255,255,255,0)");
+      g.addColorStop(0.55, "rgba(0,0,0,0)");
+      g.addColorStop(1, "rgba(0,0,0,0.20)");
+      x.fillStyle = g;
+      x.fillRect(i, 0, 8, S);
     }
-    for (let i = 0; i < 24; i++) {
-      x.fillStyle = `rgba(80,55,35,${Math.random() * 0.16})`;
-      x.fillRect(Math.random() * S, Math.random() * S, Math.random() * 22, Math.random() * 22);
+    for (let i = 0; i < 9; i++) {
+      const cx = Math.random() * S, cy = Math.random() * S;
+      const r = 6 + Math.random() * 22;
+      const g = x.createRadialGradient(cx, cy, 1, cx, cy, r);
+      g.addColorStop(0, `rgba(108,58,30,${0.22 + Math.random() * 0.2})`);
+      g.addColorStop(0.6, `rgba(126,72,38,${0.1 + Math.random() * 0.1})`);
+      g.addColorStop(1, "rgba(126,72,38,0)");
+      x.fillStyle = g;
+      x.beginPath();
+      x.arc(cx, cy, r, 0, 7);
+      x.fill();
     }
-    noise(x, S, S, 14);
+    overlayFbm(x, S, { basePer: 3, oct: 4, strength: 0.24, seed: 67 });
+    grain(x, S, S, 12);
     return toTex(c);
   }
   var cache = null;
@@ -20459,52 +21713,143 @@
     };
     return cache;
   }
-  function makeSkyTexture() {
-    const S = 512, c = cv(S, S), x = c.getContext("2d");
-    const g = x.createLinearGradient(0, 0, 0, S);
-    g.addColorStop(0, "#5f86b8");
-    g.addColorStop(0.45, "#a8c0d6");
-    g.addColorStop(0.62, "#d9cfb4");
-    g.addColorStop(1, "#e8dcc0");
-    x.fillStyle = g;
+  function weaponMetal() {
+    const S = 128, c = cv(S, S), x = c.getContext("2d");
+    x.fillStyle = "#7e828a";
     x.fillRect(0, 0, S, S);
-    for (let i = 0; i < 18; i++) {
-      const cx = Math.random() * S, cy = 40 + Math.random() * 180, r = 30 + Math.random() * 70;
-      const rg = x.createRadialGradient(cx, cy, 2, cx, cy, r);
-      rg.addColorStop(0, "rgba(255,255,255,0.5)");
-      rg.addColorStop(1, "rgba(255,255,255,0)");
-      x.fillStyle = rg;
+    for (let i = 0; i < 260; i++) {
+      const y = Math.random() * S;
+      const bright = Math.random() > 0.5;
+      x.strokeStyle = bright ? `rgba(255,255,255,${0.02 + Math.random() * 0.06})` : `rgba(34,36,42,${0.02 + Math.random() * 0.08})`;
+      x.lineWidth = 0.6 + Math.random() * 1.1;
+      x.beginPath();
+      x.moveTo(Math.random() * 24, y);
+      x.lineTo(S - Math.random() * 24, y + (Math.random() - 0.5) * 2);
+      x.stroke();
+    }
+    for (let i = 0; i < 28; i++) {
+      const cx = Math.random() * S, cy = Math.random() * S;
+      const r = 3 + Math.random() * 13;
+      const g = x.createRadialGradient(cx, cy, 0.5, cx, cy, r);
+      const bright = Math.random() > 0.45;
+      g.addColorStop(0, bright ? "rgba(205,208,216,0.30)" : "rgba(42,44,50,0.30)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      x.fillStyle = g;
       x.beginPath();
       x.arc(cx, cy, r, 0, 7);
       x.fill();
     }
+    x.fillStyle = "rgba(26,28,32,0.5)";
+    for (let row = 0; row < 3; row++) {
+      const y = 36 + row * 9;
+      let px2 = 24;
+      while (px2 < 102) {
+        const w = 2 + Math.random() * 6;
+        x.fillRect(px2, y, w, 3);
+        px2 += w + 2 + Math.random() * 3;
+      }
+    }
+    overlayFbm(x, S, { basePer: 4, oct: 3, strength: 0.18, seed: 91 });
+    grain(x, S, S, 10);
+    return toTex(c);
+  }
+  function weaponWood() {
+    const S = 128, c = cv(S, S), x = c.getContext("2d");
+    x.fillStyle = "#6b4522";
+    x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 34; i++) {
+      const cx = S * (0.15 + Math.random() * 0.7);
+      const cy = -30 + Math.random() * 190;
+      const r = 8 + Math.random() * 70;
+      x.strokeStyle = `rgba(${38 + Math.random() * 40 | 0},${20 + Math.random() * 30 | 0},${10 + Math.random() * 18 | 0},${0.1 + Math.random() * 0.18})`;
+      x.lineWidth = 0.7 + Math.random() * 2;
+      x.beginPath();
+      x.ellipse(cx, cy, r, r * (0.22 + Math.random() * 0.4), Math.random() * 0.4, 0, 7);
+      x.stroke();
+    }
+    for (let i = 0; i < 7; i++) {
+      x.strokeStyle = `rgba(196,158,108,${0.04 + Math.random() * 0.08})`;
+      x.lineWidth = 2 + Math.random() * 5;
+      x.beginPath();
+      x.moveTo(0, Math.random() * S);
+      x.bezierCurveTo(S * 0.35, Math.random() * S, S * 0.7, Math.random() * S, S, Math.random() * S);
+      x.stroke();
+    }
+    for (let i = 0; i < 9; i++) {
+      x.fillStyle = `rgba(152,122,90,${0.12 + Math.random() * 0.16})`;
+      x.fillRect(Math.random() * S, Math.random() * S, 2 + Math.random() * 11, 1 + Math.random() * 3);
+    }
+    grain(x, S, S, 12);
+    return toTex(c);
+  }
+  function weaponPoly() {
+    const S = 64, c = cv(S, S), x = c.getContext("2d");
+    x.fillStyle = "#4a4d54";
+    x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 900; i++) {
+      const v = Math.random();
+      x.fillStyle = v > 0.5 ? `rgba(120,124,132,${0.1 + Math.random() * 0.14})` : `rgba(28,30,34,${0.1 + Math.random() * 0.16})`;
+      x.fillRect(Math.random() * S, Math.random() * S, 1 + Math.random() * 2, 1 + Math.random() * 2);
+    }
+    for (let i = 0; i < 4; i++) {
+      x.strokeStyle = `rgba(160,164,172,${0.06 + Math.random() * 0.08})`;
+      x.lineWidth = 0.8;
+      x.beginPath();
+      x.moveTo(Math.random() * S, 0);
+      x.lineTo(Math.random() * S, S);
+      x.stroke();
+    }
+    overlayFbm(x, S, { basePer: 3, oct: 3, strength: 0.16, seed: 77 });
+    return toTex(c);
+  }
+  var wtCache = null;
+  function getWeaponTextures() {
+    if (wtCache) return wtCache;
+    wtCache = { metal: weaponMetal(), wood: weaponWood(), poly: weaponPoly() };
+    return wtCache;
+  }
+  function makeSkyTexture() {
+    const S = 512, c = cv(S, S), x = c.getContext("2d");
+    const g = x.createLinearGradient(0, 0, 0, S);
+    g.addColorStop(0, "#4d78ae");
+    g.addColorStop(0.34, "#93b1cd");
+    g.addColorStop(0.56, "#cfc6ae");
+    g.addColorStop(0.72, "#e3d5b6");
+    g.addColorStop(1, "#e8dcc0");
+    x.fillStyle = g;
+    x.fillRect(0, 0, S, S);
+    for (let layer = 0; layer < 3; layer++) {
+      const count = 10 - layer * 2;
+      for (let i = 0; i < count; i++) {
+        const cx = Math.random() * S;
+        const cy = 30 + Math.random() * 150 + layer * 26;
+        const r = 26 + Math.random() * 60;
+        const rg = x.createRadialGradient(cx, cy, 2, cx, cy, r);
+        const a = 0.42 - layer * 0.09;
+        rg.addColorStop(0, `rgba(255,255,255,${a})`);
+        rg.addColorStop(0.55, `rgba(248,246,240,${a * 0.5})`);
+        rg.addColorStop(1, "rgba(255,255,255,0)");
+        x.fillStyle = rg;
+        x.beginPath();
+        x.ellipse(cx, cy, r * 1.5, r * 0.62, 0, 0, 7);
+        x.fill();
+      }
+    }
     const t = new CanvasTexture(c);
     t.colorSpace = SRGBColorSpace;
+    t.anisotropy = MAX_ANISO;
     return t;
   }
 
   // src/map.js
   var WALL_H = 440;
   var WALL_T = 24;
-  var AREAS = [
-    { name: "T Spawn", x0: -500, x1: 500, z0: 1200, z1: 1900, kind: "tspawn" },
-    { name: "T Long", x0: 400, x1: 1e3, z0: 1380, z1: 1720, kind: "road" },
-    { name: "Long A", x0: 900, x1: 1280, z0: -520, z1: 1700, kind: "road" },
-    { name: "A Site", x0: 900, x1: 1700, z0: -920, z1: -380, kind: "site" },
-    { name: "CT Ramp", x0: 320, x1: 1e3, z0: -1120, z1: -700, kind: "road" },
-    { name: "CT Spawn", x0: -620, x1: 420, z0: -1520, z1: -880, kind: "ctspawn" },
-    { name: "CT Mid", x0: -320, x1: 320, z0: -1080, z1: -680, kind: "road" },
-    { name: "Top Mid", x0: -320, x1: 320, z0: -700, z1: -180, kind: "road" },
-    { name: "Mid", x0: -160, x1: 160, z0: -250, z1: 1350, kind: "road" },
-    { name: "Lower Tunnel", x0: -980, x1: -120, z0: 700, z1: 960, kind: "tunnel" },
-    { name: "B Tunnel", x0: -1280, x1: -880, z0: -470, z1: 1700, kind: "tunnel" },
-    { name: "B Site", x0: -1720, x1: -880, z0: -920, z1: -300, kind: "site" },
-    { name: "B Doors", x0: -1480, x1: -380, z0: -1280, z1: -860, kind: "road" },
-    { name: "T Tunnel", x0: -980, x1: -420, z0: 1380, z1: 1720, kind: "tunnel" }
-  ];
   var GameMap = class {
-    constructor(scene) {
+    // def 来自 src/maps/*.js：纯数据，渲染与碰撞全部由此推导
+    constructor(scene, def) {
+      if (!def) throw new Error("GameMap: \u7F3A\u5C11\u5730\u56FE\u5B9A\u4E49\uFF0C\u89C1 src/maps/index.js");
       this.scene = scene;
+      this.def = def;
       this.tex = getTextures();
       this.colliders = [];
       this.solids = [];
@@ -20512,10 +21857,8 @@
       this.grid = new Uint8Array(GRID * GRID);
       this.blocked = new Uint8Array(GRID * GRID);
       this.spawns = { T: [], CT: [] };
-      this.sites = {
-        A: { name: "A", x0: 950, x1: 1650, z0: -880, z1: -420, label: "A" },
-        B: { name: "B", x0: -1680, x1: -920, z0: -880, z1: -340, label: "B" }
-      };
+      this.sites = def.sites;
+      this.label = def.label || def.id || "";
       this._build();
     }
     // ---------- 坐标换算 ----------
@@ -20567,7 +21910,7 @@
       this._buildLabels();
     }
     _rasterize() {
-      for (const a of AREAS) {
+      for (const a of this.def.areas) {
         const c0 = Math.floor((a.x0 + WORLD_HALF) / TILE);
         const c1 = Math.floor((a.x1 + WORLD_HALF) / TILE);
         const r0 = Math.floor((a.z0 + WORLD_HALF) / TILE);
@@ -20583,9 +21926,9 @@
       const scene = this.scene;
       scene.fog = new Fog(14207403, 1800, 5e3);
       scene.background = new Color(10467020);
-      const hemi = new HemisphereLight(13624050, 10256469, 1.05);
+      const hemi = new HemisphereLight(13624050, 10256469, 0.9);
       scene.add(hemi);
-      const sun = new DirectionalLight(16774102, 1.55);
+      const sun = new DirectionalLight(16774102, 1.3);
       sun.position.set(-900, 1500, 700);
       scene.add(sun);
       const fill = new DirectionalLight(9414856, 0.4);
@@ -20641,13 +21984,89 @@
       }
       return m;
     }
+    // ---------- 顶点级环境光遮蔽 ----------
+    // GoldSrc 的纵深来自每面独立的 lightmap；这里用栅格近似等价信息：
+    // 逐顶点采样周围空间是否被墙体/道具/顶盖占据，把结果写进顶点色。
+    // 成本是 O(顶点数)，纯查表，不需要射线。
+    _openAt(x, y, z) {
+      if (y > WALL_H - 12) return true;
+      if (y < 0) return false;
+      const { cx, cz } = this.worldToTile(x, z);
+      if (!this.inBounds(cx, cz)) return false;
+      const i = cz * GRID + cx;
+      if (this.grid[i] !== 1) return false;
+      if (this.blocked[i] === 1 && y < 140) return false;
+      if (y > WALL_H - 46 && this._hasCeiling(x, z)) return false;
+      return true;
+    }
+    _hasCeiling(x, z) {
+      for (const zn of this.def.ceilings || []) {
+        if (x >= zn.x0 && x <= zn.x1 && z >= zn.z0 && z <= zn.z1) return true;
+      }
+      return false;
+    }
+    _aoFactor(x, y, z, nx, ny, nz) {
+      let occ = 0, total = 0;
+      const sample = (dx, dy, dz, r, w = 1) => {
+        total += w;
+        if (!this._openAt(x + dx * r, y + dy * r, z + dz * r)) occ += w / (1 + r / 70);
+      };
+      const horiz = Math.abs(ny) > 0.7;
+      if (horiz) {
+        if (ny > 0 && this._hasCeiling(x, z)) {
+          for (let k = 0; k < 3; k++) {
+            occ += 1.15;
+            total += 1;
+          }
+        }
+        for (let i = 0; i < 8; i++) {
+          const a = i / 8 * Math.PI * 2;
+          const dx = Math.cos(a), dz = Math.sin(a);
+          for (let k = 1; k <= 3; k++) sample(dx, 0, dz, k * 34);
+        }
+      } else {
+        const len = Math.hypot(nx, nz) || 1;
+        const ux = -nz / len, uz = nx / len;
+        for (let k = 1; k <= 3; k++) {
+          sample(ux, 0, uz, k * 42);
+          sample(-ux, 0, -uz, k * 42);
+          sample(0, 1, 0, k * 42, 0.8);
+          sample(0, -1, 0, k * 42, 2.2);
+        }
+      }
+      const ratio = total > 0 ? occ / total : 0;
+      const strength = horiz ? 1.35 : 1.9;
+      return Math.max(0.34, 1 - ratio * strength);
+    }
+    _applyAO(geo) {
+      const pos = geo.attributes.position;
+      const nor = geo.attributes.normal;
+      if (!pos || !nor) return geo;
+      const n = pos.count;
+      const colors = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+        const a = this._aoFactor(
+          pos.getX(i),
+          pos.getY(i),
+          pos.getZ(i),
+          nor.getX(i),
+          nor.getY(i),
+          nor.getZ(i)
+        );
+        colors[i * 3] = a;
+        colors[i * 3 + 1] = a;
+        colors[i * 3 + 2] = a;
+      }
+      geo.setAttribute("color", new BufferAttribute(colors, 3));
+      return geo;
+    }
     _buildFloor() {
       const geos = [];
       for (let r = 0; r < GRID; r++) {
         for (let c = 0; c < GRID; c++) {
           if (this.grid[r * GRID + c] !== 1) continue;
           const { x, z } = this.tileToWorld(c, r);
-          const g = new PlaneGeometry(TILE, TILE);
+          const g = new PlaneGeometry(TILE, TILE, 2, 2);
           g.rotateX(-Math.PI / 2);
           const uv = g.attributes.uv;
           for (let i = 0; i < uv.count; i++) {
@@ -20660,7 +22079,8 @@
       if (!geos.length) return;
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());
-      const mat = new MeshLambertMaterial({ map: this.tex.floor });
+      this._applyAO(merged);
+      const mat = new MeshLambertMaterial({ map: this.tex.floor, vertexColors: true });
       const mesh = new Mesh(merged, mat);
       mesh.position.y = 0;
       this.scene.add(mesh);
@@ -20698,7 +22118,8 @@
       if (!geos.length) return;
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());
-      const mat = new MeshLambertMaterial({ map: this.tex.sand });
+      this._applyAO(merged);
+      const mat = new MeshLambertMaterial({ map: this.tex.sand, vertexColors: true });
       const mesh = new Mesh(merged, mat);
       this.scene.add(mesh);
       this.solids.push(mesh);
@@ -20749,126 +22170,78 @@
       return { x, z };
     }
     _buildProps() {
-      const crateMat = new MeshLambertMaterial({ map: this.tex.crate });
-      const concMat = new MeshLambertMaterial({ map: this.tex.concrete });
-      const redMat = new MeshLambertMaterial({ map: this.tex.metalRed });
-      const blueMat = new MeshLambertMaterial({ map: this.tex.metalBlue });
-      const greenMat = new MeshLambertMaterial({ map: this.tex.metalGreen });
-      const addCrate = (x, z, size = 96, h = 96, rot = 0, mat = crateMat) => {
-        const g = this._boxGeo(size, h, size, 96);
-        this._addSolid(g, mat, x, h / 2, z, true, rot);
-        const top = new Mesh(new PlaneGeometry(size, size), new MeshBasicMaterial({
-          color: 0,
-          transparent: true,
-          opacity: 0.16,
-          depthWrite: false
-        }));
-        top.rotation.x = -Math.PI / 2;
-        top.position.set(x, h + 0.6, z);
-        this.scene.add(top);
+      const mats = {
+        crate: new MeshLambertMaterial({ map: this.tex.crate }),
+        concrete: new MeshLambertMaterial({ map: this.tex.concrete }),
+        metalRed: new MeshLambertMaterial({ map: this.tex.metalRed }),
+        metalBlue: new MeshLambertMaterial({ map: this.tex.metalBlue }),
+        metalGreen: new MeshLambertMaterial({ map: this.tex.metalGreen })
       };
-      const addBarrel = (x, z) => {
-        const g = new CylinderGeometry(30, 30, 96, 12);
-        const m = new Mesh(g, redMat);
-        m.position.set(x, 48, z);
-        this.scene.add(m);
-        this.solids.push(m);
-        this.colliders.push({ x0: x - 30, x1: x + 30, y0: 0, y1: 96, z0: z - 30, z1: z + 30 });
-      };
-      const aCrates = [
-        [1150, -700, 120, 120],
-        [1270, -700, 120, 120],
-        [1150, -580, 100, 100],
-        [1450, -820, 110, 110],
-        [1560, -800, 110, 110],
-        [1500, -620, 120, 120]
-      ];
-      for (const [x, z, s, h] of aCrates) addCrate(x, z, s, h, (Math.random() - 0.5) * 0.1);
-      addCrate(-1450, -700, 120, 120);
-      addCrate(-1330, -700, 120, 120);
-      addCrate(-1450, -560, 110, 110);
-      addCrate(-1120, -800, 120, 120);
-      addCrate(-1e3, -640, 110, 110);
-      {
-        const g = this._boxGeo(340, 250, 120, 128);
-        this._addSolid(g, blueMat, -1250, 125, -430, true);
+      const pick = (name) => mats[name] || mats.concrete;
+      for (const p of this.def.props || []) {
+        switch (p.t) {
+          case "crate": {
+            const size = p.s ?? 100;
+            const h = p.h ?? size;
+            const rot = p.rot ?? (p.x * 13 + p.z * 7) % 100 / 1e3 - 0.05;
+            this._addSolid(this._boxGeo(size, h, size, 96), pick("crate"), p.x, h / 2, p.z, true, rot);
+            const top = new Mesh(new PlaneGeometry(size, size), new MeshBasicMaterial({
+              color: 0,
+              transparent: true,
+              opacity: 0.16,
+              depthWrite: false
+            }));
+            top.rotation.x = -Math.PI / 2;
+            top.position.set(p.x, h + 0.6, p.z);
+            this.scene.add(top);
+            break;
+          }
+          case "barrel": {
+            const r = p.r ?? 30;
+            const h = p.h ?? 96;
+            const m = new Mesh(new CylinderGeometry(r, r, h, 12), pick(p.mat || "metalRed"));
+            m.position.set(p.x, h / 2, p.z);
+            this.scene.add(m);
+            this.solids.push(m);
+            this.colliders.push({ x0: p.x - r, x1: p.x + r, y0: 0, y1: h, z0: p.z - r, z1: p.z + r });
+            break;
+          }
+          case "box": {
+            const g = this._boxGeo(p.w, p.h, p.d, p.uv ?? 128);
+            this._addSolid(g, pick(p.mat), p.x, p.y ?? p.h / 2, p.z, p.solid !== false, p.rot || 0);
+            break;
+          }
+          case "blocker":
+            this._addTileBlocker(p.cx, p.cz, pick(p.mat));
+            break;
+          default:
+            break;
+        }
       }
-      {
-        const g = this._boxGeo(120, 250, 300, 128);
-        this._addSolid(g, greenMat, -960, 125, -600, true);
+      for (const d of this.def.decor || []) {
+        if (d.kind === "cylinder") {
+          const m = new Mesh(new CylinderGeometry(d.r0, d.r1, d.h, 8), pick(d.mat));
+          m.position.set(d.x, d.y, d.z);
+          this.scene.add(m);
+        }
       }
-      addCrate(300, 1500, 110, 110);
-      addCrate(300, 1610, 110, 110);
-      {
-        const g = this._boxGeo(200, 120, 90, 128);
-        this._addSolid(g, concMat, -300, 60, 1700, true);
-      }
-      addBarrel(-420, 1350);
-      addBarrel(-380, 1420);
-      {
-        const g1 = this._boxGeo(200, 90, 110, 96);
-        this._addSolid(g1, blueMat, 1120, 45, 980, true);
-        const g2 = this._boxGeo(130, 70, 108, 96);
-        this._addSolid(g2, blueMat, 1120, 125, 980, true);
-      }
-      addCrate(1010, 460, 100, 100);
-      addCrate(1180, -100, 100, 100);
-      {
-        const g = this._boxGeo(24, WALL_H, 90, 128);
-        this._addSolid(g, concMat, 900, WALL_H / 2, 620, true);
-        this._addSolid(this._boxGeo(24, WALL_H, 90, 128), concMat, 1280, WALL_H / 2, 620, true);
-        this._addSolid(this._boxGeo(400, 60, 30, 128), concMat, 1090, WALL_H - 30, 620, true);
-      }
-      this._addTileBlocker(19, 23, concMat);
-      this._addTileBlocker(18, 17, concMat);
-      this._addTileBlocker(20, 29, concMat);
-      {
-        this._addSolid(this._boxGeo(30, WALL_H, 100, 128), concMat, -160, WALL_H / 2, 300, true);
-        this._addSolid(this._boxGeo(30, WALL_H, 100, 128), concMat, 160, WALL_H / 2, 300, true);
-        this._addSolid(this._boxGeo(360, 60, 30, 128), concMat, 0, WALL_H - 30, 300, true);
-        addCrate(120, 180, 100, 100);
-      }
-      addCrate(-240, -400, 110, 110);
-      addCrate(240, -420, 110, 110);
-      addBarrel(180, -820);
-      {
-        const g = this._boxGeo(240, 130, 110, 128);
-        this._addSolid(g, concMat, -450, 65, -1e3, true);
-        this._addSolid(this._boxGeo(180, 90, 100, 128), concMat, 250, 45, -1050, true);
-      }
-      addBarrel(-560, -1400);
-      addCrate(120, -1300, 100, 100);
-      addCrate(-1180, 900, 100, 100);
-      addCrate(-1e3, 300, 100, 100);
-      addBarrel(-1220, 1400);
-      addBarrel(-1180, 1450);
-      addCrate(-500, 830, 100, 100);
-      addCrate(520, -940, 100, 100);
-      addCrate(760, -1050, 110, 110);
-      this._addSolid(this._boxGeo(30, WALL_H, 110, 128), concMat, -1150, WALL_H / 2, -1e3, true);
-      this._addSolid(this._boxGeo(30, WALL_H, 110, 128), concMat, -700, WALL_H / 2, -1e3, true);
-      addCrate(-1e3, -1120, 100, 100);
-      addCrate(-620, -1140, 100, 100);
-      const towerBase = new Mesh(new CylinderGeometry(10, 14, 380, 8), concMat);
-      towerBase.position.set(1780, 190, -700);
-      this.scene.add(towerBase);
     }
     // 把地面道具占用的格子在导航栅格中标记为不可通行（防止 BOT 撞箱子）
     _markPropTiles() {
-      for (const b of this.colliders) {
-        if (b.y1 >= WALL_H - 1 || b.y0 > 40) continue;
-        const w = b.x1 - b.x0, d = b.z1 - b.z0;
+      for (const b2 of this.colliders) {
+        if (b2.y1 >= WALL_H - 1 || b2.y0 > 40) continue;
+        const w = b2.x1 - b2.x0, d = b2.z1 - b2.z0;
         if (w > 700 || d > 700) continue;
-        const c0 = Math.floor((b.x0 + WORLD_HALF) / TILE);
-        const c1 = Math.floor((b.x1 + WORLD_HALF) / TILE);
-        const r0 = Math.floor((b.z0 + WORLD_HALF) / TILE);
-        const r1 = Math.floor((b.z1 + WORLD_HALF) / TILE);
+        const c0 = Math.floor((b2.x0 + WORLD_HALF) / TILE);
+        const c1 = Math.floor((b2.x1 + WORLD_HALF) / TILE);
+        const r0 = Math.floor((b2.z0 + WORLD_HALF) / TILE);
+        const r1 = Math.floor((b2.z1 + WORLD_HALF) / TILE);
         for (let r = r0; r <= r1; r++) {
           for (let c = c0; c <= c1; c++) {
             if (!this.isFloorTile(c, r)) continue;
             const p = this.tileToWorld(c, r);
             const margin = 26;
-            if (p.x > b.x0 - margin && p.x < b.x1 + margin && p.z > b.z0 - margin && p.z < b.z1 + margin) {
+            if (p.x > b2.x0 - margin && p.x < b2.x1 + margin && p.z > b2.z0 - margin && p.z < b2.z1 + margin) {
               this.blocked[r * GRID + c] = 1;
             }
           }
@@ -20876,33 +22249,28 @@
       }
     }
     _buildSpawns() {
-      const tBase = { x: 0, z: 1550 };
-      const ctBase = { x: -100, z: -1300 };
-      for (let i = 0; i < 5; i++) {
-        const ang = i / 5 * Math.PI * 2;
-        this.spawns.T.push({
-          x: tBase.x + Math.cos(ang) * 190,
-          z: tBase.z + Math.sin(ang) * 110,
-          yaw: 0
-          // 面向北（-Z，朝地图内部）
-        });
-        const ang2 = i / 5 * Math.PI * 2 + 0.6;
-        this.spawns.CT.push({
-          x: ctBase.x + Math.cos(ang2) * 200,
-          z: ctBase.z + Math.sin(ang2) * 110,
-          yaw: Math.PI
-          // 面向南（+Z，朝地图内部）
-        });
+      for (const team of ["T", "CT"]) {
+        const cfg = this.def.spawns && this.def.spawns[team];
+        if (!cfg) continue;
+        const n = cfg.count ?? 5;
+        const phase = cfg.phase || 0;
+        for (let i = 0; i < n; i++) {
+          const ang = i / n * Math.PI * 2 + phase;
+          this.spawns[team].push({
+            x: cfg.x + Math.cos(ang) * (cfg.rx ?? 190),
+            z: cfg.z + Math.sin(ang) * (cfg.rz ?? 110),
+            yaw: cfg.yaw || 0
+          });
+        }
       }
     }
     _buildCeilings() {
-      const mat = new MeshLambertMaterial({ map: this.tex.concrete, side: DoubleSide });
-      const zones = [
-        { x0: -980, x1: -120, z0: 700, z1: 960 },
-        { x0: -1280, x1: -880, z0: 300, z1: 1700 },
-        { x0: -980, x1: -420, z0: 1380, z1: 1720 }
-      ];
-      for (const zn of zones) {
+      const mat = new MeshLambertMaterial({
+        map: this.tex.concrete,
+        side: DoubleSide,
+        color: 7302246
+      });
+      for (const zn of this.def.ceilings || []) {
         const w = zn.x1 - zn.x0, d = zn.z1 - zn.z0;
         const g = this._boxGeo(w, 30, d, 200);
         const m = new Mesh(g, mat);
@@ -20928,7 +22296,7 @@
         t.colorSpace = SRGBColorSpace;
         return t;
       };
-      for (const key of ["A", "B"]) {
+      for (const key of Object.keys(this.sites)) {
         const s = this.sites[key];
         const m = new Mesh(
           new PlaneGeometry(420, 420),
@@ -20940,7 +22308,7 @@
       }
     }
     siteAt(x, z) {
-      for (const key of ["A", "B"]) {
+      for (const key of Object.keys(this.sites)) {
         const s = this.sites[key];
         if (x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1) return key;
       }
@@ -20952,15 +22320,15 @@
       let best = maxDist, hit = null;
       const arr = this.colliders;
       for (let i = 0; i < arr.length; i++) {
-        const b = arr[i];
+        const b2 = arr[i];
         let tmin = 0, tmax = best;
         let nAxis = -1, nSign = 0;
         let ok = true;
         for (let a = 0; a < 3; a++) {
           const o = a === 0 ? origin.x : a === 1 ? origin.y : origin.z;
           const d = a === 0 ? dir.x : a === 1 ? dir.y : dir.z;
-          const mn = a === 0 ? b.x0 : a === 1 ? b.y0 : b.z0;
-          const mx = a === 0 ? b.x1 : a === 1 ? b.y1 : b.z1;
+          const mn = a === 0 ? b2.x0 : a === 1 ? b2.y0 : b2.z0;
+          const mx = a === 0 ? b2.x1 : a === 1 ? b2.y1 : b2.z1;
           if (Math.abs(d) < 1e-8) {
             if (o < mn || o > mx) {
               ok = false;
@@ -20970,9 +22338,9 @@
             let t1 = (mn - o) / d, t2 = (mx - o) / d;
             let sign = -1;
             if (t1 > t2) {
-              const tmp = t1;
+              const tmp2 = t1;
               t1 = t2;
-              t2 = tmp;
+              t2 = tmp2;
               sign = 1;
             }
             if (t1 > tmin) {
@@ -21000,8 +22368,8 @@
       }
       return hit;
     }
-    lineOfSight(a, b) {
-      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    lineOfSight(a, b2) {
+      const dx = b2.x - a.x, dy = b2.y - a.y, dz = b2.z - a.z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist < 1) return true;
       const dir = { x: dx / dist, y: dy / dist, z: dz / dist };
@@ -21031,22 +22399,22 @@
     }
     findPath(from, to) {
       const a = this.worldToTile(from.x, from.z);
-      const b = this.worldToTile(to.x, to.z);
-      if (!this.isWalkable(b.cx, b.cz)) {
+      const b2 = this.worldToTile(to.x, to.z);
+      if (!this.isWalkable(b2.cx, b2.cz)) {
         let best = null, bd = Infinity;
         for (let r = -3; r <= 3; r++) {
           for (let c = -3; c <= 3; c++) {
-            if (!this.isWalkable(b.cx + c, b.cz + r)) continue;
+            if (!this.isWalkable(b2.cx + c, b2.cz + r)) continue;
             const d = c * c + r * r;
             if (d < bd) {
               bd = d;
-              best = { cx: b.cx + c, cz: b.cz + r };
+              best = { cx: b2.cx + c, cz: b2.cz + r };
             }
           }
         }
         if (!best) return null;
-        b.cx = best.cx;
-        b.cz = best.cz;
+        b2.cx = best.cx;
+        b2.cz = best.cz;
       }
       if (!this.isWalkable(a.cx, a.cz)) {
         let best = null, bd = Infinity;
@@ -21065,13 +22433,13 @@
         a.cz = best.cz;
       }
       const startKey = a.cz * GRID + a.cx;
-      const goalKey = b.cz * GRID + b.cx;
+      const goalKey = b2.cz * GRID + b2.cx;
       if (startKey === goalKey) return [];
       const open = /* @__PURE__ */ new Map();
       const closed = /* @__PURE__ */ new Set();
       const gScore = /* @__PURE__ */ new Map();
       const came = /* @__PURE__ */ new Map();
-      const h = (cx, cz) => Math.hypot(cx - b.cx, cz - b.cz);
+      const h = (cx, cz) => Math.hypot(cx - b2.cx, cz - b2.cz);
       gScore.set(startKey, 0);
       open.set(startKey, { cx: a.cx, cz: a.cz, f: h(a.cx, a.cz) });
       let guard = 0;
@@ -21118,26 +22486,217 @@
       for (let i = 0; i < 30; i++) {
         const ang = Math.random() * Math.PI * 2;
         const r = Math.random() * radius;
-        const px = x + Math.cos(ang) * r, pz = z + Math.sin(ang) * r;
-        if (this.isWalkableAt(px, pz)) return { x: px, z: pz };
+        const px2 = x + Math.cos(ang) * r, pz2 = z + Math.sin(ang) * r;
+        if (this.isWalkableAt(px2, pz2)) return { x: px2, z: pz2 };
       }
       return { x, z };
     }
   };
 
+  // src/maps/de_outpost.js
+  var de_outpost_default = {
+    id: "de_outpost",
+    label: "DE_OUTPOST",
+    // ---- 可通行区域：矩形并集就是地面，边界会自动生成墙体 ----
+    areas: [
+      { name: "T Spawn", x0: -500, x1: 500, z0: 1200, z1: 1900, kind: "tspawn" },
+      { name: "T Long", x0: 400, x1: 1e3, z0: 1380, z1: 1720, kind: "road" },
+      { name: "Long A", x0: 900, x1: 1280, z0: -520, z1: 1700, kind: "road" },
+      { name: "A Site", x0: 900, x1: 1700, z0: -920, z1: -380, kind: "site" },
+      { name: "CT Ramp", x0: 320, x1: 1e3, z0: -1120, z1: -700, kind: "road" },
+      { name: "CT Spawn", x0: -620, x1: 420, z0: -1520, z1: -880, kind: "ctspawn" },
+      { name: "CT Mid", x0: -320, x1: 320, z0: -1080, z1: -680, kind: "road" },
+      { name: "Top Mid", x0: -320, x1: 320, z0: -700, z1: -180, kind: "road" },
+      { name: "Mid", x0: -160, x1: 160, z0: -250, z1: 1350, kind: "road" },
+      { name: "Lower Tunnel", x0: -980, x1: -120, z0: 700, z1: 960, kind: "tunnel" },
+      { name: "B Tunnel", x0: -1280, x1: -880, z0: -470, z1: 1700, kind: "tunnel" },
+      { name: "B Site", x0: -1720, x1: -880, z0: -920, z1: -300, kind: "site" },
+      { name: "B Doors", x0: -1480, x1: -380, z0: -1280, z1: -860, kind: "road" },
+      { name: "T Tunnel", x0: -980, x1: -420, z0: 1380, z1: 1720, kind: "tunnel" }
+    ],
+    // ---- 有顶盖的区域（隧道）：会生成天花板并压暗地面 AO ----
+    ceilings: [
+      { x0: -980, x1: -120, z0: 700, z1: 960 },
+      { x0: -1280, x1: -880, z0: 300, z1: 1700 },
+      { x0: -980, x1: -420, z0: 1380, z1: 1720 }
+    ],
+    // ---- 包点 ----
+    sites: {
+      A: { name: "A", x0: 950, x1: 1650, z0: -880, z1: -420 },
+      B: { name: "B", x0: -1680, x1: -920, z0: -880, z1: -340 }
+    },
+    // ---- 出生点：以中点为圆心环形展开 ----
+    spawns: {
+      T: { x: 0, z: 1550, yaw: 0, count: 5, rx: 190, rz: 110 },
+      CT: { x: -100, z: -1300, yaw: Math.PI, count: 5, rx: 200, rz: 110, phase: 0.6 }
+    },
+    // ---- 道具 ----
+    // t: crate(木箱) / barrel(油桶) / box(任意盒体) / blocker(整格石墩)
+    // mat: crate | concrete | metalRed | metalBlue | metalGreen
+    props: [
+      // A 点箱堆
+      { t: "crate", x: 1150, z: -700, s: 120, h: 120 },
+      { t: "crate", x: 1270, z: -700, s: 120, h: 120 },
+      { t: "crate", x: 1150, z: -580, s: 100, h: 100 },
+      { t: "crate", x: 1450, z: -820, s: 110, h: 110 },
+      { t: "crate", x: 1560, z: -800, s: 110, h: 110 },
+      { t: "crate", x: 1500, z: -620, s: 120, h: 120 },
+      // B 点箱堆与集装箱
+      { t: "crate", x: -1450, z: -700, s: 120, h: 120 },
+      { t: "crate", x: -1330, z: -700, s: 120, h: 120 },
+      { t: "crate", x: -1450, z: -560, s: 110, h: 110 },
+      { t: "crate", x: -1120, z: -800, s: 120, h: 120 },
+      { t: "crate", x: -1e3, z: -640, s: 110, h: 110 },
+      { t: "box", x: -1250, y: 125, z: -430, w: 340, h: 250, d: 120, mat: "metalBlue" },
+      { t: "box", x: -960, y: 125, z: -600, w: 120, h: 250, d: 300, mat: "metalGreen" },
+      // T 出生点
+      { t: "crate", x: 300, z: 1500, s: 110, h: 110 },
+      { t: "crate", x: 300, z: 1610, s: 110, h: 110 },
+      { t: "box", x: -300, y: 60, z: 1700, w: 200, h: 120, d: 90, mat: "concrete" },
+      { t: "barrel", x: -420, z: 1350 },
+      { t: "barrel", x: -380, z: 1420 },
+      // Long A 掩体（长通道上的车）
+      { t: "box", x: 1120, y: 45, z: 980, w: 200, h: 90, d: 110, mat: "metalBlue" },
+      { t: "box", x: 1120, y: 125, z: 980, w: 130, h: 70, d: 108, mat: "metalBlue" },
+      { t: "crate", x: 1010, z: 460, s: 100, h: 100 },
+      { t: "crate", x: 1180, z: -100, s: 100, h: 100 },
+      // Long 大门（双门框 + 横梁）
+      { t: "box", x: 900, y: 220, z: 620, w: 24, h: 440, d: 90, mat: "concrete" },
+      { t: "box", x: 1280, y: 220, z: 620, w: 24, h: 440, d: 90, mat: "concrete" },
+      { t: "box", x: 1090, y: 410, z: 620, w: 400, h: 60, d: 30, mat: "concrete" },
+      // Mid 折线：打断 T 出生点到 CT 的直线视野
+      { t: "blocker", cx: 19, cz: 23, mat: "concrete" },
+      { t: "blocker", cx: 18, cz: 17, mat: "concrete" },
+      { t: "blocker", cx: 20, cz: 29, mat: "concrete" },
+      // Mid 大门
+      { t: "box", x: -160, y: 220, z: 300, w: 30, h: 440, d: 100, mat: "concrete" },
+      { t: "box", x: 160, y: 220, z: 300, w: 30, h: 440, d: 100, mat: "concrete" },
+      { t: "box", x: 0, y: 410, z: 300, w: 360, h: 60, d: 30, mat: "concrete" },
+      { t: "crate", x: 120, z: 180, s: 100, h: 100 },
+      // Top mid / CT mid
+      { t: "crate", x: -240, z: -400, s: 110, h: 110 },
+      { t: "crate", x: 240, z: -420, s: 110, h: 110 },
+      { t: "barrel", x: 180, z: -820 },
+      // CT 出生点
+      { t: "box", x: -450, y: 65, z: -1e3, w: 240, h: 130, d: 110, mat: "concrete" },
+      { t: "box", x: 250, y: 45, z: -1050, w: 180, h: 90, d: 100, mat: "concrete" },
+      { t: "barrel", x: -560, z: -1400 },
+      { t: "crate", x: 120, z: -1300, s: 100, h: 100 },
+      // B 通道
+      { t: "crate", x: -1180, z: 900, s: 100, h: 100 },
+      { t: "crate", x: -1e3, z: 300, s: 100, h: 100 },
+      { t: "barrel", x: -1220, z: 1400 },
+      { t: "barrel", x: -1180, z: 1450 },
+      // Lower tunnel
+      { t: "crate", x: -500, z: 830, s: 100, h: 100 },
+      // CT 上 A 坡道
+      { t: "crate", x: 520, z: -940, s: 100, h: 100 },
+      { t: "crate", x: 760, z: -1050, s: 110, h: 110 },
+      // B 门
+      { t: "box", x: -1150, y: 220, z: -1e3, w: 30, h: 440, d: 110, mat: "concrete" },
+      { t: "box", x: -700, y: 220, z: -1e3, w: 30, h: 440, d: 110, mat: "concrete" },
+      { t: "crate", x: -1e3, z: -1120, s: 100, h: 100 },
+      { t: "crate", x: -620, z: -1140, s: 100, h: 100 }
+    ],
+    // ---- 无碰撞装饰 ----
+    decor: [
+      { kind: "cylinder", x: 1780, y: 190, z: -700, r0: 10, r1: 14, h: 380, mat: "concrete" }
+    ]
+  };
+
+  // src/maps/index.js
+  var MAPS = {
+    de_outpost: de_outpost_default
+  };
+  var DEFAULT_MAP = "de_outpost";
+  function getMap(id) {
+    const def = MAPS[id] || MAPS[DEFAULT_MAP];
+    if (!def) throw new Error(`\u672A\u77E5\u5730\u56FE\uFF1A${id}`);
+    return def;
+  }
+
   // src/audio.js
   var ctx = null;
   var master = null;
+  var comp = null;
+  var reverbIn = null;
+  var reverbWet = null;
+  var conv = null;
   var noiseBuf = null;
   var volume = SETTINGS_DEFAULT.volume;
+  var OUTDOOR_WET = 0.17;
+  var GUN = {
+    pistol: { crack: 2100, body: 700, sub: 150, decay: 0.1, gain: 0.55, mechFreq: 3800 },
+    deagle: { crack: 1500, body: 520, sub: 92, decay: 0.22, gain: 0.88, mechFreq: 3200 },
+    smg: { crack: 2500, body: 860, sub: 178, decay: 0.07, gain: 0.46, mechFreq: 4300 },
+    ak47: { crack: 1350, body: 430, sub: 108, decay: 0.17, gain: 0.82, mechFreq: 3400 },
+    m4a1: { crack: 1750, body: 520, sub: 122, decay: 0.15, gain: 0.74, mechFreq: 3600 },
+    awp: { crack: 950, body: 300, sub: 68, decay: 0.58, gain: 1, mechFreq: 2600 },
+    default: { crack: 2e3, body: 650, sub: 140, decay: 0.12, gain: 0.6, mechFreq: 3600 }
+  };
+  function buildImpulse(seconds = 1.25, decay = 3.1) {
+    const rate = ctx.sampleRate;
+    const len = Math.max(1, Math.floor(rate * seconds));
+    const buf = ctx.createBuffer(2, len, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      let lp = 0;
+      for (let i = 0; i < len; i++) {
+        const t = i / len;
+        const env = Math.pow(1 - t, decay);
+        const n = (Math.random() * 2 - 1) * env;
+        const a = 0.34 + 0.62 * (1 - t);
+        lp += (n - lp) * a;
+        d[i] = lp;
+      }
+      const taps = [0.011, 0.019, 0.031, 0.047];
+      taps.forEach((tt, k2) => {
+        const idx = Math.floor(tt * rate) + (ch ? 37 : 0);
+        if (idx < len) d[idx] += (0.55 - k2 * 0.1) * (ch ? -1 : 1);
+      });
+    }
+    let peak = 0;
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) {
+        const v = Math.abs(d[i]);
+        if (v > peak) peak = v;
+      }
+    }
+    const k = peak > 0 ? 0.92 / peak : 1;
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] *= k;
+    }
+    return buf;
+  }
   function initAudio() {
     if (ctx) return ctx;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     ctx = new AC();
+    comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -8;
+    comp.knee.value = 6;
+    comp.ratio.value = 8;
+    comp.attack.value = 1e-3;
+    comp.release.value = 0.12;
+    const makeup = ctx.createGain();
+    makeup.gain.value = 1.7;
+    comp.connect(makeup);
+    makeup.connect(ctx.destination);
     master = ctx.createGain();
     master.gain.value = volume;
-    master.connect(ctx.destination);
+    master.connect(comp);
+    reverbIn = ctx.createGain();
+    reverbIn.gain.value = OUTDOOR_WET;
+    conv = ctx.createConvolver();
+    conv.buffer = buildImpulse();
+    reverbWet = ctx.createGain();
+    reverbWet.gain.value = 1;
+    reverbIn.connect(conv);
+    conv.connect(reverbWet);
+    reverbWet.connect(master);
     const len = ctx.sampleRate * 2;
     noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
@@ -21158,115 +22717,186 @@
     s.playbackRate.value = 0.9 + Math.random() * 0.2;
     return s;
   }
-  function spatial(pos, listener) {
-    const out = ctx.createGain();
-    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-    let gain = 1;
-    if (pos && listener) {
-      const dx = pos.x - listener.x, dy = (pos.y || 0) - (listener.y || 0), dz = pos.z - listener.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      gain = Math.max(0, 1 - dist / 2600) ** 1.6;
-      if (pan) {
-        const yaw = listener.yaw || 0;
-        const right = dx * Math.cos(yaw) - dz * Math.sin(yaw);
-        pan.pan.value = Math.max(-1, Math.min(1, right / 900));
+  function setListener(l) {
+    if (!ctx || !l) return;
+    const L = ctx.listener;
+    if (!L) return;
+    const yaw = l.yaw || 0;
+    const fx2 = -Math.sin(yaw), fz = -Math.cos(yaw);
+    try {
+      if (L.positionX) {
+        L.positionX.value = l.x;
+        L.positionY.value = l.y;
+        L.positionZ.value = l.z;
+        L.forwardX.value = fx2;
+        L.forwardY.value = 0;
+        L.forwardZ.value = fz;
+        L.upX.value = 0;
+        L.upY.value = 1;
+        L.upZ.value = 0;
+      } else if (L.setPosition) {
+        L.setPosition(l.x, l.y, l.z);
+        L.setOrientation(fx2, 0, fz, 0, 1, 0);
       }
+    } catch (e) {
     }
-    out.gain.value = gain;
-    if (pan) {
-      out.connect(pan);
-      pan.connect(master);
-      return out;
-    }
-    out.connect(master);
-    return out;
   }
-  function burst(dest, t, { dur = 0.12, freq = 2400, q = 1, gain = 0.6, type = "lowpass", decay = 0.09 }) {
+  function spatial(pos, listener) {
+    const input = ctx.createGain();
+    if (!pos || !listener) {
+      input.connect(master);
+      input.connect(reverbIn);
+      return input;
+    }
+    const dx = pos.x - listener.x;
+    const dy = (pos.y || 0) - (listener.y || 0);
+    const dz = pos.z - listener.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist < 110) {
+      input.connect(master);
+      input.connect(reverbIn);
+      return input;
+    }
+    setListener(listener);
+    const air = ctx.createBiquadFilter();
+    air.type = "lowpass";
+    air.frequency.value = Math.max(420, 18e3 * Math.exp(-dist / 1400));
+    air.Q.value = 0.4;
+    const pan = ctx.createPanner();
+    pan.panningModel = "HRTF";
+    pan.distanceModel = "inverse";
+    pan.refDistance = 140;
+    pan.rolloffFactor = 1.05;
+    pan.maxDistance = 6e3;
+    pan.coneInnerAngle = 360;
+    const py2 = pos.y || 0;
+    if (pan.positionX) {
+      pan.positionX.value = pos.x;
+      pan.positionY.value = py2;
+      pan.positionZ.value = pos.z;
+    } else if (pan.setPosition) {
+      pan.setPosition(pos.x, py2, pos.z);
+    }
+    input.connect(air);
+    air.connect(pan);
+    pan.connect(master);
+    pan.connect(reverbIn);
+    return input;
+  }
+  function burst(dest, t, { dur = 0.12, freq = 2400, q = 1, gain = 0.6, type = "lowpass", decay = 0.09, attack = 2e-3 }) {
     const src = noiseSource();
     const f = ctx.createBiquadFilter();
     f.type = type;
     f.frequency.value = freq;
     f.Q.value = q;
     const g = ctx.createGain();
-    g.gain.setValueAtTime(gain, t);
-    g.gain.exponentialRampToValueAtTime(8e-4, t + decay);
+    const peak = Math.max(5e-4, gain);
+    const atkEnd = t + Math.max(5e-4, attack);
+    const relEnd = t + Math.max(attack + 0.012, decay);
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.exponentialRampToValueAtTime(peak, atkEnd);
+    g.gain.exponentialRampToValueAtTime(8e-4, relEnd);
     src.connect(f);
     f.connect(g);
     g.connect(dest);
     src.start(t);
-    src.stop(t + dur + 0.05);
+    src.stop(t + Math.max(dur, relEnd - t) + 0.08);
   }
   function thump(dest, t, freq = 90, dur = 0.18, gain = 0.5) {
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = "sine";
-    o.frequency.setValueAtTime(freq * 1.6, t);
-    o.frequency.exponentialRampToValueAtTime(freq * 0.55, t + dur);
-    g.gain.setValueAtTime(gain, t);
+    o.frequency.setValueAtTime(freq * 1.7, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(28, freq * 0.55), t + dur);
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(5e-4, gain), t + 4e-3);
     g.gain.exponentialRampToValueAtTime(1e-3, t + dur);
     o.connect(g);
     g.connect(dest);
     o.start(t);
     o.stop(t + dur + 0.02);
   }
+  function click(dest, t, freq = 3800, gain = 0.25) {
+    const src = noiseSource();
+    const f = ctx.createBiquadFilter();
+    f.type = "bandpass";
+    f.frequency.value = freq;
+    f.Q.value = 7;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(4e-4, gain), t + 8e-4);
+    g.gain.exponentialRampToValueAtTime(6e-4, t + 0.014);
+    src.connect(f);
+    f.connect(g);
+    g.connect(dest);
+    src.start(t);
+    src.stop(t + 0.035);
+  }
+  function gunshot(dest, t, kind) {
+    const G = GUN[kind] || GUN.default;
+    burst(dest, t, {
+      freq: G.crack,
+      gain: G.gain * 0.85,
+      decay: G.decay * 0.55,
+      type: "highpass",
+      attack: 12e-4
+    });
+    burst(dest, t, {
+      freq: G.body,
+      gain: G.gain * 0.75,
+      decay: G.decay,
+      type: "lowpass",
+      q: 0.9,
+      attack: 25e-4
+    });
+    thump(dest, t, G.sub, G.decay * 1.25, G.gain * 0.5);
+    click(dest, t + 4e-3, G.mechFreq, G.gain * 0.3);
+  }
   function playShot(kind, pos, listener) {
     if (!ctx) return;
     const t = now();
     const dest = spatial(pos, listener);
-    switch (kind) {
-      case "pistol":
-        burst(dest, t, { freq: 2100, gain: 0.5, decay: 0.09 });
-        thump(dest, t, 150, 0.1, 0.28);
-        break;
-      case "deagle":
-        burst(dest, t, { freq: 1500, gain: 0.8, decay: 0.2 });
-        thump(dest, t, 95, 0.22, 0.55);
-        break;
-      case "smg":
-        burst(dest, t, { freq: 2600, gain: 0.42, decay: 0.06 });
-        thump(dest, t, 180, 0.07, 0.2);
-        break;
-      case "ak47":
-      case "m4a1":
-        burst(dest, t, { freq: kind === "ak47" ? 1400 : 1800, gain: 0.75, decay: 0.16 });
-        burst(dest, t + 5e-3, { freq: 5200, gain: 0.25, decay: 0.05, type: "highpass" });
-        thump(dest, t, 110, 0.16, 0.5);
-        break;
-      case "awp":
-        burst(dest, t, { freq: 1e3, gain: 0.95, decay: 0.5 });
-        burst(dest, t + 0.01, { freq: 6e3, gain: 0.3, decay: 0.08, type: "highpass" });
-        thump(dest, t, 70, 0.45, 0.75);
-        break;
-      case "knife":
-        burst(dest, t, { freq: 4200, gain: 0.3, decay: 0.07, type: "highpass" });
-        break;
-      default:
-        burst(dest, t, { freq: 2e3, gain: 0.5, decay: 0.1 });
+    if (kind === "knife") {
+      burst(dest, t, { freq: 4200, gain: 0.28, decay: 0.075, type: "highpass", attack: 5e-3 });
+      burst(dest, t + 0.032, { freq: 1500, gain: 0.12, decay: 0.05, type: "bandpass", q: 3 });
+      return;
     }
+    gunshot(dest, t, kind);
   }
   function playFootstep(pos, listener, onSand = true) {
     if (!ctx) return;
     const t = now();
     const dest = spatial(pos, listener);
-    burst(dest, t, { freq: onSand ? 900 : 1400, gain: 0.16, decay: 0.06 });
+    const jitter = 0.92 + Math.random() * 0.18;
+    burst(dest, t, {
+      freq: (onSand ? 900 : 1500) * jitter,
+      gain: 0.17,
+      decay: 0.065,
+      type: "lowpass",
+      q: 1.4,
+      attack: 3e-3
+    });
+    if (onSand) burst(dest, t + 6e-3, { freq: 5200, gain: 0.05, decay: 0.04, type: "highpass" });
   }
   function playReload() {
     if (!ctx) return;
     const t = now();
     const dest = spatial(null, null);
-    [0, 0.35].forEach((d, i) => {
-      burst(dest, t + d, { freq: 3e3, gain: 0.22, decay: 0.05, type: "bandpass", q: 4 });
-      thump(dest, t + d, 220, 0.05, 0.14);
-    });
+    click(dest, t, 2600, 0.2);
+    burst(dest, t + 0.02, { freq: 900, gain: 0.1, decay: 0.07, type: "lowpass" });
+    click(dest, t + 0.34, 1800, 0.26);
+    thump(dest, t + 0.34, 240, 0.07, 0.16);
+    click(dest, t + 0.52, 3200, 0.18);
   }
   function playHit(headshot = false) {
     if (!ctx) return;
     const t = now();
     const dest = spatial(null, null);
     if (headshot) {
-      thump(dest, t, 1200, 0.09, 0.3);
-      burst(dest, t, { freq: 5e3, gain: 0.3, decay: 0.06, type: "bandpass", q: 6 });
+      burst(dest, t, { freq: 5e3, gain: 0.3, decay: 0.07, type: "bandpass", q: 6, attack: 1e-3 });
+      thump(dest, t, 1200, 0.09, 0.28);
     } else {
+      burst(dest, t, { freq: 1400, gain: 0.14, decay: 0.05, type: "bandpass", q: 3 });
       thump(dest, t, 500, 0.05, 0.18);
     }
   }
@@ -21289,21 +22919,34 @@
     if (!ctx) return;
     const t = now();
     const dest = spatial(pos, listener);
-    burst(dest, t, { freq: 700, gain: 1, decay: 1.1, dur: 1.4 });
-    burst(dest, t, { freq: 90, gain: 0.9, decay: 1.4, dur: 1.6, type: "lowpass" });
+    burst(dest, t, { freq: 700, gain: 1, decay: 1.1, dur: 1.4, attack: 4e-3 });
+    burst(dest, t, { freq: 90, gain: 0.9, decay: 1.5, dur: 1.6, type: "lowpass", attack: 6e-3 });
     thump(dest, t, 45, 1.2, 0.9);
+    burst(dest, t + 0.18, { freq: 4200, gain: 0.22, decay: 0.6, type: "highpass", attack: 0.02 });
   }
   function playFlashbang(pos, listener) {
     if (!ctx) return;
     const t = now();
     const dest = spatial(pos, listener);
-    burst(dest, t, { freq: 9e3, gain: 0.7, decay: 0.35, type: "highpass" });
+    burst(dest, t, { freq: 9e3, gain: 0.7, decay: 0.35, type: "highpass", attack: 8e-4 });
     thump(dest, t, 300, 0.5, 0.3);
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(2650, t);
+    o.frequency.linearRampToValueAtTime(2300, t + 1.6);
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.08);
+    g.gain.exponentialRampToValueAtTime(1e-4, t + 1.8);
+    o.connect(g);
+    g.connect(master);
+    o.start(t);
+    o.stop(t + 1.9);
   }
   function playPlantTick() {
     if (!ctx) return;
     const t = now();
-    burst(spatial(null, null), t, { freq: 1200, gain: 0.2, decay: 0.04, type: "bandpass", q: 8 });
+    burst(spatial(null, null), t, { freq: 1200, gain: 0.2, decay: 0.04, type: "bandpass", q: 8, attack: 1e-3 });
   }
   function playPickup() {
     if (!ctx) return;
@@ -21312,7 +22955,8 @@
     o.type = "triangle";
     o.frequency.setValueAtTime(660, t);
     o.frequency.exponentialRampToValueAtTime(1320, t + 0.08);
-    g.gain.setValueAtTime(0.18, t);
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.exponentialRampToValueAtTime(0.18, t + 6e-3);
     g.gain.exponentialRampToValueAtTime(1e-3, t + 0.12);
     o.connect(g);
     g.connect(master);
@@ -21325,7 +22969,8 @@
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = "square";
     o.frequency.value = 900;
-    g.gain.setValueAtTime(0.08, t);
+    g.gain.setValueAtTime(1e-4, t);
+    g.gain.exponentialRampToValueAtTime(0.08, t + 3e-3);
     g.gain.exponentialRampToValueAtTime(1e-3, t + 0.05);
     o.connect(g);
     g.connect(master);
@@ -21339,7 +22984,7 @@
     o.type = "sawtooth";
     o.frequency.setValueAtTime(220, t);
     o.frequency.exponentialRampToValueAtTime(440, t + 0.25);
-    g.gain.setValueAtTime(1e-3, t);
+    g.gain.setValueAtTime(1e-4, t);
     g.gain.exponentialRampToValueAtTime(0.12, t + 0.05);
     g.gain.exponentialRampToValueAtTime(1e-3, t + 0.35);
     o.connect(g);
@@ -21352,6 +22997,11 @@
   }
 
   // src/fx.js
+  var SPRITE_POOL = 56;
+  var DECAL_POOL = 64;
+  var TRACER_POOL = 10;
+  var SHELL_POOL = 24;
+  var MUZZLE_LIGHTS = 2;
   function softCircle(color = "#ffffff", inner = 0.15) {
     const S = 64;
     const c = document.createElement("canvas");
@@ -21386,6 +23036,7 @@
     camera: null,
     game: null,
     items: [],
+    // 非池化对象（火球、烟雾组）
     smokeVolumes: [],
     shake: 0,
     _softTex: null,
@@ -21396,6 +23047,114 @@
       this.game = game;
       this._softTex = softCircle("rgba(255,240,180,0.95)");
       this._decalTex = decalTexture();
+      this._buildPools();
+    },
+    _buildPools() {
+      this._sprites = [];
+      for (let i = 0; i < SPRITE_POOL; i++) {
+        const mat = new SpriteMaterial({
+          map: this._softTex,
+          transparent: true,
+          depthWrite: false,
+          blending: AdditiveBlending
+        });
+        const o = new Sprite(mat);
+        o.visible = false;
+        this.scene.add(o);
+        this._sprites.push({
+          o,
+          m: mat,
+          on: false,
+          life: 0,
+          maxLife: 1,
+          v: new Vector3(),
+          kind: "spark",
+          grow: 0
+        });
+      }
+      this._spriteCursor = 0;
+      const dGeo = new PlaneGeometry(9, 9);
+      const dMat = new MeshBasicMaterial({
+        map: this._decalTex,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.9,
+        polygonOffset: true,
+        polygonOffsetFactor: -4
+      });
+      this._decals = [];
+      for (let i = 0; i < DECAL_POOL; i++) {
+        const m = new Mesh(dGeo, dMat);
+        m.visible = false;
+        this.scene.add(m);
+        this._decals.push(m);
+      }
+      this._decalCursor = 0;
+      this._tracers = [];
+      for (let i = 0; i < TRACER_POOL; i++) {
+        const g = new BufferGeometry();
+        g.setAttribute("position", new BufferAttribute(new Float32Array(6), 3));
+        const mat = new LineBasicMaterial({
+          color: 16773296,
+          transparent: true,
+          opacity: 0.55,
+          blending: AdditiveBlending,
+          depthWrite: false
+        });
+        const o = new Line(g, mat);
+        o.visible = false;
+        o.frustumCulled = false;
+        this.scene.add(o);
+        this._tracers.push({ o, m: mat, on: false, life: 0, maxLife: 0.05 });
+      }
+      this._tracerCursor = 0;
+      const sGeo = new BoxGeometry(2, 2, 5);
+      const sMat = new MeshLambertMaterial({ color: 13214247 });
+      this._shells = [];
+      for (let i = 0; i < SHELL_POOL; i++) {
+        const o = new Mesh(sGeo, sMat);
+        o.visible = false;
+        this.scene.add(o);
+        this._shells.push({
+          o,
+          on: false,
+          life: 0,
+          v: new Vector3(),
+          rot: new Vector3()
+        });
+      }
+      this._shellCursor = 0;
+      this._muzzleLights = [];
+      for (let i = 0; i < MUZZLE_LIGHTS; i++) {
+        const l = new PointLight(16764023, 0, 420);
+        this.scene.add(l);
+        this._muzzleLights.push({ l, life: 0, maxLife: 0.06, peak: 0 });
+      }
+      this._muzzleCursor = 0;
+      this._boomLight = new PointLight(16755268, 0, 1920);
+      this.scene.add(this._boomLight);
+      this._boomLife = 0;
+      this._boomMax = 0.42;
+      this._boomPeak = 0;
+    },
+    // 取一个精灵，设置颜色/位置/生命周期
+    _sprite(color, pos, { size = 10, life = 0.3, kind = "spark", v = null, grow = 0, blending = AdditiveBlending } = {}) {
+      const s = this._sprites[this._spriteCursor];
+      this._spriteCursor = (this._spriteCursor + 1) % this._sprites.length;
+      s.m.color.setHex(color);
+      s.m.blending = blending;
+      s.m.opacity = 1;
+      s.o.position.copy(pos);
+      s.o.scale.set(size, size, 1);
+      s.o.visible = true;
+      s.on = true;
+      s.life = life;
+      s.maxLife = life;
+      s.kind = kind;
+      s.grow = grow;
+      if (v) s.v.copy(v);
+      else s.v.set(0, 0, 0);
+      return s;
     },
     muzzle(player, def) {
       const dir = player.aimDir();
@@ -21403,150 +23162,118 @@
       const right = new Vector3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
       const p = origin.clone().addScaledVector(dir, 34).addScaledVector(right, 9);
       p.y -= 8;
-      const mat = new SpriteMaterial({
-        map: this._softTex,
-        color: 16770208,
-        blending: AdditiveBlending,
-        transparent: true,
-        depthWrite: false,
-        opacity: 0.95
-      });
-      const s = new Sprite(mat);
       const size = 22 + Math.random() * 12;
-      s.scale.set(size, size, 1);
-      s.position.copy(p);
-      this.scene.add(s);
-      const light = new PointLight(16764023, 3.2, 420);
-      light.position.copy(p);
-      this.scene.add(light);
-      this.items.push({ obj: s, life: 0.055, maxLife: 0.055, kind: "sprite", light });
+      this._sprite(16770208, p, { size, life: 0.055, kind: "flash" });
+      const L = this._muzzleLights[this._muzzleCursor];
+      this._muzzleCursor = (this._muzzleCursor + 1) % this._muzzleLights.length;
+      L.l.position.copy(p);
+      L.life = L.maxLife;
+      L.peak = 3.2;
       this.shell(player, right);
     },
     shell(player, right) {
-      const geo = new BoxGeometry(2, 2, 5);
-      const m = new Mesh(geo, new MeshLambertMaterial({ color: 13214247 }));
-      m.position.set(player.pos.x, player.eyeY() - 8, player.pos.z);
-      this.scene.add(m);
-      const v = new Vector3(right.x * 90 + (Math.random() - 0.5) * 40, 120, right.z * 90 + (Math.random() - 0.5) * 40);
-      this.items.push({ obj: m, life: 1.2, maxLife: 1.2, kind: "shell", v, rot: new Vector3(Math.random() * 12, Math.random() * 12, 0) });
+      const s = this._shells[this._shellCursor];
+      this._shellCursor = (this._shellCursor + 1) % this._shells.length;
+      s.o.position.set(player.pos.x, player.eyeY() - 8, player.pos.z);
+      s.o.visible = true;
+      s.on = true;
+      s.life = 1.2;
+      s.v.set(
+        right.x * 90 + (Math.random() - 0.5) * 40,
+        120,
+        right.z * 90 + (Math.random() - 0.5) * 40
+      );
+      s.rot.set(Math.random() * 12, Math.random() * 12, 0);
     },
     tracer(from, to) {
-      const geo = new BufferGeometry().setFromPoints([from, to]);
-      const mat = new LineBasicMaterial({
-        color: 16773296,
-        transparent: true,
-        opacity: 0.55,
-        blending: AdditiveBlending,
-        depthWrite: false
-      });
-      const line = new Line(geo, mat);
-      this.scene.add(line);
-      this.items.push({ obj: line, life: 0.05, maxLife: 0.05, kind: "fade" });
+      const t = this._tracers[this._tracerCursor];
+      this._tracerCursor = (this._tracerCursor + 1) % this._tracers.length;
+      const pos = t.o.geometry.attributes.position;
+      pos.setXYZ(0, from.x, from.y, from.z);
+      pos.setXYZ(1, to.x, to.y, to.z);
+      pos.needsUpdate = true;
+      t.o.visible = true;
+      t.on = true;
+      t.life = t.maxLife;
+      t.m.opacity = 0.55;
     },
     impact(point, normal) {
-      const decal = new Mesh(
-        new PlaneGeometry(9, 9),
-        new MeshBasicMaterial({
-          map: this._decalTex,
-          transparent: true,
-          depthWrite: false,
-          opacity: 0.9,
-          polygonOffset: true,
-          polygonOffsetFactor: -4
-        })
-      );
-      decal.position.copy(point);
+      const d = this._decals[this._decalCursor];
+      this._decalCursor = (this._decalCursor + 1) % this._decals.length;
+      d.position.copy(point);
       const n = new Vector3(normal.x, normal.y, normal.z).normalize();
-      decal.lookAt(point.clone().add(n));
-      this.scene.add(decal);
-      this.items.push({ obj: decal, life: 12, maxLife: 12, kind: "decal" });
+      d.lookAt(point.clone().add(n));
+      d.visible = true;
       for (let i = 0; i < 3; i++) {
-        const s = new Sprite(new SpriteMaterial({
-          map: this._softTex,
-          color: 16760928,
-          blending: AdditiveBlending,
-          transparent: true,
-          depthWrite: false
-        }));
-        const sc = 6 + Math.random() * 8;
-        s.scale.set(sc, sc, 1);
-        s.position.copy(point);
-        this.scene.add(s);
-        const v = new Vector3(normal.x * 60 + (Math.random() - 0.5) * 90, normal.y * 60 + Math.random() * 90, normal.z * 60 + (Math.random() - 0.5) * 90);
-        this.items.push({ obj: s, life: 0.28, maxLife: 0.28, kind: "spark", v });
+        const v = new Vector3(
+          normal.x * 60 + (Math.random() - 0.5) * 90,
+          normal.y * 60 + Math.random() * 90,
+          normal.z * 60 + (Math.random() - 0.5) * 90
+        );
+        this._sprite(16760928, point, { size: 6 + Math.random() * 8, life: 0.28, kind: "spark", v });
       }
-      const dust = new Sprite(new SpriteMaterial({
-        map: this._softTex,
-        color: 12560516,
-        transparent: true,
-        opacity: 0.6,
-        depthWrite: false
-      }));
-      dust.scale.set(14, 14, 1);
-      dust.position.copy(point).addScaledVector(new Vector3(normal.x, normal.y, normal.z), 4);
-      this.scene.add(dust);
-      this.items.push({ obj: dust, life: 0.5, maxLife: 0.5, kind: "grow", grow: 30 });
+      const dustPos = point.clone().addScaledVector(n, 4);
+      this._sprite(12560516, dustPos, {
+        size: 14,
+        life: 0.5,
+        kind: "grow",
+        grow: 30,
+        blending: NormalBlending
+      });
     },
     blood(point, n = 5) {
       for (let i = 0; i < n; i++) {
-        const s = new Sprite(new SpriteMaterial({
-          map: this._softTex,
-          color: 10228756,
-          transparent: true,
-          opacity: 0.9,
-          depthWrite: false
-        }));
-        const sc = 4 + Math.random() * 6;
-        s.scale.set(sc, sc, 1);
-        s.position.copy(point);
-        this.scene.add(s);
-        const v = new Vector3((Math.random() - 0.5) * 130, Math.random() * 110, (Math.random() - 0.5) * 130);
-        this.items.push({ obj: s, life: 0.45, maxLife: 0.45, kind: "spark", v });
+        const v = new Vector3(
+          (Math.random() - 0.5) * 130,
+          Math.random() * 110,
+          (Math.random() - 0.5) * 130
+        );
+        this._sprite(10228756, point, {
+          size: 4 + Math.random() * 6,
+          life: 0.45,
+          kind: "spark",
+          v,
+          blending: NormalBlending
+        });
       }
     },
     knifeSwing(player) {
       const p = new Vector3(player.pos.x, player.eyeY() - 10, player.pos.z);
-      const d = player.aimDir();
-      p.addScaledVector(d, 26);
-      const s = new Sprite(new SpriteMaterial({
-        map: this._softTex,
-        color: 16777215,
-        transparent: true,
-        opacity: 0.5,
-        depthWrite: false
-      }));
-      s.scale.set(14, 14, 1);
-      s.position.copy(p);
-      this.scene.add(s);
-      this.items.push({ obj: s, life: 0.12, maxLife: 0.12, kind: "fade" });
+      p.addScaledVector(player.aimDir(), 26);
+      this._sprite(16777215, p, { size: 14, life: 0.12, kind: "flash" });
     },
     explosion(pos, radius = 320) {
-      const light = new PointLight(16755268, 12, radius * 6);
-      light.position.copy(pos);
-      light.position.y += 30;
-      this.scene.add(light);
+      this._boomLight.position.copy(pos);
+      this._boomLight.position.y += 30;
+      this._boomLife = this._boomMax;
+      this._boomPeak = 12;
       const ball = new Mesh(
         new SphereGeometry(30, 12, 10),
-        new MeshBasicMaterial({ color: 16759637, transparent: true, opacity: 0.95, blending: AdditiveBlending, depthWrite: false })
+        new MeshBasicMaterial({
+          color: 16759637,
+          transparent: true,
+          opacity: 0.95,
+          blending: AdditiveBlending,
+          depthWrite: false
+        })
       );
       ball.position.copy(pos);
       this.scene.add(ball);
-      this.items.push({ obj: ball, life: 0.42, maxLife: 0.42, kind: "boom", light, radius });
+      this.items.push({ obj: ball, life: 0.42, maxLife: 0.42, kind: "boom" });
       for (let i = 0; i < 18; i++) {
-        const s = new Sprite(new SpriteMaterial({
-          map: this._softTex,
-          color: i % 3 === 0 ? 3355443 : 16750916,
-          transparent: true,
-          opacity: 0.85,
-          blending: i % 3 === 0 ? NormalBlending : AdditiveBlending,
-          depthWrite: false
-        }));
-        const sc = 30 + Math.random() * 60;
-        s.scale.set(sc, sc, 1);
-        s.position.copy(pos);
-        this.scene.add(s);
-        const v = new Vector3((Math.random() - 0.5) * 400, Math.random() * 260, (Math.random() - 0.5) * 400);
-        this.items.push({ obj: s, life: 0.7 + Math.random() * 0.5, maxLife: 1.2, kind: "spark", v });
+        const v = new Vector3(
+          (Math.random() - 0.5) * 400,
+          Math.random() * 260,
+          (Math.random() - 0.5) * 400
+        );
+        const smoke = i % 3 === 0;
+        this._sprite(smoke ? 3355443 : 16750916, pos, {
+          size: 30 + Math.random() * 60,
+          life: 0.7 + Math.random() * 0.5,
+          kind: "spark",
+          v,
+          blending: smoke ? NormalBlending : AdditiveBlending
+        });
       }
       playExplosion(pos, this.game.listenerPos());
       this.shake = Math.max(this.shake, 1);
@@ -21574,10 +23301,10 @@
       this.smokeVolumes.push(vol);
       this.items.push({ obj: grp, life: 16, maxLife: 16, kind: "smoke", vol });
     },
-    blocksLineOfSight(a, b) {
+    blocksLineOfSight(a, b2) {
       for (const v of this.smokeVolumes) {
         if (this.game.time > v.until) continue;
-        const ab = new Vector3().subVectors(b, a);
+        const ab = new Vector3().subVectors(b2, a);
         const len2 = ab.lengthSq();
         if (len2 < 1) continue;
         const t = Math.max(0, Math.min(1, new Vector3().subVectors(v.pos, a).dot(ab) / len2));
@@ -21588,6 +23315,76 @@
     },
     update(dt) {
       this.shake = Math.max(0, this.shake - dt * 2.6);
+      for (let i = 0; i < this._sprites.length; i++) {
+        const s = this._sprites[i];
+        if (!s.on) continue;
+        s.life -= dt;
+        if (s.life <= 0) {
+          s.on = false;
+          s.o.visible = false;
+          continue;
+        }
+        const t = 1 - s.life / s.maxLife;
+        switch (s.kind) {
+          case "spark":
+            s.v.y -= 700 * dt;
+            s.o.position.addScaledVector(s.v, dt);
+            s.m.opacity = 1 - t;
+            break;
+          case "grow": {
+            const sc = s.o.scale.x + s.grow * dt;
+            s.o.scale.set(sc, sc, 1);
+            s.m.opacity = (1 - t) * 0.6;
+            break;
+          }
+          default:
+            s.m.opacity = 1 - t;
+            break;
+        }
+      }
+      for (let i = 0; i < this._tracers.length; i++) {
+        const t = this._tracers[i];
+        if (!t.on) continue;
+        t.life -= dt;
+        if (t.life <= 0) {
+          t.on = false;
+          t.o.visible = false;
+          continue;
+        }
+        t.m.opacity = t.life / t.maxLife * 0.55;
+      }
+      for (let i = 0; i < this._shells.length; i++) {
+        const s = this._shells[i];
+        if (!s.on) continue;
+        s.life -= dt;
+        if (s.life <= 0) {
+          s.on = false;
+          s.o.visible = false;
+          continue;
+        }
+        s.v.y -= 800 * dt;
+        s.o.position.addScaledVector(s.v, dt);
+        s.o.rotation.x += s.rot.x * dt;
+        s.o.rotation.y += s.rot.y * dt;
+        if (s.o.position.y < 2) {
+          s.o.position.y = 2;
+          s.v.y *= -0.3;
+          s.v.x *= 0.6;
+          s.v.z *= 0.6;
+        }
+      }
+      for (let i = 0; i < this._muzzleLights.length; i++) {
+        const L = this._muzzleLights[i];
+        if (L.life <= 0) continue;
+        L.life -= dt;
+        L.l.intensity = L.life > 0 ? L.life / L.maxLife * L.peak : 0;
+        if (L.life <= 0) L.l.intensity = 0;
+      }
+      if (this._boomLife > 0) {
+        this._boomLife -= dt;
+        this._boomLight.intensity = this._boomLife > 0 ? this._boomLife / this._boomMax * this._boomPeak : 0;
+        if (this._boomLife <= 0) this._boomLight.intensity = 0;
+      }
       for (let i = this.items.length - 1; i >= 0; i--) {
         const it = this.items[i];
         it.life -= dt;
@@ -21599,7 +23396,6 @@
             if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose?.());
             else o.material.dispose?.();
           }
-          if (it.light) this.scene.remove(it.light);
           if (it.kind === "smoke" && it.vol) {
             this.smokeVolumes = this.smokeVolumes.filter((v) => v !== it.vol);
           }
@@ -21608,42 +23404,10 @@
         }
         const t = 1 - it.life / it.maxLife;
         switch (it.kind) {
-          case "fade":
-            o.material.opacity = 1 - t;
-            break;
-          case "sprite":
-            o.material.opacity = (1 - t) * 0.95;
-            if (it.light) it.light.intensity = 3.2 * (1 - t);
-            break;
-          case "spark":
-            it.v.y -= 700 * dt;
-            o.position.addScaledVector(it.v, dt);
-            o.material.opacity = 1 - t;
-            break;
-          case "shell":
-            it.v.y -= 800 * dt;
-            o.position.addScaledVector(it.v, dt);
-            o.rotation.x += it.rot.x * dt;
-            o.rotation.y += it.rot.y * dt;
-            if (o.position.y < 2) {
-              o.position.y = 2;
-              it.v.y *= -0.3;
-              it.v.x *= 0.6;
-              it.v.z *= 0.6;
-            }
-            o.material.opacity = 1;
-            break;
-          case "grow": {
-            const s = 14 + it.grow * t;
-            o.scale.set(s, s, 1);
-            o.material.opacity = (1 - t) * 0.6;
-            break;
-          }
           case "boom": {
             const s = 30 + t * 330;
             o.scale.set(s / 30, s / 30, s / 30);
             o.material.opacity = 0.95 * (1 - t) ** 1.5;
-            if (it.light) it.light.intensity = 12 * (1 - t);
             break;
           }
           case "smoke": {
@@ -21657,9 +23421,6 @@
             o.scale.set(sc, 1, sc);
             break;
           }
-          case "decal":
-            o.material.opacity = Math.min(0.9, it.life * 2);
-            break;
           default:
             break;
         }
@@ -21746,7 +23507,7 @@
           if (dist > 1500) continue;
           if (!this.game.map.lineOfSight(this.pos, eye)) continue;
           const toG = this.pos.clone().sub(eye).normalize();
-          const fwd = p === this.game.localPlayer ? new Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw)) : new Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
+          const fwd = new Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
           const facing = Math.max(0, fwd.dot(new Vector3(toG.x, 0, toG.z).normalize()));
           const strength = Math.max(0, 1 - dist / 1500) * (0.35 + facing * 0.9);
           p.flashAmount = Math.min(1.4, p.flashAmount + strength * 1.5);
@@ -21770,7 +23531,7 @@
       if (!p.alive || p === shooter) continue;
       if (p.team === shooter.team) continue;
       for (const hb of p.hitboxes()) {
-        const b = {
+        const b2 = {
           x0: p.pos.x - hb.r,
           x1: p.pos.x + hb.r,
           y0: hb.y0,
@@ -21778,7 +23539,7 @@
           z0: p.pos.z - hb.r,
           z1: p.pos.z + hb.r
         };
-        const t = rayAABB(origin, dir, b);
+        const t = rayAABB(origin, dir, b2);
         if (t !== null && t > 0 && t < maxDist && (!best || t < best.dist)) {
           best = { player: p, dist: t, group: hb.group };
         }
@@ -21789,21 +23550,21 @@
     }
     return best;
   }
-  function rayAABB(o, d, b) {
+  function rayAABB(o, d, b2) {
     let tmin = 0, tmax = Infinity;
     for (let a = 0; a < 3; a++) {
       const oo = a === 0 ? o.x : a === 1 ? o.y : o.z;
       const dd = a === 0 ? d.x : a === 1 ? d.y : d.z;
-      const mn = a === 0 ? b.x0 : a === 1 ? b.y0 : b.z0;
-      const mx = a === 0 ? b.x1 : a === 1 ? b.y1 : b.z1;
+      const mn = a === 0 ? b2.x0 : a === 1 ? b2.y0 : b2.z0;
+      const mx = a === 0 ? b2.x1 : a === 1 ? b2.y1 : b2.z1;
       if (Math.abs(dd) < 1e-8) {
         if (oo < mn || oo > mx) return null;
       } else {
         let t1 = (mn - oo) / dd, t2 = (mx - oo) / dd;
         if (t1 > t2) {
-          const tmp = t1;
+          const tmp2 = t1;
           t1 = t2;
-          t2 = tmp;
+          t2 = tmp2;
         }
         if (t1 > tmin) tmin = t1;
         if (t2 < tmax) tmax = t2;
@@ -21854,9 +23615,462 @@
     return dealt;
   }
 
+  // src/models.js
+  var WT = getWeaponTextures();
+  var W = {
+    steel: new MeshLambertMaterial({ map: WT.metal, color: 10923190 }),
+    steelDark: new MeshLambertMaterial({ map: WT.metal, color: 6580594 }),
+    poly: new MeshLambertMaterial({ map: WT.poly, color: 9607072 }),
+    black: new MeshLambertMaterial({ color: 1316120 }),
+    wood: new MeshLambertMaterial({ map: WT.wood, color: 13806722 }),
+    woodDark: new MeshLambertMaterial({ map: WT.wood, color: 9071176 }),
+    accent: new MeshLambertMaterial({ color: 9276288 }),
+    glass: new MeshLambertMaterial({ color: 1126460 }),
+    glove: new MeshLambertMaterial({ color: 3355435 }),
+    sleeve: new MeshLambertMaterial({ color: 3883060 }),
+    skin: new MeshLambertMaterial({ color: 12091994 }),
+    skinDark: new MeshLambertMaterial({ color: 9396802 })
+  };
+  function boxGeo(w, h, d) {
+    return new BoxGeometry(w, h, d);
+  }
+  function capGeo(r, len, seg = 8) {
+    return new CapsuleGeometry(r, len, 3, seg);
+  }
+  function cylGeo(r1, r2, h, seg = 10) {
+    return new CylinderGeometry(r1, r2, h, seg);
+  }
+  function b(w, h, d, m, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
+    const mesh = new Mesh(boxGeo(w, h, d), m);
+    mesh.position.set(x, y, z);
+    mesh.rotation.set(rx, ry, rz);
+    return mesh;
+  }
+  function tube(r1, r2, len, m, x = 0, y = 0, z = 0, seg = 10) {
+    const mesh = new Mesh(cylGeo(r1, r2, len, seg), m);
+    mesh.rotation.x = Math.PI / 2;
+    mesh.position.set(x, y, z);
+    return mesh;
+  }
+  var faceCache = {};
+  function faceTexture(team) {
+    if (faceCache[team]) return faceCache[team];
+    const S = 64;
+    const c = document.createElement("canvas");
+    c.width = c.height = S;
+    const x = c.getContext("2d");
+    x.fillStyle = team === "T" ? "#a8784e" : "#c19474";
+    x.fillRect(0, 0, S, S);
+    const g = x.createLinearGradient(0, 0, 0, S);
+    g.addColorStop(0, "rgba(60,40,26,0.45)");
+    g.addColorStop(0.35, "rgba(60,40,26,0)");
+    x.fillStyle = g;
+    x.fillRect(0, 0, S, S);
+    if (team === "T") {
+      x.fillStyle = "#1d1b19";
+      x.fillRect(0, 36, S, S - 36);
+      x.fillStyle = "#2a2724";
+      x.fillRect(0, 36, S, 3);
+      x.fillStyle = "#f0e6d8";
+      x.fillRect(14, 24, 12, 6);
+      x.fillRect(38, 24, 12, 6);
+      x.fillStyle = "#241a12";
+      x.fillRect(19, 25, 5, 5);
+      x.fillRect(43, 25, 5, 5);
+    } else {
+      x.fillStyle = "#1b2831";
+      x.fillRect(4, 18, S - 8, 16);
+      x.fillStyle = "rgba(120,170,200,0.5)";
+      x.fillRect(8, 21, 18, 6);
+      x.fillStyle = "#0e1a22";
+      x.fillRect(0, 33, S, 2);
+      x.fillStyle = "rgba(50,34,22,0.22)";
+      x.fillRect(0, 46, S, S - 46);
+    }
+    const t = new CanvasTexture(c);
+    t.colorSpace = SRGBColorSpace;
+    faceCache[team] = t;
+    return t;
+  }
+  var charMatCache = {};
+  function charMats(team) {
+    if (charMatCache[team]) return charMatCache[team];
+    const skinC = team === "T" ? 11041618 : 12883827;
+    const clothC = team === "T" ? 9072968 : 6122362;
+    const vestC = team === "T" ? 5522732 : 3752783;
+    const M = {
+      skin: new MeshLambertMaterial({ color: skinC }),
+      cloth: new MeshLambertMaterial({ color: clothC }),
+      vest: new MeshLambertMaterial({ color: vestC }),
+      belt: new MeshLambertMaterial({ color: 2828323 }),
+      pouch: new MeshLambertMaterial({ color: team === "T" ? 4142630 : 2896957 }),
+      boot: new MeshLambertMaterial({ color: 2367258 }),
+      pack: new MeshLambertMaterial({ color: team === "T" ? 4866096 : 3291973 }),
+      hat: new MeshLambertMaterial({ color: team === "T" ? 2039066 : 2831680 }),
+      glove: new MeshLambertMaterial({ color: 3025957 }),
+      face: new MeshLambertMaterial({ map: faceTexture(team) })
+    };
+    charMatCache[team] = M;
+    return M;
+  }
+  var CG = {
+    thigh: capGeo(3.9, 7),
+    shin: capGeo(3.3, 6),
+    upperArm: capGeo(3.4, 7),
+    forearm: capGeo(3, 6),
+    boot: boxGeo(6.5, 5, 11),
+    hand: boxGeo(4.6, 5.4, 5),
+    head: boxGeo(9.4, 10.6, 9.6),
+    neck: cylGeo(3, 3, 4, 8),
+    helm: new SphereGeometry(5.9, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.56),
+    // 第三人称简化枪：机匣 + 枪管 + 弹匣
+    gunBody: boxGeo(4.5, 4.5, 24),
+    gunBarrel: boxGeo(2, 2, 14),
+    gunMag: boxGeo(3.4, 7, 4.4)
+  };
+  function buildCharacterMesh(team) {
+    const M = charMats(team);
+    const g = new Group();
+    g.add(b(19, 9, 12, M.cloth, 0, 29.5, 0));
+    g.add(b(20, 2.8, 13, M.belt, 0, 33.8, 0));
+    g.add(b(17.5, 9, 11, M.cloth, 0, 38.6, 0));
+    g.add(b(21, 14, 12.5, M.vest, 0, 47, 0));
+    g.add(b(6, 3.2, 8.5, M.vest, -10, 53.5, 0));
+    g.add(b(6, 3.2, 8.5, M.vest, 10, 53.5, 0));
+    g.add(b(5.4, 5, 2.6, M.pouch, -6.2, 45.6, -6.6));
+    g.add(b(5.4, 5, 2.6, M.pouch, 0, 45.6, -6.6));
+    g.add(b(5.4, 5, 2.6, M.pouch, 6.2, 45.6, -6.6));
+    g.add(b(15, 15.5, 6, M.pack, 0, 45.5, 9.2));
+    g.add(b(9.8, 4.2, 9.8, M.cloth, 0, 57, 0));
+    const neck = new Mesh(CG.neck, M.skin);
+    neck.position.set(0, 57.4, 0);
+    g.add(neck);
+    const headMats = [M.skin, M.skin, M.hat, M.skin, M.skin, M.face];
+    const head = new Mesh(CG.head, headMats);
+    head.position.set(0, 63.4, 0);
+    g.add(head);
+    let helmet = null;
+    if (team === "CT") {
+      helmet = new Mesh(CG.helm, M.hat);
+      helmet.position.set(0, 65.6, 0);
+      g.add(helmet);
+    } else {
+      const wrap = b(10.1, 4.4, 10.3, M.hat, 0, 67.4, 0);
+      g.add(wrap);
+      const tail = b(4.2, 6.5, 3, M.hat, 0, 63, 5.4, 0.3);
+      g.add(tail);
+    }
+    const makeLeg = (side) => {
+      const hip = new Group();
+      hip.position.set(side * 5.6, 28, 0);
+      const thigh = new Mesh(CG.thigh, M.cloth);
+      thigh.position.y = -6.5;
+      hip.add(thigh);
+      const knee = new Group();
+      knee.position.y = -13;
+      const shin = new Mesh(CG.shin, M.cloth);
+      shin.position.y = -6;
+      knee.add(shin);
+      const boot = new Mesh(CG.boot, M.boot);
+      boot.position.set(0, -12.4, -1.4);
+      knee.add(boot);
+      hip.add(knee);
+      g.add(hip);
+      return { hip, knee, base: 0 };
+    };
+    const legL = makeLeg(-1);
+    const legR = makeLeg(1);
+    const makeArm = (side) => {
+      const shoulder = new Group();
+      shoulder.position.set(side * 10.4, 52.6, 0);
+      const upper = new Mesh(CG.upperArm, M.cloth);
+      upper.position.y = -6;
+      shoulder.add(upper);
+      const pad = b(6.2, 3, 6.4, M.vest, 0, -11, 0);
+      shoulder.add(pad);
+      const elbow = new Group();
+      elbow.position.y = -11.8;
+      const fore = new Mesh(CG.forearm, M.cloth);
+      fore.position.y = -5.4;
+      elbow.add(fore);
+      const hand = new Mesh(CG.hand, M.glove);
+      hand.position.set(0, -11.4, 0);
+      elbow.add(hand);
+      shoulder.add(elbow);
+      g.add(shoulder);
+      return { shoulder, elbow };
+    };
+    const armL = makeArm(-1);
+    const armR = makeArm(1);
+    armR.shoulder.rotation.set(0.3, 0, -0.2);
+    armR.elbow.rotation.set(1, 0, 0);
+    armL.shoulder.rotation.set(0.7, 0, 0.6);
+    armL.elbow.rotation.set(0.65, 0, 0);
+    const idleL = armL.shoulder.rotation.x;
+    const idleR = armR.shoulder.rotation.x;
+    const gun = new Group();
+    const body = new Mesh(CG.gunBody, W.black);
+    gun.add(body);
+    const barrel = new Mesh(CG.gunBarrel, W.steelDark);
+    barrel.position.set(0, 0.6, -19);
+    gun.add(barrel);
+    const mag = new Mesh(CG.gunMag, W.black);
+    mag.position.set(0, -4.8, 1.2);
+    mag.rotation.x = 0.25;
+    gun.add(mag);
+    gun.position.set(6.2, 40.6, -7);
+    gun.rotation.set(-0.04, 0.06, 0);
+    g.add(gun);
+    return {
+      group: g,
+      head,
+      helmet,
+      gun,
+      legL: legL.hip,
+      kneeL: legL.knee,
+      legR: legR.hip,
+      kneeR: legR.knee,
+      armL: armL.shoulder,
+      elbowL: armL.elbow,
+      armR: armR.shoulder,
+      elbowR: armR.elbow,
+      idleArmL: idleL,
+      idleArmR: idleR
+    };
+  }
+  function curvedMag(m, { segs = 4, w = 3.4, h = 3, d = 4.4, y = -2.6, z = -4, curve = 0.19, rx = 0 }) {
+    const g = new Group();
+    for (let i = 0; i < segs; i++) {
+      const seg = b(w, h + 0.4, d, m, 0, -i * (h - 0.5), -i * curve * 3.6, -i * curve);
+      g.add(seg);
+    }
+    g.position.set(0, y, z);
+    g.rotation.x = rx;
+    return g;
+  }
+  function glovedHand(mirror = 1) {
+    const g = new Group();
+    g.add(b(4.4, 5.6, 5.8, W.glove, 0, 0, 0));
+    g.add(b(4, 4.6, 9.5, W.sleeve, mirror * 1.4, -0.8, 6.8));
+    return g;
+  }
+  function buildAK47() {
+    const g = new Group();
+    g.add(b(3.5, 3.6, 20, W.steel, 0, 0, -2));
+    g.add(b(3.2, 1.3, 13, W.steelDark, 0, 2.6, -3.2));
+    g.add(b(3.7, 1, 4.2, W.accent, 0, -1.9, -8.5));
+    g.add(b(3.3, 3.1, 11.5, W.wood, 0, -0.9, -14.6));
+    g.add(b(2.3, 2, 11.5, W.steelDark, 0, 2.1, -14.6));
+    g.add(b(2, 0.9, 11.5, W.accent, 0, 3.2, -14.6));
+    g.add(tube(0.85, 0.85, 12, W.steelDark, 0, 1.2, -23));
+    g.add(tube(1.15, 1.15, 3.4, W.steel, 0, 1.2, -29.4));
+    g.add(b(1.1, 3, 1.4, W.steel, 0, 2.9, -26.2));
+    g.add(b(0.7, 1.4, 0.7, W.accent, 0, 4.3, -26.2));
+    g.add(b(1.7, 1.3, 1.2, W.steel, 0, 3.3, -8.6));
+    g.add(b(0.6, 1, 0.5, W.black, 0, 3.6, -8.9));
+    g.add(curvedMag(W.black, { segs: 4, y: -2.2, z: -4.4, curve: 0.22 }));
+    g.add(b(2.9, 7.2, 4.4, W.poly, 0, -5.4, 3.4, 0.3));
+    g.add(b(2.7, 3.2, 13, W.wood, 0, -1.2, 13.8, 0.1));
+    g.add(b(3, 4.4, 2, W.woodDark, 0, -2, 20.2, 0.1));
+    g.add(b(0.9, 0.9, 3.4, W.steel, 2, 1.5, -3.2));
+    const rh = glovedHand(1);
+    rh.position.set(0.2, -4.6, 3.6);
+    g.add(rh);
+    const lh = glovedHand(-1);
+    lh.position.set(-0.4, -2, -11.4);
+    g.add(lh);
+    return g;
+  }
+  function buildM4() {
+    const g = new Group();
+    g.add(b(3.3, 2.6, 18, W.steel, 0, 0.9, -2));
+    g.add(b(3, 2.2, 14, W.steel, 0, -1.6, -1));
+    g.add(b(1.5, 0.8, 11, W.black, 0, 3, -3));
+    g.add(b(1.5, 1.5, 0.9, W.black, 0, 2.4, -8.2));
+    g.add(b(1.5, 1.5, 0.9, W.black, 0, 2.4, 2));
+    g.add(tube(2.2, 2.2, 13, W.poly, 0, 0.6, -13.5, 12));
+    for (let i = 0; i < 5; i++) {
+      g.add(b(4.4, 0.5, 1.1, W.black, 0, 0.6, -9.5 - i * 2.2));
+    }
+    g.add(tube(0.8, 0.8, 11, W.steelDark, 0, 0.9, -24));
+    g.add(tube(1.05, 1.05, 3, W.steel, 0, 0.9, -30));
+    g.add(b(0.8, 3.2, 0.8, W.steel, 0, 2.6, -25.4));
+    g.add(b(2.2, 0.7, 0.8, W.steel, 0, 1.3, -25.4));
+    g.add(b(3.2, 7.8, 4.6, W.black, 0, -5.4, -4.2, 0.12));
+    g.add(b(2.8, 6.8, 4.2, W.poly, 0, -4.6, 3.6, 0.28));
+    g.add(tube(1.2, 1.2, 9, W.steelDark, 0, -0.4, 12.4, 8));
+    g.add(b(3.2, 4.2, 3.6, W.poly, 0, -1, 17.4));
+    const rh = glovedHand(1);
+    rh.position.set(0.2, -4, 3.8);
+    g.add(rh);
+    const lh = glovedHand(-1);
+    lh.position.set(-0.4, -1.6, -12.6);
+    g.add(lh);
+    return g;
+  }
+  function buildAWP() {
+    const g = new Group();
+    g.add(b(3.4, 4, 24, W.steelDark, 0, 0, -6));
+    g.add(tube(0.95, 0.95, 26, W.steel, 0, 0.6, -30));
+    g.add(tube(1.3, 1.3, 3.6, W.black, 0, 0.6, -43.6));
+    g.add(tube(2.6, 2.6, 15, W.black, 0, 4, -10, 12));
+    g.add(tube(3.2, 2.6, 3, W.black, 0, 4, -19.5, 12));
+    g.add(tube(2.7, 3.1, 2.6, W.black, 0, 4, -1.2, 12));
+    g.add(tube(2.2, 2.2, 0.6, W.glass, 0, 4, -21.2, 12));
+    g.add(b(2, 2.4, 2.2, W.steel, 0, 2.2, -5.4));
+    g.add(b(2, 2.4, 2.2, W.steel, 0, 2.2, -15.2));
+    g.add(b(3.2, 2, 14, W.poly, 0, -1.4, 13.2, 0.06));
+    g.add(b(3, 2.4, 12, W.poly, 0, -3.4, 14.4, 0.22));
+    g.add(b(3.4, 5, 2.2, W.black, 0, -2.6, 20.2, 0.22));
+    g.add(b(2.8, 4.2, 5.4, W.black, 0, -3.4, -6.4));
+    g.add(b(2.8, 6.4, 4.2, W.poly, 0, -5.2, 2.6, 0.3));
+    g.add(b(0.7, 0.7, 9, W.steelDark, 0, -1.4, -22.4, 0.18));
+    const rh = glovedHand(1);
+    rh.position.set(0.2, -4.4, 2.8);
+    g.add(rh);
+    const lh = glovedHand(-1);
+    lh.position.set(-0.4, -1.4, -18.4);
+    g.add(lh);
+    return g;
+  }
+  function buildSMG(variant) {
+    const g = new Group();
+    const bodyLen = variant === "p90" ? 26 : 18;
+    const bodyZ = variant === "p90" ? -2 : -3;
+    g.add(b(3.4, 4.6, bodyLen, W.poly, 0, 0, bodyZ));
+    g.add(tube(0.8, 0.8, 8, W.steelDark, 0, 0.9, bodyZ - bodyLen / 2 - 3.2));
+    if (variant === "p90") {
+      g.add(b(3, 2.2, 20, W.steelDark, 0, 2.8, -2));
+      g.add(b(2.2, 1.2, 16, W.black, 0, 2, -4));
+      g.add(b(4.4, 3, 5, W.black, 0, -2.4, 4));
+    } else {
+      g.add(b(2.6, 9.5, 3.4, W.black, 0, -6.2, -5.4, 0.14));
+      g.add(tube(2, 2, 7, W.poly, 0, 0.4, -11.4, 12));
+      g.add(b(1.8, 4.6, 3.6, W.poly, 0, -4.2, 3.2, 0.26));
+      g.add(b(2.2, 0.8, 12, W.steelDark, 0, 2.6, -4));
+    }
+    const rh = glovedHand(1);
+    rh.position.set(0.2, -3.6, 3.2);
+    g.add(rh);
+    const lh = glovedHand(-1);
+    lh.position.set(-0.4, -1.6, -10.6);
+    g.add(lh);
+    return g;
+  }
+  function buildPistol(kind) {
+    const g = new Group();
+    const big = kind === "deagle";
+    const slW = big ? 3.9 : 3.1;
+    const slH = big ? 4.2 : 3.3;
+    const slL = big ? 16 : 14;
+    g.add(b(slW, slH, slL, W.steel, 0, 1, -3));
+    g.add(b(slW - 0.4, 2, slL - 2.5, W.steelDark, 0, -1.4, -3));
+    g.add(b(slW - 1.2, slH - 1.4, 1.8, W.black, 0, 1, -3 - slL / 2));
+    g.add(b(slW - 0.6, big ? 8.6 : 7.8, big ? 5.2 : 4.6, W.poly, 0, -5.4, 2.2, 0.22));
+    g.add(b(slW - 1.4, 0.9, 4.4, W.black, 0, -2.6, -1.2));
+    g.add(b(1.1, 1.4, 1.6, W.black, 0, 2.9, 3.4, -0.2));
+    g.add(b(0.9, 1.2, 1.4, W.accent, 0, slH / 2 + 1.2, -3 - slL / 2 + 2));
+    g.add(b(1.3, 1, 1, W.accent, 0, slH / 2 + 1.1, 2.8));
+    if (big) {
+      for (let i = 0; i < 3; i++) {
+        g.add(b(slW - 1, 0.5, 2.2, W.black, 0, slH / 2 + 0.9, -6 + i * 3));
+      }
+      g.add(tube(1, 1, 2.6, W.steelDark, 0, 0.7, -11.2));
+    }
+    const rh = glovedHand(1);
+    rh.position.set(0.2, -4.2, 2.4);
+    g.add(rh);
+    return g;
+  }
+  function buildKnife() {
+    const g = new Group();
+    g.add(b(0.9, 2.6, 15, W.steel, 0, 0, -8));
+    g.add(b(0.5, 1.4, 14, W.accent, -0.5, -0.6, -8.4));
+    g.add(b(0.6, 0.9, 8, W.steelDark, 0, 1.4, -6));
+    g.add(b(1.6, 0.5, 1, W.accent, 0, 0, -15.2));
+    g.add(b(3.2, 1.2, 2.2, W.steelDark, 0, -0.4, 0.4));
+    g.add(b(2.5, 2.7, 7.4, W.black, 0, -0.6, 5.2));
+    g.add(b(2.7, 0.7, 1.2, W.accent, 0, -0.6, 9));
+    const rh = glovedHand(1);
+    rh.position.set(0.4, -1.2, 5.2);
+    g.add(rh);
+    g.rotation.set(-0.32, 0.48, 0.16);
+    return g;
+  }
+  var WEAPON_CACHE = {};
+  function buildWeaponModel(id) {
+    if (WEAPON_CACHE[id]) return WEAPON_CACHE[id];
+    let g;
+    switch (id) {
+      case "ak47":
+        g = buildAK47();
+        break;
+      case "m4a1":
+        g = buildM4();
+        break;
+      case "aug": {
+        g = buildM4();
+        g.add(b(2.4, 2, 9, W.black, 0, 3.6, -6));
+        g.add(b(1.8, 1.2, 1, W.glass, 0, 3.6, -10.2));
+        break;
+      }
+      case "sg552": {
+        g = buildM4();
+        g.add(b(1.4, 1.6, 6, W.black, 0, 3.2, -2));
+        break;
+      }
+      case "awp":
+        g = buildAWP();
+        break;
+      case "scout": {
+        g = buildAWP();
+        break;
+      }
+      case "mp5navy":
+        g = buildSMG("mp5");
+        break;
+      case "p90":
+        g = buildSMG("p90");
+        break;
+      case "deagle":
+        g = buildPistol("deagle");
+        break;
+      case "usp45":
+        g = buildPistol("usp");
+        break;
+      case "glock18":
+        g = buildPistol("glock");
+        break;
+      case "knife":
+        g = buildKnife();
+        break;
+      default:
+        g = buildM4();
+    }
+    WEAPON_CACHE[id] = g;
+    return g;
+  }
+
   // src/player.js
   var D2R = Math.PI / 180;
-  var clamp2 = (v, a, b) => Math.max(a, Math.min(b, v));
+  var clamp2 = (v, a, b2) => Math.max(a, Math.min(b2, v));
+  var _blobTex = null;
+  function blobTexture() {
+    if (_blobTex) return _blobTex;
+    const S = 128;
+    const c = document.createElement("canvas");
+    c.width = c.height = S;
+    const x = c.getContext("2d");
+    const g = x.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
+    g.addColorStop(0, "rgba(0,0,0,0.60)");
+    g.addColorStop(0.42, "rgba(0,0,0,0.34)");
+    g.addColorStop(0.78, "rgba(0,0,0,0.10)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = g;
+    x.fillRect(0, 0, S, S);
+    _blobTex = new CanvasTexture(c);
+    return _blobTex;
+  }
   var Player = class {
     constructor(game, { name, team, isBot = false, id = 0 }) {
       this.game = game;
@@ -21901,6 +24115,7 @@
       this.footTimer = 0;
       this.bobTime = 0;
       this.lastDamageTime = -10;
+      this.swingT = 0;
       this.attacker = null;
       this.plantProgress = 0;
       this.defuseProgress = 0;
@@ -21981,6 +24196,7 @@
     }
     // ---------- 每帧 ----------
     update(dt, cmd) {
+      if (this.swingT > 0) this.swingT = Math.max(0, this.swingT - dt * 3.1);
       const targetEye = this.ducking ? PHYS.eyeDuck : PHYS.eyeStand;
       this.eyeHeight += (targetEye - this.eyeHeight) * Math.min(1, dt * 12);
       this.duckAmount += ((this.ducking ? 1 : 0) - this.duckAmount) * Math.min(1, dt * 14);
@@ -22113,21 +24329,21 @@
     }
     resolveAxis(axis, r, height) {
       const cols = this.game.map.colliders;
-      const px = this.pos.x, pz = this.pos.z;
-      const py = this.pos.y;
+      const px2 = this.pos.x, pz2 = this.pos.z;
+      const py2 = this.pos.y;
       const h = this.ducking ? PHYS.duckHeight : height;
       for (let i = 0; i < cols.length; i++) {
-        const b = cols[i];
-        if (b.y0 > py + h || b.y1 < py + 2) continue;
-        if (px + r <= b.x0 || px - r >= b.x1) continue;
-        if (pz + r <= b.z0 || pz - r >= b.z1) continue;
+        const b2 = cols[i];
+        if (b2.y0 > py2 + h || b2.y1 < py2 + 2) continue;
+        if (px2 + r <= b2.x0 || px2 - r >= b2.x1) continue;
+        if (pz2 + r <= b2.z0 || pz2 - r >= b2.z1) continue;
         if (axis === "x") {
-          if (this.vel.x > 0) this.pos.x = b.x0 - r - 0.01;
-          else if (this.vel.x < 0) this.pos.x = b.x1 + r + 0.01;
+          if (this.vel.x > 0) this.pos.x = b2.x0 - r - 0.01;
+          else if (this.vel.x < 0) this.pos.x = b2.x1 + r + 0.01;
           this.vel.x = 0;
         } else {
-          if (this.vel.z > 0) this.pos.z = b.z0 - r - 0.01;
-          else if (this.vel.z < 0) this.pos.z = b.z1 + r + 0.01;
+          if (this.vel.z > 0) this.pos.z = b2.z0 - r - 0.01;
+          else if (this.vel.z < 0) this.pos.z = b2.z1 + r + 0.01;
           this.vel.z = 0;
         }
         return;
@@ -22220,6 +24436,7 @@
       const def = WEAPONS.knife;
       this.nextFire = this.game.time + 60 / def.rpm;
       this.lastShotTime = this.game.time;
+      this.swingT = 1;
       playShot("knife", this.pos, this.game.listenerPos());
       const origin = new Vector3(this.pos.x, this.eyeY(), this.pos.z);
       const dir = this.aimDir();
@@ -22326,59 +24543,37 @@
     }
     // ---------- 模型 ----------
     buildMesh(scene) {
-      const g = new Group();
-      const teamColor = TEAM_COLOR[this.team];
-      const skin = new MeshLambertMaterial({ color: this.team === "T" ? 11043674 : 13082232 });
-      const cloth = new MeshLambertMaterial({ color: teamColor });
-      const dark = new MeshLambertMaterial({ color: 2763306 });
-      const vest = new MeshLambertMaterial({ color: this.team === "T" ? 6048304 : 3490127 });
-      const torso = new Mesh(new BoxGeometry(26, 34, 15), vest);
-      torso.position.y = 44;
-      g.add(torso);
-      const pack = new Mesh(new BoxGeometry(18, 18, 8), new MeshLambertMaterial({ color: 4866612 }));
-      pack.position.set(0, 46, 10);
-      g.add(pack);
-      const collar = new Mesh(new BoxGeometry(20, 5, 13), cloth);
-      collar.position.y = 60;
-      g.add(collar);
-      const hips = new Mesh(new BoxGeometry(24, 12, 14), cloth);
-      hips.position.y = 24;
-      g.add(hips);
-      const head = new Mesh(new BoxGeometry(12, 13, 12), skin);
-      head.position.y = 66;
-      g.add(head);
-      const helmet = new Mesh(
-        new SphereGeometry(8, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
-        new MeshLambertMaterial({ color: this.team === "T" ? 3879719 : 2897730 })
+      const built = buildCharacterMesh(this.team);
+      this.mesh = built.group;
+      this._helmetMesh = built.helmet;
+      this._gunMesh = built.gun;
+      this._legL = built.legL;
+      this._kneeL = built.kneeL;
+      this._legR = built.legR;
+      this._kneeR = built.kneeR;
+      this._armL = built.armL;
+      this._elbowL = built.elbowL;
+      this._armR = built.armR;
+      this._elbowR = built.elbowR;
+      this._idleArmL = built.idleArmL;
+      this._idleArmR = built.idleArmR;
+      scene.add(this.mesh);
+      const shadow = new Mesh(
+        new PlaneGeometry(1, 1),
+        new MeshBasicMaterial({
+          map: blobTexture(),
+          transparent: true,
+          depthWrite: false,
+          opacity: 0.5,
+          polygonOffset: true,
+          polygonOffsetFactor: -2
+        })
       );
-      helmet.position.y = 71;
-      helmet.visible = this.team === "CT";
-      g.add(helmet);
-      this._helmetMesh = helmet;
-      const armL = new Mesh(new BoxGeometry(8, 24, 8), cloth);
-      armL.position.set(-16, 42, -2);
-      armL.rotation.x = -0.35;
-      g.add(armL);
-      const armR = new Mesh(new BoxGeometry(8, 24, 8), cloth);
-      armR.position.set(16, 42, -2);
-      armR.rotation.x = -0.5;
-      g.add(armR);
-      const legL = new Mesh(new BoxGeometry(10, 24, 10), dark);
-      legL.position.set(-7, 12, 0);
-      g.add(legL);
-      const legR = new Mesh(new BoxGeometry(10, 24, 10), dark);
-      legR.position.set(7, 12, 0);
-      g.add(legR);
-      const gun = new Mesh(new BoxGeometry(5, 5, 26), new MeshLambertMaterial({ color: 1776411 }));
-      gun.position.set(10, 44, -14);
-      g.add(gun);
-      this._gunMesh = gun;
-      this.mesh = g;
-      this._legL = legL;
-      this._legR = legR;
-      this._armL = armL;
-      this._armR = armR;
-      scene.add(g);
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 1.2;
+      shadow.renderOrder = 2;
+      scene.add(shadow);
+      this._shadow = shadow;
       this.syncMesh();
     }
     syncMesh() {
@@ -22388,17 +24583,31 @@
       this.mesh.rotation.y = this.yaw;
       const crouch = this.duckAmount;
       this.mesh.scale.y = 1 - crouch * 0.34;
-      if (this._helmetMesh) this._helmetMesh.visible = this.helmet;
+      if (this._shadow) {
+        const vis = this.alive && !this.isLocal;
+        this._shadow.visible = vis;
+        if (vis) {
+          const h = Math.max(0, this.pos.y);
+          const k = Math.max(0.3, 1 - h / 240);
+          this._shadow.position.set(this.pos.x, 1.2, this.pos.z);
+          this._shadow.scale.setScalar(48 * k);
+          this._shadow.material.opacity = 0.5 * k;
+        }
+      }
       if (this._gunMesh) this._gunMesh.visible = this.curSlot !== "melee";
       const spd = Math.hypot(this.vel.x, this.vel.z);
-      if (this.alive && spd > 30 && this.onGround) {
-        const t = this.game.time * (6 + spd * 0.02);
-        const sw = Math.sin(t) * Math.min(0.5, spd / 500);
-        if (this._legL) this._legL.rotation.x = sw;
-        if (this._legR) this._legR.rotation.x = -sw;
-      } else if (this._legL) {
-        this._legL.rotation.x = 0;
-        this._legR.rotation.x = 0;
+      const moving = this.alive && spd > 30 && this.onGround;
+      let sw = 0;
+      if (moving) {
+        sw = Math.sin(this.game.time * (7 + spd * 0.016)) * Math.min(0.62, spd / 380);
+      }
+      if (this._legL) {
+        this._legL.rotation.x = sw;
+        this._legR.rotation.x = -sw;
+        this._kneeL.rotation.x = -Math.max(0, -sw) * 1.25;
+        this._kneeR.rotation.x = -Math.max(0, sw) * 1.25;
+        this._armL.rotation.x = this._idleArmL - sw * 0.3;
+        this._armR.rotation.x = this._idleArmR + sw * 0.22;
       }
     }
     hitboxes() {
@@ -22454,7 +24663,7 @@
 
   // src/bots.js
   var D2R2 = Math.PI / 180;
-  var clamp3 = (v, a, b) => Math.max(a, Math.min(b, v));
+  var clamp3 = (v, a, b2) => Math.max(a, Math.min(b2, v));
   var BotController = class {
     constructor(game, player, skill = 0.55) {
       this.game = game;
@@ -22773,8 +24982,8 @@
       cmd.forward = (Math.random() < 0.25 ? 0.6 : 0) - (Math.random() < 0.1 ? 0.5 : 0);
     }
   };
-  function angleDiff(a, b) {
-    let d = a - b;
+  function angleDiff(a, b2) {
+    let d = a - b2;
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
     return d;
@@ -22930,9 +25139,9 @@
         }
         if (p.bot) p.bot.constructor = p.bot.constructor;
       }
-      const tmp = this.scoreCT;
+      const tmp2 = this.scoreCT;
       this.scoreCT = this.scoreT;
-      this.scoreT = tmp;
+      this.scoreT = tmp2;
       this.lossStreak = { CT: 0, T: 0 };
       this.game.hud.announce("\u534A\u573A\u7ED3\u675F \xB7 \u4EA4\u6362\u9635\u8425");
       this.startRound();
@@ -23040,50 +25249,50 @@
       this.endRound("CT", "defuse");
     }
     updateBomb(dt) {
-      const b = this.bomb;
-      if (b.state === "planted") {
-        b.timer -= dt;
-        b.beep -= dt;
-        const interval = Math.max(0.08, b.timer / RULES.bombTime * 1);
-        if (b.beep <= 0) {
-          b.beep = interval;
-          playBeep(b.timer < 10);
-          if (this.bombMesh) this.bombMesh.material.color.setHex(b.timer < 10 ? 5574929 : 2829099);
+      const b2 = this.bomb;
+      if (b2.state === "planted") {
+        b2.timer -= dt;
+        b2.beep -= dt;
+        const interval = Math.max(0.08, b2.timer / RULES.bombTime * 1);
+        if (b2.beep <= 0) {
+          b2.beep = interval;
+          playBeep(b2.timer < 10);
+          if (this.bombMesh) this.bombMesh.material.color.setHex(b2.timer < 10 ? 5574929 : 2829099);
         }
         if (this.bombMesh) {
           this.bombMesh.rotation.y += dt * 0.5;
         }
-        if (b.timer <= 0) {
-          b.state = "exploded";
+        if (b2.timer <= 0) {
+          b2.state = "exploded";
           if (this.bombMesh) {
             this.game.scene.remove(this.bombMesh);
             this.bombMesh = null;
           }
-          fx.explosion(b.pos.clone(), 500);
+          fx.explosion(b2.pos.clone(), 500);
           for (const p of this.game.players) {
             if (!p.alive) continue;
-            const d = Math.hypot(p.pos.x - b.pos.x, p.pos.z - b.pos.z);
+            const d = Math.hypot(p.pos.x - b2.pos.x, p.pos.z - b2.pos.z);
             if (d < 620) {
               const dmg = Math.max(20, 500 * (1 - d / 620));
-              p.takeDamage(dmg, b.planter, "chest", "c4");
+              p.takeDamage(dmg, b2.planter, "chest", "c4");
             }
           }
           this.endRound("T", "bomb");
         }
       }
-      if (b.state === "carried" && b.carrier && !b.carrier.alive) {
-        b.state = "dropped";
-        b.pos.copy(b.carrier.pos);
-        b.pos.y = 6;
+      if (b2.state === "carried" && b2.carrier && !b2.carrier.alive) {
+        b2.state = "dropped";
+        b2.pos.copy(b2.carrier.pos);
+        b2.pos.y = 6;
         this.game.hud.toast("C4 \u6389\u843D\u4E86");
       }
-      if (b.state === "dropped") {
+      if (b2.state === "dropped") {
         for (const p of this.game.players) {
           if (!p.alive || p.team !== "T") continue;
-          if (Math.hypot(p.pos.x - b.pos.x, p.pos.z - b.pos.z) < 55) {
+          if (Math.hypot(p.pos.x - b2.pos.x, p.pos.z - b2.pos.z) < 55) {
             p.hasBomb = true;
-            b.state = "carried";
-            b.carrier = p;
+            b2.state = "carried";
+            b2.carrier = p;
             this.game.hud.toast(`${p.name} \u62FE\u8D77\u4E86 C4`);
             break;
           }
@@ -23267,9 +25476,9 @@
         for (let cc = minC; cc <= maxC; cc++) {
           if (!map.isFloorTile(cc, r)) continue;
           const blocked = map.blocked[r * GRID + cc] === 1;
-          const px = offX + cc * cell, py = offY + r * cell;
+          const px2 = offX + cc * cell, py2 = offY + r * cell;
           x.fillStyle = blocked ? "rgba(120,110,86,.45)" : "rgba(198,192,160,.55)";
-          x.fillRect(px, py, cell + 0.6, cell + 0.6);
+          x.fillRect(px2, py2, cell + 0.6, cell + 0.6);
         }
       }
       x.strokeStyle = "rgba(40,44,34,.85)";
@@ -23277,29 +25486,29 @@
       for (let r = minR; r <= maxR; r++) {
         for (let cc = minC; cc <= maxC; cc++) {
           if (!map.isFloorTile(cc, r)) continue;
-          const px = offX + cc * cell, py = offY + r * cell;
+          const px2 = offX + cc * cell, py2 = offY + r * cell;
           if (!map.isFloorTile(cc, r - 1)) {
             x.beginPath();
-            x.moveTo(px, py);
-            x.lineTo(px + cell, py);
+            x.moveTo(px2, py2);
+            x.lineTo(px2 + cell, py2);
             x.stroke();
           }
           if (!map.isFloorTile(cc, r + 1)) {
             x.beginPath();
-            x.moveTo(px, py + cell);
-            x.lineTo(px + cell, py + cell);
+            x.moveTo(px2, py2 + cell);
+            x.lineTo(px2 + cell, py2 + cell);
             x.stroke();
           }
           if (!map.isFloorTile(cc - 1, r)) {
             x.beginPath();
-            x.moveTo(px, py);
-            x.lineTo(px, py + cell);
+            x.moveTo(px2, py2);
+            x.lineTo(px2, py2 + cell);
             x.stroke();
           }
           if (!map.isFloorTile(cc + 1, r)) {
             x.beginPath();
-            x.moveTo(px + cell, py);
-            x.lineTo(px + cell, py + cell);
+            x.moveTo(px2 + cell, py2);
+            x.lineTo(px2 + cell, py2 + cell);
             x.stroke();
           }
         }
@@ -23307,17 +25516,18 @@
       x.font = "bold 15px Arial";
       x.textAlign = "center";
       x.textBaseline = "middle";
-      for (const key of ["A", "B"]) {
+      Object.keys(map.sites).forEach((key, idx) => {
         const s2 = map.sites[key];
-        const px = offX + ((s2.x0 + s2.x1) / 2 + WORLD_HALF) / TILE * cell;
-        const py = offY + ((s2.z0 + s2.z1) / 2 + WORLD_HALF) / TILE * cell;
+        if (!s2) return;
+        const px2 = offX + ((s2.x0 + s2.x1) / 2 + WORLD_HALF) / TILE * cell;
+        const py2 = offY + ((s2.z0 + s2.z1) / 2 + WORLD_HALF) / TILE * cell;
         x.fillStyle = "rgba(20,24,16,.55)";
         x.beginPath();
-        x.arc(px, py, 9, 0, 7);
+        x.arc(px2, py2, 9, 0, 7);
         x.fill();
-        x.fillStyle = key === "A" ? "rgba(240,200,120,.95)" : "rgba(150,195,235,.95)";
-        x.fillText(key, px, py + 1);
-      }
+        x.fillStyle = idx === 0 ? "rgba(240,200,120,.95)" : "rgba(150,195,235,.95)";
+        x.fillText(key, px2, py2 + 1);
+      });
       this.radarStatic = c;
     }
     worldToRadar(x, z) {
@@ -23409,10 +25619,10 @@
       const S = cv2.width;
       ctx2.clearRect(0, 0, S, S);
       ctx2.drawImage(this.radarStatic, 0, 0);
-      const b = g.round.bomb;
-      if (b.state === "planted" || b.state === "dropped") {
-        const pt = this.worldToRadar(b.pos.x, b.pos.z, S);
-        ctx2.fillStyle = b.state === "planted" ? Math.floor(g.time * 4) % 2 ? "#ff4433" : "#ffaa33" : "#ffcc66";
+      const b2 = g.round.bomb;
+      if (b2.state === "planted" || b2.state === "dropped") {
+        const pt = this.worldToRadar(b2.pos.x, b2.pos.z, S);
+        ctx2.fillStyle = b2.state === "planted" ? Math.floor(g.time * 4) % 2 ? "#ff4433" : "#ffaa33" : "#ffcc66";
         ctx2.fillRect(pt.x - 3, pt.y - 3, 6, 6);
       }
       const p = g.localPlayer;
@@ -23683,52 +25893,30 @@
       <span class="v">${Math.round(p.damageDealt)}</span>
       <span class="v">$${p.money}</span>
     </div>`;
-      const ct = g.players.filter((p) => p.team === "CT").sort((a, b) => b.kills - a.kills);
-      const t = g.players.filter((p) => p.team === "T").sort((a, b) => b.kills - a.kills);
+      const ct = g.players.filter((p) => p.team === "CT").sort((a, b2) => b2.kills - a.kills);
+      const t = g.players.filter((p) => p.team === "T").sort((a, b2) => b2.kills - a.kills);
       this.el.sbCTList.innerHTML = `<div class="hdr">COUNTER-TERRORISTS</div>` + ct.map(row).join("");
       this.el.sbTList.innerHTML = `<div class="hdr">TERRORISTS</div>` + t.map(row).join("");
     }
   };
 
   // src/viewmodel.js
-  var M = {
-    metal: new MeshLambertMaterial({ color: 9079958 }),
-    steel: new MeshLambertMaterial({ color: 6974581 }),
-    dark: new MeshLambertMaterial({ color: 4013636 }),
-    black: new MeshLambertMaterial({ color: 2368810 }),
-    wood: new MeshLambertMaterial({ color: 10512952 }),
-    glove: new MeshLambertMaterial({ color: 3684399 }),
-    accent: new MeshLambertMaterial({ color: 10131076 }),
-    skin: new MeshLambertMaterial({ color: 12618332 })
-  };
-  function box(w, h, d, m, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
-    const mesh = new Mesh(new BoxGeometry(w, h, d), m);
-    mesh.position.set(x, y, z);
-    mesh.rotation.set(rx, ry, rz);
-    return mesh;
-  }
-  function cyl(r, h, m, x, y, z) {
-    const mesh = new Mesh(new CylinderGeometry(r, r, h, 10), m);
-    mesh.position.set(x, y, z);
-    mesh.rotation.x = Math.PI / 2;
-    return mesh;
-  }
   var ViewModel = class {
     constructor(game) {
       this.game = game;
       this.scene = new Scene();
-      this.camera = new PerspectiveCamera(54, 16 / 9, 1, 600);
-      this.scene.add(new AmbientLight(16777215, 1));
-      const key = new DirectionalLight(16773848, 2.2);
+      this.camera = new PerspectiveCamera(68, 16 / 9, 1, 600);
+      this.scene.add(new AmbientLight(16777215, 0.78));
+      const key = new DirectionalLight(16773848, 1.5);
       key.position.set(-0.5, 1.3, 0.9);
       this.scene.add(key);
-      const rim = new DirectionalLight(9416920, 1.1);
+      const rim = new DirectionalLight(9416920, 0.7);
       rim.position.set(1.4, 0.3, -1);
       this.scene.add(rim);
-      const bounce = new PointLight(14200944, 0.9, 200);
+      const bounce = new PointLight(14200944, 0.55, 200);
       bounce.position.set(0, -20, 10);
       this.scene.add(bounce);
-      this.pose = { x: 8.6, y: -8.8, z: -35, s: 0.88 };
+      this.pose = { x: 4.2, y: -6.8, z: -33, s: 0.72 };
       this.root = new Group();
       this.root.position.set(this.pose.x, this.pose.y, this.pose.z);
       this.root.rotation.y = 0.1;
@@ -23752,63 +25940,10 @@
       this.curId = id;
       if (this.weaponGroup) {
         this.root.remove(this.weaponGroup);
-        this.weaponGroup.traverse((o) => {
-          if (o.geometry) o.geometry.dispose();
-        });
         this.weaponGroup = null;
       }
-      const def = WEAPONS[id];
-      const g = new Group();
-      if (def) {
-        if (def.cls === "rifle" || def.cls === "smg") {
-          const furniture = def.id === "ak47" ? M.wood : M.black;
-          g.add(box(3.2, 4, 22, M.steel, 0, 0, -4));
-          g.add(box(2.6, 3.2, 9.5, furniture, 0, -0.7, 8, 0.05));
-          g.add(box(1.7, 1.7, 15, M.dark, 0, 1, -19));
-          g.add(box(2.6, 3.1, 10, furniture, 0, -0.5, -13));
-          g.add(box(2.2, 2.4, 6, M.black, 0, 1.5, -6));
-          g.add(box(2.4, 8.2, 5, M.dark, 0, -5.2, -6, 0.22));
-          g.add(box(2.8, 8, 5, M.dark, 0, -4.6, 3.2, -0.3));
-          g.add(box(1.1, 1.3, 2, M.accent, 0, 2.7, -2));
-          g.add(box(1.1, 2, 2.2, M.accent, 0, 2.8, -20));
-          g.add(box(1.6, 1.6, 4, M.accent, 0, 1.1, -9));
-          g.add(box(4.2, 5.6, 5.6, M.glove, 0.8, -4.8, 2.8, -0.15));
-          g.add(box(3.6, 3.8, 10, M.skin, 3.2, -6.6, 7.6, 0.15, -0.25));
-          g.add(box(4.4, 4.8, 6.2, M.skin, -0.6, -2.8, -13, 0.1));
-        } else if (def.cls === "pistol") {
-          g.add(box(2.6, 3, 11.5, M.steel, 0, -0.8, -3));
-          g.add(box(3, 3, 12.6, M.metal, 0, 1, -3.2));
-          g.add(box(1.8, 1.8, 2.4, M.black, 0, 1, -10));
-          g.add(box(2.9, 7.4, 4.6, M.dark, 0, -4.4, 1.4, -0.2));
-          g.add(box(2.4, 0.9, 3.4, M.black, 0, -2.4, -2.4));
-          g.add(box(1, 1, 1.4, M.black, 0, 2.4, 2.2));
-          g.add(box(0.9, 1.1, 1.6, M.accent, 0, 2.6, -8.4));
-          g.add(box(4.4, 6, 5.8, M.glove, 0.5, -4.8, 1.4, -0.2));
-          g.add(box(3.4, 3.6, 10, M.skin, 2.8, -6.8, 6.4, 0.15, -0.3));
-          g.add(box(3.6, 4.2, 4.6, M.skin, -1.7, -2.6, -4));
-        } else if (def.cls === "sniper") {
-          g.add(box(3.2, 3.8, 30, M.steel, 0, 0, -8));
-          g.add(box(1.7, 1.7, 26, M.black, 0, 0.9, -32));
-          g.add(box(3.6, 4.4, 14, M.black, 0, -1.4, 6, 0.04));
-          g.add(box(2.6, 7, 5, M.black, 0, -4.6, 2.4, -0.28));
-          g.add(cyl(2.7, 15, M.black, 0, 4.4, -10));
-          g.add(cyl(3.2, 2.4, M.dark, 0, 4.4, -18));
-          g.add(cyl(3.2, 2.4, M.dark, 0, 4.4, -2));
-          g.add(box(2.2, 2.6, 4.4, M.accent, 0, 2.4, -5));
-          g.add(box(2.2, 2.6, 4.4, M.accent, 0, 2.4, -15));
-          g.add(box(1.4, 4.6, 1.4, M.black, 0, -3.4, -14));
-          g.add(box(4.2, 5.8, 5.8, M.glove, 0.8, -4.9, 2.6, -0.2));
-          g.add(box(3.6, 4, 10, M.skin, 3.2, -6.8, 7.4, 0.15, -0.25));
-          g.add(box(4.2, 4.8, 6, M.skin, -0.6, -2.6, -16, 0.1));
-        } else {
-          g.add(box(1.2, 2.6, 18, M.metal, 0, 0, -9));
-          g.add(box(1.6, 1.2, 10, M.metal, 0, 1.2, -7));
-          g.add(box(3.2, 1.4, 2.6, M.dark, 0, -0.6, 1.2));
-          g.add(box(2.6, 2.8, 7.4, M.black, 0, -0.8, 5.4));
-          g.add(box(4.6, 5.6, 5.6, M.glove, 0.4, -3.2, 5.2, 0.1, 0.15));
-          g.add(box(3.6, 3.8, 10, M.skin, 2.4, -5.2, 9.4, 0.1, -0.3));
-        }
-      }
+      if (!id || !WEAPONS[id]) return;
+      const g = buildWeaponModel(id);
       this.weaponGroup = g;
       this.root.add(g);
     }
@@ -23834,23 +25969,25 @@
       p.lastMouseDY = 0;
       const pose = this.game && this.game.vmPose || this.pose;
       const crouchOff = p.duckAmount * 2.2;
+      const swingRaw = p.curSlot === "melee" ? p.swingT || 0 : 0;
+      const sw = swingRaw > 0 ? Math.sin(Math.PI * (1 - swingRaw)) : 0;
       this.root.scale.setScalar(pose.s);
       this.root.position.set(
-        pose.x + bobX + this.swayX * 0.06,
-        pose.y + bobY - crouchOff - (1 - this.rise) * 11 - this.reloadT * 4.5 + this.swayY * 0.06,
-        pose.z + this.kick * 1.5
+        pose.x + bobX + this.swayX * 0.06 - sw * 2.6,
+        pose.y + bobY - crouchOff - (1 - this.rise) * 11 - this.reloadT * 4.5 + this.swayY * 0.06 + sw * 1.8,
+        pose.z + this.kick * 1.5 - sw * 6
       );
       this.root.rotation.set(
-        this.kick * 0.02 + this.reloadT * 0.42 - (1 - this.rise) * 0.8,
-        0.1 - this.kick * 8e-3 + this.swayX * 6e-3,
-        this.reloadT * 0.3 + Math.sin(this.bob) * 0.01
+        this.kick * 0.02 + this.reloadT * 0.42 - (1 - this.rise) * 0.8 - sw * 0.62,
+        0.16 - this.kick * 8e-3 + this.swayX * 6e-3 + sw * 0.34,
+        this.reloadT * 0.3 + Math.sin(this.bob) * 0.01 + sw * 0.42
       );
     }
   };
 
   // src/main.js
   var D2R3 = Math.PI / 180;
-  var clamp4 = (v, a, b) => Math.max(a, Math.min(b, v));
+  var clamp4 = (v, a, b2) => Math.max(a, Math.min(b2, v));
   function loadSettings() {
     try {
       const raw = localStorage.getItem("cs16web.settings");
@@ -23884,7 +26021,11 @@
       const canvas = document.getElementById("gl");
       this.canvas = canvas;
       this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      this.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      this.pixelRatio = Math.min(this.maxPixelRatio, 1.5);
+      this.renderer.setPixelRatio(this.pixelRatio);
+      this.adaptTimer = 0;
+      setAnisotropy(this.renderer.capabilities.getMaxAnisotropy());
       this.renderer.setSize(window.innerWidth, window.innerHeight, false);
       this.renderer.outputColorSpace = SRGBColorSpace;
       this.renderer.autoClear = false;
@@ -23892,7 +26033,9 @@
       this.camera = new PerspectiveCamera(this.settings.fov, window.innerWidth / window.innerHeight, 1, 9e3);
       this.camera.rotation.order = "YXZ";
       this.scene.add(this.camera);
-      this.map = new GameMap(this.scene);
+      this.map = new GameMap(this.scene, getMap(this.settings.map || DEFAULT_MAP));
+      const rl = document.querySelector(".radar-label");
+      if (rl) rl.textContent = this.map.label;
       fx.init(this.scene, this.camera, this);
       this.hud = new HUD(this);
       this.round = new Round(this);
@@ -23907,6 +26050,11 @@
     }
     resize() {
       const w = window.innerWidth, h = window.innerHeight;
+      this.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      if (this.pixelRatio > this.maxPixelRatio) {
+        this.pixelRatio = this.maxPixelRatio;
+        this.renderer.setPixelRatio(this.pixelRatio);
+      }
       this.renderer.setSize(w, h, false);
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
@@ -23927,6 +26075,12 @@
       for (const p of this.players) {
         if (p !== this.localPlayer) {
           if (p.mesh) this.scene.remove(p.mesh);
+          if (p._shadow) {
+            this.scene.remove(p._shadow);
+            p._shadow.geometry.dispose();
+            p._shadow.material.dispose();
+            p._shadow = null;
+          }
         }
       }
       this.players = [this.localPlayer];
@@ -23939,6 +26093,12 @@
       lp.damageDealt = 0;
       lp.money = RULES.startMoney;
       if (lp.mesh) this.scene.remove(lp.mesh);
+      if (lp._shadow) {
+        this.scene.remove(lp._shadow);
+        lp._shadow.geometry.dispose();
+        lp._shadow.material.dispose();
+        lp._shadow = null;
+      }
       lp.buildMesh(this.scene);
       lp.mesh.visible = false;
       const skillMap = { easy: 0.24, normal: 0.46, hard: 0.68, expert: 0.88 };
@@ -23955,20 +26115,20 @@
         return `Bot${Math.floor(Math.random() * 900 + 100)}`;
       };
       for (let i = 0; i < this.enemyCount - 1; i++) {
-        const b = new Player(this, { name: pickName(), team: "T", isBot: true, id: i + 1 });
-        b.buildMesh(this.scene);
-        b.lastMouseDX = 0;
-        b.lastMouseDY = 0;
-        b.bot = new BotController(this, b, clamp4(baseSkill + (Math.random() - 0.5) * 0.14, 0.15, 0.95));
-        this.players.push(b);
+        const b2 = new Player(this, { name: pickName(), team: "T", isBot: true, id: i + 1 });
+        b2.buildMesh(this.scene);
+        b2.lastMouseDX = 0;
+        b2.lastMouseDY = 0;
+        b2.bot = new BotController(this, b2, clamp4(baseSkill + (Math.random() - 0.5) * 0.14, 0.15, 0.95));
+        this.players.push(b2);
       }
       for (let i = 0; i < this.enemyCount; i++) {
-        const b = new Player(this, { name: pickName(), team: "CT", isBot: true, id: 100 + i });
-        b.buildMesh(this.scene);
-        b.lastMouseDX = 0;
-        b.lastMouseDY = 0;
-        b.bot = new BotController(this, b, clamp4(baseSkill + (Math.random() - 0.5) * 0.14, 0.15, 0.95));
-        this.players.push(b);
+        const b2 = new Player(this, { name: pickName(), team: "CT", isBot: true, id: 100 + i });
+        b2.buildMesh(this.scene);
+        b2.lastMouseDX = 0;
+        b2.lastMouseDY = 0;
+        b2.bot = new BotController(this, b2, clamp4(baseSkill + (Math.random() - 0.5) * 0.14, 0.15, 0.95));
+        this.players.push(b2);
       }
     }
     startGame() {
@@ -24076,11 +26236,11 @@
       const segBind = (id, cb) => {
         const seg = document.getElementById(id);
         seg.addEventListener("click", (e) => {
-          const b = e.target.closest("button");
-          if (!b) return;
+          const b2 = e.target.closest("button");
+          if (!b2) return;
           seg.querySelectorAll("button").forEach((x) => x.classList.remove("on"));
-          b.classList.add("on");
-          cb(b.dataset.v);
+          b2.classList.add("on");
+          cb(b2.dataset.v);
           playUIClick();
         });
       };
@@ -24215,9 +26375,9 @@
     }
     // ---------- 服务接口 ----------
     listenerPos() {
-      const p = this.localPlayer;
-      if (!p) return { x: 0, y: 0, z: 0, yaw: 0 };
-      return { x: p.pos.x, y: p.eyeY(), z: p.pos.z, yaw: p.yaw };
+      const c = this.camera;
+      if (!c) return { x: 0, y: 0, z: 0, yaw: 0 };
+      return { x: c.position.x, y: c.position.y, z: c.position.z, yaw: c.rotation.y };
     }
     tracePlayers(origin, dir, maxDist, shooter) {
       return tracePlayers(this, origin, dir, maxDist, shooter);
@@ -24328,6 +26488,17 @@
       this.lastT = now2;
       const dt = Math.min(0.05, Math.max(1e-4, raw));
       if (raw > 0) this.fps += (1 / raw - this.fps) * 0.08;
+      this.adaptTimer += Math.min(0.25, raw);
+      if (this.adaptTimer > 2) {
+        this.adaptTimer = 0;
+        if (this.fps < 48 && this.pixelRatio > 1) {
+          this.pixelRatio = Math.max(1, this.pixelRatio - 0.25);
+          this.renderer.setPixelRatio(this.pixelRatio);
+        } else if (this.fps > 58 && this.pixelRatio < this.maxPixelRatio) {
+          this.pixelRatio = Math.min(this.maxPixelRatio, this.pixelRatio + 0.25);
+          this.renderer.setPixelRatio(this.pixelRatio);
+        }
+      }
       if (this.started && !this.paused) {
         this.update(dt);
       }
@@ -24355,8 +26526,8 @@
         else if (p.team === "CT" && this.round.bomb.state === "planted" && Math.hypot(p.pos.x - this.round.bomb.pos.x, p.pos.z - this.round.bomb.pos.z) < 90) this.hud.hint("\u6309\u4F4F E \u62C6\u9664\u70B8\u5F39");
         else this.hud.hint(null);
       }
-      for (const b of this.players) {
-        if (b.bot) b.bot.update(dt);
+      for (const b2 of this.players) {
+        if (b2.bot) b2.bot.update(dt);
       }
       for (let i = this.grenades.length - 1; i >= 0; i--) {
         const g = this.grenades[i];
@@ -24367,6 +26538,7 @@
       this.updateCamera(dt);
       this.viewModel.update(dt, p);
       this.hud.update(dt);
+      setListener(this.listenerPos());
     }
     updateCamera(dt) {
       const p = this.localPlayer;

@@ -2,13 +2,33 @@
 //  player.js — 玩家实体：GoldSrc 移动物理 / 视角 / 命中盒 / 武器持有
 // ============================================================
 import * as THREE from 'three';
-import { PHYS, HITGROUP, WEAPONS, RULES, TEAM_COLOR } from './config.js';
+import { PHYS, HITGROUP, WEAPONS, RULES } from './config.js';
 import { traceBullet, applyDamage, makeWeaponInstance } from './weapons.js';
 import { fx, Grenade } from './fx.js';
 import * as Sfx from './audio.js';
+import { buildCharacterMesh, buildWeaponProp } from './models.js';
 
 const D2R = Math.PI / 180;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// 贴地阴影贴图（所有角色共享纹理，材质各自持有以便单独调透明度）
+let _blobTex = null;
+function blobTexture() {
+  if (_blobTex) return _blobTex;
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
+  g.addColorStop(0, 'rgba(0,0,0,0.60)');
+  g.addColorStop(0.42, 'rgba(0,0,0,0.34)');
+  g.addColorStop(0.78, 'rgba(0,0,0,0.10)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, S, S);
+  _blobTex = new THREE.CanvasTexture(c);
+  return _blobTex;
+}
 
 export class Player {
   constructor(game, { name, team, isBot = false, id = 0 }) {
@@ -60,6 +80,8 @@ export class Player {
     this.footTimer = 0;
     this.bobTime = 0;
     this.lastDamageTime = -10;
+    // 挥刀进度：1 → 0 衰减，viewmodel 据此播放劈砍弧线
+    this.swingT = 0;
     this.attacker = null;
     this.plantProgress = 0;
     this.defuseProgress = 0;
@@ -144,6 +166,9 @@ export class Player {
 
   // ---------- 每帧 ----------
   update(dt, cmd) {
+    // 挥刀进度衰减（0.32 秒走完一个完整弧线）
+    if (this.swingT > 0) this.swingT = Math.max(0, this.swingT - dt * 3.1);
+
     // 视角平滑（蹲伏时眼高插值）
     const targetEye = this.ducking ? PHYS.eyeDuck : PHYS.eyeStand;
     this.eyeHeight += (targetEye - this.eyeHeight) * Math.min(1, dt * 12);
@@ -439,6 +464,7 @@ export class Player {
     const def = WEAPONS.knife;
     this.nextFire = this.game.time + 60 / def.rpm;
     this.lastShotTime = this.game.time;
+    this.swingT = 1;
     Sfx.playShot('knife', this.pos, this.game.listenerPos());
     const origin = new THREE.Vector3(this.pos.x, this.eyeY(), this.pos.z);
     const dir = this.aimDir();
@@ -553,70 +579,38 @@ export class Player {
 
   // ---------- 模型 ----------
   buildMesh(scene) {
-    const g = new THREE.Group();
-    const teamColor = TEAM_COLOR[this.team];
-    const skin = new THREE.MeshLambertMaterial({ color: this.team === 'T' ? 0xa8835a : 0xc79e78 });
-    const cloth = new THREE.MeshLambertMaterial({ color: teamColor });
-    const dark = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
-    const vest = new THREE.MeshLambertMaterial({ color: this.team === 'T' ? 0x5c4a30 : 0x35414f });
+    const built = buildCharacterMesh(this.team);
+    this.mesh = built.group;
+    this._helmetMesh = built.helmet;
+    this._gunMesh = built.gun;
+    // 四级关节：髋/膝/肩/肘
+    this._legL = built.legL;
+    this._kneeL = built.kneeL;
+    this._legR = built.legR;
+    this._kneeR = built.kneeR;
+    this._armL = built.armL;
+    this._elbowL = built.elbowL;
+    this._armR = built.armR;
+    this._elbowR = built.elbowR;
+    this._idleArmL = built.idleArmL;
+    this._idleArmR = built.idleArmR;
+    scene.add(this.mesh);
 
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(26, 34, 15), vest);
-    torso.position.y = 44;
-    g.add(torso);
+    // 贴地阴影：用一张跟随位置的圆形贴花，而不是 shadowMap ——
+    // 开阴影会让所有 Lambert 材质重新编译，实战中反而掉帧。
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({
+        map: blobTexture(), transparent: true, depthWrite: false, opacity: 0.5,
+        polygonOffset: true, polygonOffsetFactor: -2,
+      }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 1.2;
+    shadow.renderOrder = 2;
+    scene.add(shadow);
+    this._shadow = shadow;
 
-    const pack = new THREE.Mesh(new THREE.BoxGeometry(18, 18, 8), new THREE.MeshLambertMaterial({ color: 0x4a4234 }));
-    pack.position.set(0, 46, 10);
-    g.add(pack);
-
-    const collar = new THREE.Mesh(new THREE.BoxGeometry(20, 5, 13), cloth);
-    collar.position.y = 60;
-    g.add(collar);
-
-    const hips = new THREE.Mesh(new THREE.BoxGeometry(24, 12, 14), cloth);
-    hips.position.y = 24;
-    g.add(hips);
-
-    const head = new THREE.Mesh(new THREE.BoxGeometry(12, 13, 12), skin);
-    head.position.y = 66;
-    g.add(head);
-
-    const helmet = new THREE.Mesh(new THREE.SphereGeometry(8, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
-      new THREE.MeshLambertMaterial({ color: this.team === 'T' ? 0x3b3327 : 0x2c3742 }));
-    helmet.position.y = 71;
-    helmet.visible = this.team === 'CT';
-    g.add(helmet);
-    this._helmetMesh = helmet;
-
-    const armL = new THREE.Mesh(new THREE.BoxGeometry(8, 24, 8), cloth);
-    armL.position.set(-16, 42, -2);
-    armL.rotation.x = -0.35;
-    g.add(armL);
-
-    const armR = new THREE.Mesh(new THREE.BoxGeometry(8, 24, 8), cloth);
-    armR.position.set(16, 42, -2);
-    armR.rotation.x = -0.5;
-    g.add(armR);
-
-    const legL = new THREE.Mesh(new THREE.BoxGeometry(10, 24, 10), dark);
-    legL.position.set(-7, 12, 0);
-    g.add(legL);
-
-    const legR = new THREE.Mesh(new THREE.BoxGeometry(10, 24, 10), dark);
-    legR.position.set(7, 12, 0);
-    g.add(legR);
-
-    // 手中枪
-    const gun = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 26), new THREE.MeshLambertMaterial({ color: 0x1b1b1b }));
-    gun.position.set(10, 44, -14);
-    g.add(gun);
-    this._gunMesh = gun;
-
-    this.mesh = g;
-    this._legL = legL;
-    this._legR = legR;
-    this._armL = armL;
-    this._armR = armR;
-    scene.add(g);
     this.syncMesh();
   }
 
@@ -627,18 +621,37 @@ export class Player {
     this.mesh.rotation.y = this.yaw;
     const crouch = this.duckAmount;
     this.mesh.scale.y = 1 - crouch * 0.34;
-    if (this._helmetMesh) this._helmetMesh.visible = this.helmet;
+
+    // 阴影跟随：离地越高越小越淡，跳跃时给一点视觉高度参考
+    if (this._shadow) {
+      const vis = this.alive && !this.isLocal;
+      this._shadow.visible = vis;
+      if (vis) {
+        const h = Math.max(0, this.pos.y);
+        const k = Math.max(0.3, 1 - h / 240);
+        this._shadow.position.set(this.pos.x, 1.2, this.pos.z);
+        this._shadow.scale.setScalar(48 * k);
+        this._shadow.material.opacity = 0.5 * k;
+      }
+    }
+    // 头盔/头巾属于阵营外观，与是否购买护甲无关，始终显示
     if (this._gunMesh) this._gunMesh.visible = this.curSlot !== 'melee';
-    // 走路摆腿
+
+    // 行走：髋部摆动 + 后摆腿屈膝 + 手臂在持枪姿态上反向叠加
     const spd = Math.hypot(this.vel.x, this.vel.z);
-    if (this.alive && spd > 30 && this.onGround) {
-      const t = this.game.time * (6 + spd * 0.02);
-      const sw = Math.sin(t) * Math.min(0.5, spd / 500);
-      if (this._legL) this._legL.rotation.x = sw;
-      if (this._legR) this._legR.rotation.x = -sw;
-    } else if (this._legL) {
-      this._legL.rotation.x = 0;
-      this._legR.rotation.x = 0;
+    const moving = this.alive && spd > 30 && this.onGround;
+    let sw = 0;
+    if (moving) {
+      sw = Math.sin(this.game.time * (7 + spd * 0.016)) * Math.min(0.62, spd / 380);
+    }
+    if (this._legL) {
+      this._legL.rotation.x = sw;
+      this._legR.rotation.x = -sw;
+      // 膝盖只能向后弯，所以取后摆那一侧的幅度
+      this._kneeL.rotation.x = -Math.max(0, -sw) * 1.25;
+      this._kneeR.rotation.x = -Math.max(0, sw) * 1.25;
+      this._armL.rotation.x = this._idleArmL - sw * 0.3;
+      this._armR.rotation.x = this._idleArmR + sw * 0.22;
     }
   }
 
