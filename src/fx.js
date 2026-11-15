@@ -256,11 +256,10 @@ export const fx = {
     }
   },
 
-  knifeSwing(player) {
-    const p = new THREE.Vector3(player.pos.x, player.eyeY() - 10, player.pos.z);
-    p.addScaledVector(player.aimDir(), 26);
-    this._sprite(0xffffff, p, { size: 14, life: 0.12, kind: 'flash' });
-  },
+  // 挥刀：只出手部动画，不打屏幕特效。
+  // 原来这里会放一个白色加性精灵，用的是**枪口焰同一张柔和贴图**，
+  // 摆在镜头前 26 单位 —— 视觉上就是一发枪口焰。1.6 的匕首没有任何屏幕特效。
+  knifeSwing() { /* 有意留空：命中反馈交给血迹，动作反馈交给 viewmodel 的挥砍弧线 */ },
 
   explosion(pos, radius = 320) {
     this._boomLight.position.copy(pos);

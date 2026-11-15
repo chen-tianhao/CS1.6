@@ -82,6 +82,8 @@ function modernMats() {
     woodDark: S(T.wood, { color: 0x77572f, metalness: 0.0, roughness: 0.72 }),
     poly: S(T.poly, { color: 0x8d939b, metalness: 0.0, roughness: 0.74 }),
     black: new THREE.MeshStandardMaterial({ color: 0x1a1d22, metalness: 0.55, roughness: 0.48, envMapIntensity: 0.55 }),
+    // 镜片：低粗糙 + 高环境强度，才有"玻璃反光"的感觉
+    glass: new THREE.MeshStandardMaterial({ color: 0x14313d, metalness: 0.15, roughness: 0.06, envMapIntensity: 2.2 }),
   };
   return MODERN;
 }
@@ -642,21 +644,396 @@ function buildKnife() {
   const rh = glovedHand(1);
   rh.position.set(0.4, -1.2, 5.2);
   g.add(rh);
-  // 匕首斜握：刀尖朝前上偏左，是 CS 的挥刀预备式
-  g.rotation.set(-0.32, 0.48, 0.16);
+  // 刀身朝向不在这里写死：倾角统一由 viewmodel 的 VM_POSE 控制。
+  // 模型自带的角度会和姿态叠加，把刀压成"横着朝下"。
+  return g;
+}
+
+// ============================================================
+//  现代版武器（B 路线）
+//  和经典版的区别只有三点：截面形状（方→圆）、零件分段密度、材质响应。
+//  比例和手部挂点刻意与经典版对齐，换风格时手感不变。
+// ============================================================
+
+// 右/左手通用挂载
+function attachHands(g, rhPos = [0.2, -4.6, 3.6], lhPos = null, scale = 1) {
+  const rh = glovedHand(1, scale);
+  rh.position.set(rhPos[0], rhPos[1], rhPos[2]);
+  g.add(rh);
+  if (lhPos) {
+    const lh = glovedHand(-1, scale);
+    lh.position.set(lhPos[0], lhPos[1], lhPos[2]);
+    g.add(lh);
+  }
+  return g;
+}
+
+function buildPistolModern(kind, withHand = true) {
+  const M = modernMats();
+  const g = new THREE.Group();
+  const big = kind === 'deagle';
+  const slW = big ? 3.8 : 3.1;
+  const slH = big ? 4.0 : 3.2;
+  const slL = big ? 16 : 14;
+  const z0 = -3;
+
+  // 套筒：前后两段，中间留抛壳口
+  g.add(b(slW, slH, slL * 0.46, M.steel, 0, 1.0, z0 - slL * 0.27));
+  g.add(b(slW, slH, slL * 0.40, M.steel, 0, 1.0, z0 + slL * 0.30));
+  g.add(b(slW - 0.45, slH - 0.6, slL * 0.16, M.black, 0.12, 1.15, z0 - slL * 0.02));
+  // 后段防滑纹
+  for (let i = 0; i < 5; i++) {
+    g.add(b(slW + 0.06, 0.24, 0.55, M.steelDark, 0, 1.0 + slH / 2 - 0.4, z0 + slL * 0.10 + i * 0.9));
+  }
+  // 套筒座
+  g.add(b(slW - 0.4, 1.9, slL - 2.4, M.steelDark, 0, -1.35, z0));
+  // 枪口
+  g.add(tube(big ? 1.0 : 0.82, big ? 1.0 : 0.82, 1.6, M.black, 0, 1.0, z0 - slL / 2 + 0.5, 12));
+  // 握把 + 指槽
+  const gW = big ? 5.0 : 4.4;
+  const gH = big ? 8.2 : 7.4;
+  g.add(b(slW - 0.5, gH, gW, M.poly, 0, -5.2, 2.2, 0.22));
+  for (let i = 0; i < 3; i++) g.add(b(slW - 0.18, 0.3, gW * 0.62, M.poly, 0, -6.8 + i * 1.5, 2.35, 0.22));
+  // 扳机护圈 + 扳机
+  g.add(b(slW - 1.7, 0.8, 4.0, M.steelDark, 0, -2.5, -1.2));
+  g.add(b(0.6, 1.5, 0.6, M.steelDark, 0, -1.7, -3.0));
+  // 击锤
+  g.add(b(1.1, 1.5, 1.4, M.black, 0, 2.9, 3.2, -0.25));
+  // 准星 / 照门
+  g.add(b(0.85, 1.0, 1.1, M.steelDark, 0, slH / 2 + 1.05, z0 - slL / 2 + 2.0));
+  g.add(b(1.5, 0.85, 1.0, M.steelDark, 0, slH / 2 + 0.95, 2.5));
+  if (big) {
+    for (let i = 0; i < 3; i++) g.add(b(slW - 1.3, 0.4, 1.9, M.black, 0, slH / 2 + 0.72, -6 + i * 3.0));
+  }
+  if (withHand) attachHands(g, [0.1, -3.9, 2.8], null, 0.86);
+  return g;
+}
+
+function buildEliteModern() {
+  const g = new THREE.Group();
+  const a = buildPistolModern('usp', false);
+  a.position.set(-1.9, 0.2, 0.4); a.rotation.z = 0.13;
+  const c = buildPistolModern('usp', false);
+  c.position.set(1.9, -0.2, -0.6); c.rotation.z = -0.13;
+  g.add(a, c);
+  attachHands(g, [1.7, -4.0, 2.9], [-1.7, -3.6, 2.6], 0.84);
+  return g;
+}
+
+function buildM4Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // 上下机匣
+  g.add(b(3.2, 2.2, 17, M.steel, 0, 0.9, -2));
+  g.add(b(3.0, 1.8, 14, M.steelDark, 0, -1.3, -1));
+  // 顶部皮卡汀尼导轨
+  for (let i = 0; i < 12; i++) g.add(b(1.0, 0.34, 0.5, M.steelDark, 0, 2.25, 3.6 - i * 1.05));
+  // 圆形护木 + 散热槽
+  g.add(tube(1.95, 1.95, 13.0, M.poly, 0, 0.9, -13.5, 16));
+  for (let i = 0; i < 5; i++) g.add(b(3.9, 0.45, 0.8, M.black, 0, 0.9, -9.2 - i * 2.2));
+  // 枪管 + 消焰器
+  g.add(tube(0.62, 0.62, 12, M.steelDark, 0, 0.9, -24, 12));
+  g.add(tube(0.95, 0.85, 3.2, M.steel, 0, 0.9, -30.4, 12));
+  // A 形准星
+  g.add(b(0.7, 2.4, 0.7, M.steel, 0, 2.3, -25.6));
+  g.add(b(2.0, 0.55, 0.7, M.steel, 0, 1.2, -25.6));
+  // 直弹匣
+  g.add(b(3.0, 7.6, 4.4, M.black, 0, -5.2, -4.0, 0.12));
+  // 握把
+  g.add(b(2.6, 6.6, 4.0, M.poly, 0, -4.4, 3.4, 0.28));
+  // 缓冲管 + 伸缩托
+  g.add(tube(1.15, 1.15, 9.5, M.steelDark, 0, -0.3, 12.5, 12));
+  g.add(b(3.0, 4.0, 3.4, M.poly, 0, -0.9, 17.4));
+  g.add(b(3.2, 0.9, 2.2, M.black, 0, -2.4, 18.4));
+  // 拉机柄 / 抛壳窗助退器
+  g.add(b(1.6, 0.7, 1.4, M.steel, 0, 1.6, 6.0));
+  g.add(tube(1.1, 1.1, 1.2, M.steel, 1.7, 0.6, -1.5, 10));
+  attachHands(g, [0.2, -4.0, 3.8], [-0.4, -1.6, -12.6]);
+  return g;
+}
+
+function buildAUGModern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // 一体式外壳（AUG 的辨识点：整枪像一个盒子）
+  g.add(b(3.4, 4.2, 26, M.poly, 0, 0.4, -4));
+  g.add(b(3.0, 2.0, 10, M.poly, 0, 2.6, -10));
+  // 整体式光学瞄具
+  g.add(tube(1.5, 1.5, 10, M.black, 0, 3.6, -7, 14));
+  g.add(tube(1.9, 1.5, 1.6, M.black, 0, 3.6, -12.2, 14));
+  g.add(tube(1.5, 1.9, 1.4, M.black, 0, 3.6, -1.8, 14));
+  g.add(tube(1.35, 1.35, 0.4, M.glass, 0, 3.6, -12.9, 14));
+  // 枪管 + 消焰器
+  g.add(tube(0.72, 0.72, 12, M.steelDark, 0, 0.4, -22, 12));
+  g.add(tube(1.05, 0.9, 3.0, M.steel, 0, 0.4, -29, 12));
+  // 前握把
+  g.add(b(2.2, 6.4, 3.0, M.poly, 0, -4.0, -12, 0.1));
+  // 弹匣（扳机后方）
+  g.add(b(2.8, 7.0, 4.2, M.black, 0, -4.6, 2.4, -0.12));
+  // 握把
+  g.add(b(2.6, 6.0, 4.0, M.poly, 0, -4.4, 6.6, 0.24));
+  // 拉机柄
+  g.add(b(0.8, 0.8, 3.0, M.steel, 1.9, 1.8, -4));
+  attachHands(g, [0.2, -4.2, 6.4], [-0.4, -3.4, -11.5]);
+  return g;
+}
+
+function buildSG552Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  g.add(b(3.2, 3.0, 16, M.steel, 0, 0.6, -2));
+  g.add(b(2.9, 1.6, 12, M.steelDark, 0, -1.5, -1));
+  // 顶部导轨 + 瞄具
+  for (let i = 0; i < 9; i++) g.add(b(1.0, 0.32, 0.45, M.steelDark, 0, 2.3, 3.0 - i * 1.0));
+  g.add(tube(1.25, 1.25, 7, M.black, 0, 3.1, -6, 12));
+  g.add(tube(1.55, 1.25, 1.2, M.black, 0, 3.1, -9.4, 12));
+  // 短枪管
+  g.add(tube(0.62, 0.62, 9, M.steelDark, 0, 0.6, -18.5, 12));
+  g.add(tube(0.95, 0.85, 2.6, M.steel, 0, 0.6, -24, 12));
+  // 侧折叠托
+  g.add(tube(0.55, 0.55, 12, M.steelDark, 1.6, 0.2, 12, 10));
+  g.add(b(2.2, 3.4, 1.2, M.poly, 1.6, 0.2, 18.2));
+  // 弹匣 + 握把
+  g.add(curvedMag(M.black, { segs: 3, w: 3.0, h: 2.7, d: 4.2, y: -2.0, z: -4.0, curve: 0.12 }));
+  g.add(b(2.6, 6.4, 4.0, M.poly, 0, -4.4, 3.4, 0.26));
+  attachHands(g, [0.2, -4.2, 3.7], [-0.4, -3.0, -9.0]);
+  return g;
+}
+
+function buildFAMASModern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // FAMAS 的"号角"造型：长机匣 + 高提把
+  g.add(b(3.2, 3.6, 24, M.poly, 0, 0.3, -4));
+  g.add(b(2.6, 1.4, 20, M.steelDark, 0, 2.4, -5));
+  g.add(b(1.2, 2.2, 1.6, M.black, 0, 3.6, -12));
+  g.add(b(1.2, 2.2, 1.6, M.black, 0, 3.6, 0));
+  g.add(b(1.4, 1.0, 14, M.black, 0, 4.8, -6));
+  g.add(tube(0.9, 0.9, 0.5, M.glass, 0, 4.8, -13.2, 12));
+  // 枪管
+  g.add(tube(0.7, 0.7, 13, M.steelDark, 0, 0.3, -21, 12));
+  g.add(tube(1.0, 0.9, 2.6, M.steel, 0, 0.3, -27.5, 12));
+  // 弹匣 + 握把 + 枪托
+  g.add(b(2.8, 7.2, 4.0, M.black, 0, -5.0, -5.0, 0.1));
+  g.add(b(2.6, 6.2, 4.0, M.poly, 0, -4.6, 3.6, 0.26));
+  g.add(b(2.8, 3.4, 8, M.poly, 0, 0.2, 13.5, 0.06));
+  attachHands(g, [0.2, -4.4, 3.9], [-0.4, -2.6, -13.0]);
+  return g;
+}
+
+function buildGalilModern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  g.add(b(3.4, 3.2, 19, M.steel, 0, 0.2, -2));
+  g.add(b(3.0, 1.2, 12, M.steelDark, 0, 2.2, -3));
+  // 护木（带散热孔）
+  g.add(tube(1.85, 1.85, 10, M.poly, 0, -0.4, -14, 14));
+  for (let i = 0; i < 4; i++) g.add(b(3.6, 0.5, 0.8, M.black, 0, -0.4, -10.6 - i * 2.0));
+  // 枪管
+  g.add(tube(0.66, 0.66, 12, M.steelDark, 0, 0.4, -21, 12));
+  g.add(tube(0.95, 0.85, 3.0, M.steel, 0, 0.4, -28, 12));
+  // 照门 / 准星
+  g.add(b(1.6, 1.2, 1.4, M.steel, 0, 2.6, -8));
+  g.add(b(0.8, 2.2, 0.9, M.steel, 0, 2.4, -24));
+  // 弹匣 + 握把
+  g.add(curvedMag(M.black, { segs: 4, w: 3.1, h: 2.7, d: 4.4, y: -2.0, z: -4.2, curve: 0.16 }));
+  g.add(b(2.6, 6.4, 4.0, M.poly, 0, -4.6, 3.4, 0.28));
+  // 折叠托
+  g.add(tube(0.75, 0.75, 11, M.steelDark, 0, 0.0, 12.5, 10));
+  g.add(b(2.4, 3.2, 1.6, M.poly, 0, -0.4, 18.4));
+  attachHands(g, [0.2, -4.4, 3.7], [-0.4, -2.8, -11.5]);
+  return g;
+}
+
+function buildMP5Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // 圆筒机匣（MP5 最好认的特征）
+  g.add(tube(1.75, 1.75, 16, M.steel, 0, 0.2, -2, 16));
+  g.add(tube(1.55, 1.55, 7, M.poly, 0, 0.2, -12.5, 16));
+  // 枪管 + 准星环
+  g.add(tube(0.62, 0.62, 10, M.steelDark, 0, 0.2, -18.5, 12));
+  g.add(tube(1.25, 1.25, 1.6, M.steel, 0, 0.2, -21.5, 14));
+  // 左侧拉机柄管
+  g.add(tube(0.55, 0.55, 8, M.steelDark, 1.55, 1.6, -6, 10));
+  // 弹匣
+  g.add(curvedMag(M.black, { segs: 3, w: 2.4, h: 2.8, d: 3.6, y: -2.2, z: -5.4, curve: 0.10 }));
+  // 握把
+  g.add(b(2.6, 6.4, 4.0, M.poly, 0, -5.0, 3.2, 0.26));
+  // 伸缩托
+  g.add(tube(0.42, 0.42, 11, M.steelDark, 1.4, 0.4, 12, 8));
+  g.add(tube(0.42, 0.42, 11, M.steelDark, -1.4, 0.4, 12, 8));
+  g.add(b(3.4, 3.6, 1.4, M.poly, 0, 0.0, 18));
+  g.add(b(1.4, 1.0, 1.2, M.steelDark, 0, 2.2, -3));
+  attachHands(g, [0.2, -3.6, 3.4], [-0.4, -1.8, -11.0]);
+  return g;
+}
+
+function buildP90Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // 一体化外壳
+  g.add(b(3.4, 4.2, 24, M.poly, 0, 0, -3));
+  // 顶部横向弹匣（P90 的标志）
+  g.add(b(3.0, 1.6, 16, M.steelDark, 0, 2.5, -3));
+  for (let i = 0; i < 8; i++) g.add(b(3.1, 0.3, 0.5, M.black, 0, 2.6, -10 + i * 2.0));
+  // 大扳机护圈
+  g.add(b(3.8, 0.9, 10, M.poly, 0, -2.0, 1.0));
+  g.add(b(0.9, 2.6, 0.9, M.poly, 0, -3.2, -3.6));
+  g.add(b(0.9, 2.6, 0.9, M.poly, 0, -3.2, 5.4));
+  // 枪管 + 握把 + 瞄具
+  g.add(tube(0.6, 0.6, 8, M.steelDark, 0, 0.2, -18, 12));
+  g.add(b(2.8, 4.6, 4.4, M.poly, 0, -3.4, 3.2, 0.18));
+  g.add(b(1.2, 1.0, 1.2, M.steelDark, 0, 3.5, -10));
+  attachHands(g, [0.2, -3.6, 3.4], [-0.4, -1.8, -9.0]);
+  return g;
+}
+
+function buildMAC10Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // 方盒机匣：MAC-10 就是一块砖
+  g.add(b(3.6, 4.4, 13, M.steel, 0, 0.2, -2));
+  g.add(b(3.2, 1.2, 11, M.steelDark, 0, 2.6, -2));
+  g.add(tube(0.7, 0.7, 6, M.steelDark, 0, 0.2, -11, 12));
+  g.add(b(0.9, 0.9, 2.6, M.steel, 0, 3.4, -5));
+  // 弹匣插在握把里
+  g.add(b(2.8, 9.0, 4.0, M.black, 0, -5.6, 1.2, 0.06));
+  g.add(b(2.4, 0.7, 3.8, M.steelDark, 0, -1.8, -2.0));
+  // 钢丝托
+  g.add(tube(0.35, 0.35, 12, M.steelDark, 1.3, -0.6, 10, 8));
+  g.add(tube(0.35, 0.35, 12, M.steelDark, -1.3, -0.6, 10, 8));
+  g.add(b(3.0, 2.6, 0.9, M.poly, 0, -0.8, 16.4));
+  g.add(b(1.0, 1.2, 1.4, M.steelDark, 0, 2.9, -8.6));
+  attachHands(g, [0.2, -4.6, 1.6], [-0.4, -1.6, -8.6]);
+  return g;
+}
+
+function buildXM1014Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  g.add(b(3.4, 3.2, 14, M.steel, 0, 0.2, -1));
+  g.add(b(3.1, 1.4, 11, M.steelDark, 0, 2.0, -1.5));
+  // 粗枪管 + 管状弹仓
+  g.add(tube(0.95, 0.95, 18, M.steelDark, 0, 0.5, -17, 14));
+  g.add(tube(0.75, 0.75, 15, M.steel, 0, -1.4, -15.5, 12));
+  // 泵动护木
+  g.add(tube(1.6, 1.6, 8, M.poly, 0, -1.2, -12.5, 14));
+  for (let i = 0; i < 5; i++) g.add(b(3.4, 0.5, 0.6, M.black, 0, -1.2, -9.4 - i * 1.5));
+  g.add(b(0.8, 1.4, 1.0, M.steel, 0, 2.0, -24));
+  // 握把 + 枪托
+  g.add(b(2.6, 6.2, 4.0, M.poly, 0, -4.2, 3.4, 0.26));
+  g.add(b(2.8, 3.4, 10, M.poly, 0, -0.6, 12.5, 0.08));
+  g.add(b(3.0, 4.0, 1.6, M.black, 0, -1.4, 18.0));
+  attachHands(g, [0.2, -4.2, 3.6], [-0.4, -3.2, -12.0]);
+  return g;
+}
+
+function buildM249Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // 大方机匣
+  g.add(b(3.8, 4.6, 22, M.steel, 0, 0.4, -3));
+  g.add(b(3.4, 1.4, 16, M.steelDark, 0, 3.0, -4));
+  // 散热护罩
+  g.add(tube(1.5, 1.5, 14, M.steelDark, 0, 1.0, -19, 14));
+  for (let i = 0; i < 5; i++) g.add(b(3.2, 0.5, 1.0, M.black, 0, 1.0, -14 - i * 2.2));
+  // 枪管
+  g.add(tube(0.8, 0.8, 14, M.steelDark, 0, 1.0, -26, 12));
+  g.add(tube(1.15, 1.0, 3.0, M.steel, 0, 1.0, -33, 12));
+  g.add(b(1.4, 0.9, 9, M.steelDark, 0, 4.2, -6));   // 提把
+  // 弹链盒 + 供弹口
+  g.add(b(4.2, 5.2, 6.0, M.black, 0, -3.0, -2.0));
+  g.add(b(3.0, 2.0, 2.0, M.steelDark, 0, 0.6, -1.0));
+  // 两脚架
+  g.add(b(0.5, 0.5, 10, M.steelDark, -1.7, -3.6, -22, 0.55, 0, 0.30));
+  g.add(b(0.5, 0.5, 10, M.steelDark, 1.7, -3.6, -22, 0.55, 0, -0.30));
+  // 握把 + 枪托
+  g.add(b(2.8, 6.4, 4.2, M.poly, 0, -4.4, 4.0, 0.26));
+  g.add(b(3.0, 4.2, 12, M.poly, 0, -1.2, 12.5, 0.06));
+  g.add(b(3.2, 4.6, 1.8, M.black, 0, -2.0, 18.4));
+  attachHands(g, [0.2, -4.4, 4.2], [-0.4, -1.0, -16.0]);
+  return g;
+}
+
+// 狙击枪：AWP / Scout 共用，slim 控制镜筒与枪管粗细
+function buildSniperModern(slim) {
+  const M = modernMats();
+  const g = new THREE.Group();
+  const bodyLen = slim ? 22 : 24;
+  const barLen = slim ? 22 : 26;
+  const scopeR = slim ? 1.55 : 2.05;
+  const scopeLen = slim ? 11 : 15;
+  const scopeY = slim ? 3.3 : 4.0;
+
+  g.add(b(3.2, 3.4, bodyLen, slim ? M.poly : M.steelDark, 0, 0, -5));
+  // 长枪管 + 制退器
+  g.add(tube(0.8, 0.8, barLen, M.steel, 0, 0.55, -5 - bodyLen / 2 - barLen / 2 + 2, 14));
+  g.add(tube(1.15, 1.15, 3.2, M.black, 0, 0.55, -5 - bodyLen / 2 - barLen + 3.2, 14));
+  // 大瞄镜
+  g.add(tube(scopeR, scopeR, scopeLen, M.steelDark, 0, scopeY, -4, 18));
+  g.add(tube(scopeR * 1.28, scopeR, 2.6, M.steel, 0, scopeY, -4 + scopeLen / 2 + 1.0, 18));
+  g.add(tube(scopeR, scopeR * 1.22, 2.4, M.steel, 0, scopeY, -4 - scopeLen / 2 - 0.9, 18));
+  g.add(tube(scopeR * 1.18, scopeR * 1.18, 0.35, M.glass, 0, scopeY, -4 - scopeLen / 2 - 2.1, 18));
+  // 镜桥
+  g.add(b(1.8, 2.0, 1.6, M.steelDark, 0, scopeY - scopeR - 0.6, -8));
+  g.add(b(1.8, 2.0, 1.6, M.steelDark, 0, scopeY - scopeR - 0.6, 0.4));
+  // 弹匣 + 握把
+  g.add(b(2.7, 4.0, 5.0, M.black, 0, -3.2, -5.6));
+  g.add(b(2.7, 6.2, 4.0, M.poly, 0, -5.0, 2.6, 0.3));
+  // 枪托（拇指孔用上下两段围合）
+  g.add(b(3.0, 2.2, 13.5, M.poly, 0, -1.2, 13.0, 0.05));
+  g.add(b(2.8, 2.4, 11.0, M.poly, 0, -3.2, 14.2, 0.22));
+  g.add(b(3.2, 4.8, 2.0, M.black, 0, -2.4, 19.8, 0.22));
+  // AWP 的拉机柄
+  if (!slim) {
+    const bolt = tube(0.35, 0.35, 2.6, M.steel, 1.8, 0.9, 1.0, 8);
+    bolt.rotation.z += 0.9;
+    g.add(bolt);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), M.steel);
+    knob.position.set(2.7, 0.3, 1.4);
+    g.add(knob);
+  }
+  // 收起的两脚架
+  g.add(b(0.6, 0.6, 9, M.steelDark, 0, -1.4, -18, 0.14));
+  attachHands(g, [0.2, -4.4, 2.8], [-0.4, -1.6, -14.0]);
+  return g;
+}
+const buildAWPModern = () => buildSniperModern(false);
+const buildScoutModern = () => buildSniperModern(true);
+
+function buildKnifeModern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+  // 刀身：三段收窄 + 刃口斜面
+  g.add(b(0.85, 2.4, 9.0, M.steel, 0, 0, -5.5));
+  g.add(b(0.85, 1.6, 6.0, M.steel, 0, 0.2, -12.5));
+  g.add(b(0.55, 0.9, 3.0, M.steel, 0, 0.1, -16.5));
+  g.add(b(0.35, 1.2, 15.0, M.accent, -0.35, -0.8, -6.5));
+  g.add(b(0.5, 0.5, 15.0, M.steelDark, 0, 1.25, -7));
+  // 护手 + 握柄
+  g.add(b(3.0, 1.0, 1.8, M.steelDark, 0, -0.3, 0.6));
+  g.add(b(2.4, 2.6, 7.2, M.black, 0, -0.5, 5.2));
+  for (let i = 0; i < 4; i++) g.add(b(2.5, 0.5, 0.8, M.poly, 0, -0.5, 2.6 + i * 1.7));
+  g.add(b(2.6, 0.7, 1.2, M.steelDark, 0, -0.5, 9.0));
+  const rh = glovedHand(1, 0.9);
+  rh.position.set(0.4, -1.2, 5.2);
+  g.add(rh);
+  // 同样不写死倾角，交给 VM_POSE
   return g;
 }
 
 const WEAPON_CACHE = {};
+
 export function buildWeaponModel(id) {
   if (WEAPON_CACHE[id]) return WEAPON_CACHE[id];
+  const modern = STYLE === 'modern';
   let g;
   switch (id) {
-    case 'ak47':
-      g = STYLE === 'modern' ? buildAK47Modern() : buildAK47(classicMats());
-      break;
-    case 'm4a1': g = buildM4(); break;
+    case 'ak47': g = modern ? buildAK47Modern() : buildAK47(classicMats()); break;
+    case 'm4a1': g = modern ? buildM4Modern() : buildM4(); break;
     case 'aug': {
+      if (modern) { g = buildAUGModern(); break; }
       g = buildM4();
       // AUG 的辨识特征是整体式光学瞄具
       g.add(b(2.4, 2.0, 9, W.black, 0, 3.6, -6));
@@ -664,24 +1041,27 @@ export function buildWeaponModel(id) {
       break;
     }
     case 'sg552': {
+      if (modern) { g = buildSG552Modern(); break; }
       g = buildM4();
       // SIG 的短枪管与折叠托
       g.add(b(1.4, 1.6, 6, W.black, 0, 3.2, -2));
       break;
     }
-    case 'awp': g = buildAWP(); break;
-    case 'scout': {
-      g = buildAWP();
-      // Scout 的镜筒更细更短
-      break;
-    }
-    case 'mp5navy': g = buildSMG('mp5'); break;
-    case 'p90': g = buildSMG('p90'); break;
-    case 'deagle': g = buildPistol('deagle'); break;
-    case 'usp45': g = buildPistol('usp'); break;
-    case 'glock18': g = buildPistol('glock'); break;
-    case 'knife': g = buildKnife(); break;
-    default: g = buildM4();
+    case 'famas': g = modern ? buildFAMASModern() : buildM4(); break;
+    case 'galil': g = modern ? buildGalilModern() : buildAK47(W); break;
+    case 'awp': g = modern ? buildAWPModern() : buildAWP(); break;
+    case 'scout': g = modern ? buildScoutModern() : buildAWP(); break;
+    case 'mp5navy': g = modern ? buildMP5Modern() : buildSMG('mp5'); break;
+    case 'p90': g = modern ? buildP90Modern() : buildSMG('p90'); break;
+    case 'mac10': g = modern ? buildMAC10Modern() : buildSMG('mp5'); break;
+    case 'xm1014': g = modern ? buildXM1014Modern() : buildSMG('p90'); break;
+    case 'm249': g = modern ? buildM249Modern() : buildM4(); break;
+    case 'deagle': g = modern ? buildPistolModern('deagle') : buildPistol('deagle'); break;
+    case 'usp45': g = modern ? buildPistolModern('usp') : buildPistol('usp'); break;
+    case 'glock18': g = modern ? buildPistolModern('glock') : buildPistol('glock'); break;
+    case 'elite': g = modern ? buildEliteModern() : buildPistol('usp'); break;
+    case 'knife': g = modern ? buildKnifeModern() : buildKnife(); break;
+    default: g = modern ? buildM4Modern() : buildM4();
   }
   WEAPON_CACHE[id] = g;
   return g;

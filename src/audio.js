@@ -270,11 +270,24 @@ export function playShot(kind, pos, listener) {
   const t = now();
   const dest = spatial(pos, listener);
   if (kind === 'knife') {
-    burst(dest, t, { freq: 4200, gain: 0.28, decay: 0.075, type: 'highpass', attack: 0.005 });
-    burst(dest, t + 0.032, { freq: 1500, gain: 0.12, decay: 0.05, type: 'bandpass', q: 3 });
+    // 挥刀是"空气被切开的呼哧声"，不是枪声。
+    // 关键是三点：起音要软（attack 30ms）、中心频率要低、增益要小。
+    // 原来是 4200Hz / gain 0.28 / attack 5ms —— 那是一记硬脆的爆裂声，听起来就是开枪。
+    burst(dest, t, { freq: 850, gain: 0.085, decay: 0.15, type: 'bandpass', q: 1.3, attack: 0.035 });
+    burst(dest, t + 0.02, { freq: 2400, gain: 0.028, decay: 0.10, type: 'highpass', attack: 0.03 });
     return;
   }
   gunshot(dest, t, kind);
+}
+
+// 刀砍中：低沉的"噗" + 一点湿响。没有它，砍中人只能靠血迹判断。
+export function playKnifeHit(pos, listener) {
+  if (!ctx) return;
+  const t = now();
+  const dest = spatial(pos, listener);
+  thump(dest, t, 150, 0.13, 0.30);
+  burst(dest, t, { freq: 700, gain: 0.16, decay: 0.10, type: 'lowpass', attack: 0.002 });
+  burst(dest, t + 0.01, { freq: 1900, gain: 0.05, decay: 0.08, type: 'bandpass', q: 2, attack: 0.004 });
 }
 
 // 脚步声按脚下材质分：沙地闷、石头脆、木头空、金属亮

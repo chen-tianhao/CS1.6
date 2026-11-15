@@ -542,8 +542,9 @@ export class Player {
       const dmg = def.dmg;
       applyDamage(this.game, hit.player, this, dmg, 'chest', def);
       fx.blood(hit.point, 6);
+      Sfx.playKnifeHit(hit.point, this.game.listenerPos());
     }
-    fx.knifeSwing(this);
+    // 挥砍的视觉反馈全部交给 viewmodel 的弧线动画，不再打任何屏幕特效
   }
 
   reload() {
