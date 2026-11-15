@@ -810,9 +810,8 @@ export class Player {
       this._kneeL.rotation.x = -Math.max(0, -swing) * 1.15 * amp - crouchKnee;
       this._kneeR.rotation.x = -Math.max(0, swing) * 1.15 * amp - crouchKnee;
 
-      // 手臂在持枪姿态上反向叠加（左臂跟着右腿）
-      this._armL.rotation.x = this._idleArmL - swing * 0.26 * amp;
-      this._armR.rotation.x = this._idleArmR + swing * 0.16 * amp;
+      // 手臂不摆：两只手由 IK 锁在枪上，持枪时手臂本来就该跟着武器稳住。
+      // 摆动交给躯干的上下起伏和前倾来表达。
     }
 
     // 躯干：跑动前倾 + 下蹲降低 + 跟着俯仰瞄准

@@ -10,6 +10,7 @@
 //  四级关节，行走时做二级摆动而不是整条腿刚性旋转。
 // ============================================================
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { getWeaponTextures, getWeaponTexturesClassic, getWeaponTexturesModern } from './textures.js';
 
 const WT = getWeaponTextures();
@@ -199,14 +200,28 @@ const CG = {
   forearm: capGeo(3.0, 6),
   boot: boxGeo(6.5, 5, 11),
   hand: boxGeo(4.6, 5.4, 5),
-  head: boxGeo(9.4, 10.6, 9.6),
+  // 头部改圆角盒：保留 BoxGeometry 的六个面分组（脸贴图在 -Z 面），
+  // 但棱角被倒圆，轮廓不再是硬邦邦的立方体。
+  head: new RoundedBoxGeometry(9.4, 10.6, 9.6, 3, 2.0),
   neck: cylGeo(3.0, 3.0, 4, 8),
-  helm: new THREE.SphereGeometry(5.9, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.56),
+  helm: new THREE.SphereGeometry(5.9, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.56),
+  deltoid: new THREE.SphereGeometry(4.5, 10, 8),
   // 第三人称简化枪：机匣 + 枪管 + 弹匣
-  gunBody: boxGeo(4.5, 4.5, 24),
+  // 机匣 20 长（原来 24）：手臂总长只有 23.2，枪太长会把左手逼到极限，
+  // 而且枪身会有一大半埋进躯干里。
+  gunBody: boxGeo(4.5, 4.5, 20),
   gunBarrel: boxGeo(2, 2, 14),
   gunMag: boxGeo(3.4, 7, 4.4),
 };
+
+// 椭圆截面的圆台：躯干各段用它，比方块更接近人体。
+// squash 是 Z（进深）方向的缩放 —— 人体左右宽、前后扁，所以要 < 1。
+function oval(rTop, rBot, h, m, x, y, z, squash = 0.74, seg = 12) {
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, seg), m);
+  mesh.position.set(x, y, z);
+  mesh.scale.z = squash;
+  return mesh;
+}
 
 export function buildCharacterMesh(team) {
   const M = charMats(team);
@@ -220,18 +235,18 @@ export function buildCharacterMesh(team) {
   g.add(torso);
   const T = (y) => y - HIP_Y;
 
-  // ---- 躯干 ----
-  torso.add(b(19, 9, 12, M.cloth, 0, T(29.5), 0));          // 髋
-  torso.add(b(20, 2.8, 13, M.belt, 0, T(33.8), 0));         // 腰带
-  torso.add(b(17.5, 9, 11, M.cloth, 0, T(38.6), 0));        // 腹
-  torso.add(b(21, 14, 12.5, M.vest, 0, T(47), 0));          // 胸（战术背心）
-  torso.add(b(6, 3.2, 8.5, M.vest, -10, T(53.5), 0));       // 左肩垫
-  torso.add(b(6, 3.2, 8.5, M.vest, 10, T(53.5), 0));        // 右肩垫
+  // ---- 躯干：椭圆截面的圆台，不再是方盒 ----
+  torso.add(oval(9.2, 7.8, 9, M.cloth, 0, T(29.5), 0));      // 髋
+  torso.add(oval(9.4, 9.4, 3.0, M.belt, 0, T(33.8), 0));     // 腰带
+  torso.add(oval(8.2, 9.0, 9, M.cloth, 0, T(38.6), 0));      // 腹
+  torso.add(oval(9.9, 8.3, 15, M.vest, 0, T(47), 0));        // 胸（战术背心）
+  torso.add(b(5.8, 2.8, 8.0, M.vest, -9.2, T(53.2), 0));      // 左肩垫
+  torso.add(b(5.8, 2.8, 8.0, M.vest, 9.2, T(53.2), 0));       // 右肩垫
   // 胸前弹匣袋
   torso.add(b(5.4, 5, 2.6, M.pouch, -6.2, T(45.6), -6.6));
   torso.add(b(5.4, 5, 2.6, M.pouch, 0, T(45.6), -6.6));
   torso.add(b(5.4, 5, 2.6, M.pouch, 6.2, T(45.6), -6.6));
-  torso.add(b(15, 15.5, 6, M.pack, 0, T(45.5), 9.2));       // 背包
+  torso.add(b(13, 13, 5, M.pack, 0, T(45.5), 8.4));         // 背包
   // 侧腰水壶 / 刀鞘，让轮廓不那么"方"
   torso.add(b(4.2, 6.5, 5, M.pouch, -10.4, T(34.2), 1.2));
   torso.add(b(3.2, 9, 3, M.belt, 10.2, T(35.5), 2.4, 0.1));
@@ -293,7 +308,11 @@ export function buildCharacterMesh(team) {
   // ---- 臂：肩 → 肘 → 手，持枪姿态（挂在躯干上，跟着身体转） ----
   const makeArm = (side) => {
     const shoulder = new THREE.Group();
-    shoulder.position.set(side * 10.4, T(52.6), 0);
+    shoulder.position.set(side * 9.6, T(52.4), 0);
+    // 三角肌：补上肩与躯干之间那块球面，手臂不再像插进木板
+    const delt = new THREE.Mesh(CG.deltoid, M.cloth);
+    delt.position.y = -1.4;
+    shoulder.add(delt);
     const upper = new THREE.Mesh(CG.upperArm, M.cloth);
     upper.position.y = -6;
     shoulder.add(upper);
@@ -314,12 +333,7 @@ export function buildCharacterMesh(team) {
   const armL = makeArm(-1);
   const armR = makeArm(1);
 
-  // 持枪姿态：右臂屈肘握把、左臂横过胸前托护木。
-  // 之前 z 轴给了 0.6，手臂几乎平举成 T 字，看起来像在滑翔而不是持枪。
-  armR.shoulder.rotation.set(0.55, 0, -0.10);
-  armR.elbow.rotation.set(1.35, 0, 0);
-  armL.shoulder.rotation.set(0.75, 0, 0.34);
-  armL.elbow.rotation.set(1.15, 0, 0);
+  // 持枪姿态不写死角度 —— 下面用手臂 IK 精确把两只手放到枪上
   const idleL = armL.shoulder.rotation.x;
   const idleR = armR.shoulder.rotation.x;
 
@@ -327,15 +341,38 @@ export function buildCharacterMesh(team) {
   const gun = new THREE.Group();
   gun.add(new THREE.Mesh(CG.gunBody, W.black));
   const barrel = new THREE.Mesh(CG.gunBarrel, W.steelDark);
-  barrel.position.set(0, 0.6, -19);
+  barrel.position.set(0, 0.6, -16);
   gun.add(barrel);
   const mag = new THREE.Mesh(CG.gunMag, W.black);
   mag.position.set(0, -4.8, 1.2);
   mag.rotation.x = 0.25;
   gun.add(mag);
-  gun.position.set(6.2, T(40.6), -7);
-  gun.rotation.set(-0.04, 0.06, 0);
+  // 枪往身体右侧挪一点，否则整把枪埋进胸口；高度放在胸线附近
+  gun.position.set(5.2, T(45), -11.0);
+  gun.rotation.set(-0.02, 0.02, 0);
   torso.add(gun);
+
+  // ---- 两骨骼 IK：把手掌精确落到握把 / 护木上 ----
+  // 之前手臂角度是拍脑袋给的，手和枪完全对不上（近看就穿帮）。
+  // 肩→肘 L1、肘→掌 L2 都是固定长度，于是给定目标点就能解析求解：
+  //   肘弯角 θ 由余弦定理给出，肩朝向由「起点方向 → 目标方向」的四元数给出。
+  const L1 = 11.8;
+  const L2 = 11.4;
+  const solveArm = (arm, target) => {
+    const d = new THREE.Vector3().subVectors(target, arm.shoulder.position);
+    let D = d.length();
+    D = Math.max(Math.abs(L1 - L2) + 0.5, Math.min(L1 + L2 - 0.5, D));
+    d.normalize();
+    const cosE = Math.max(-1, Math.min(1, (D * D - L1 * L1 - L2 * L2) / (2 * L1 * L2)));
+    const bend = Math.acos(cosE);
+    arm.elbow.rotation.set(bend, 0, 0);
+    // 肘弯 bend 时，手掌相对肩的方向（尚未施加肩旋转）
+    const v0 = new THREE.Vector3(0, -(L1 + L2 * Math.cos(bend)), -L2 * Math.sin(bend)).normalize();
+    arm.shoulder.quaternion.setFromUnitVectors(v0, d);
+  };
+  const gp = gun.position;
+  solveArm(armR, new THREE.Vector3(gp.x, gp.y - 2.2, gp.z + 2.0));   // 右手：握把
+  solveArm(armL, new THREE.Vector3(gp.x, gp.y - 2.2, gp.z - 4.0));   // 左手：弹匣
 
   return {
     group: g,
