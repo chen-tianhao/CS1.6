@@ -1081,8 +1081,9 @@ function buildKnifeModern() {
 
 const WEAPON_CACHE = {};
 
-export function buildWeaponModel(id) {
-  if (WEAPON_CACHE[id]) return WEAPON_CACHE[id];
+// 不含缓存的构建：掉落物要一份独立实例，不能和第一人称共享同一个对象
+// （第一人称会把它挂到 viewmodel 场景里，共享会直接出鬼）。
+function buildWeaponRaw(id) {
   const modern = STYLE === 'modern';
   let g;
   switch (id) {
@@ -1119,31 +1120,57 @@ export function buildWeaponModel(id) {
     case 'knife': g = modern ? buildKnifeModern() : buildKnife(); break;
     default: g = modern ? buildM4Modern() : buildM4();
   }
+  return g;
+}
+
+export function buildWeaponModel(id) {
+  if (WEAPON_CACHE[id]) return WEAPON_CACHE[id];
+  const g = buildWeaponRaw(id);
   WEAPON_CACHE[id] = g;
   return g;
 }
 
-// 第三人称：只保留轮廓，按枪型调整长度
+// 地面掉落物：直接复用第一人称的模型，把手摘掉。
+// 以前这里是"三个方块拼的通用替身"—— AK、M4、AWP 除了长度完全一样，
+// 丢在地上根本认不出是什么枪，更别说型号。
 export function buildWeaponProp(id) {
-  const g = new THREE.Group();
-  const long = id === 'awp' || id === 'scout';
-  const pistol = id === 'deagle' || id === 'usp45' || id === 'glock18';
-  if (id === 'knife') {
-    g.add(b(0.8, 2.2, 13, W.steel, 0, 0, -6));
-    g.add(b(2.4, 2.6, 6, W.black, 0, 0, 4));
-    return g;
-  }
-  if (pistol) {
-    g.add(b(3.2, 3.6, 13, W.steelDark, 0, 0, -3));
-    g.add(b(2.6, 7, 4.4, W.black, 0, -4.4, 2));
-    return g;
-  }
-  g.add(b(4, 4, long ? 26 : 20, W.black, 0, 0, -4));
-  g.add(b(1.8, 1.8, long ? 18 : 11, W.steelDark, 0, 0.7, long ? -24 : -18));
-  if (!long) {
-    g.add(b(3, 6.5, 4, W.black, 0, -4.4, 0));
-  } else {
-    g.add(b(2.6, 2.6, 13, W.black, 0, 3.4, -8));
-  }
-  return g;
+  const body = buildWeaponRaw(id);
+  // 手是用手套/袖子材质做的，按材质摘掉最省事，且两套风格都适用
+  const hands = [];
+  body.traverse((o) => {
+    if (o.isMesh && (o.material === W.glove || o.material === W.sleeve)) hands.push(o);
+  });
+  for (const o of hands) o.parent.remove(o);
+  // 躺平：绕 Z 轴 90°，枪身侧面着地，枪管仍指向 -Z
+  body.rotation.z = Math.PI / 2;
+  body.position.y = 2.4;
+  const root = new THREE.Group();
+  root.add(body);
+  return root;
+}
+
+// 掉落物名牌：画着武器名的 canvas，做成始终朝向相机的 Sprite
+export function buildWeaponLabel(text) {
+  const CW = 256, CH = 72;
+  const c = document.createElement('canvas');
+  c.width = CW; c.height = CH;
+  const x = c.getContext('2d');
+  x.font = 'bold 40px "Microsoft YaHei", "PingFang SC", Arial, sans-serif';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.lineWidth = 9;
+  x.strokeStyle = 'rgba(0,0,0,0.92)';
+  x.strokeText(text, CW / 2, CH / 2 + 2);
+  x.fillStyle = '#f4ecd8';
+  x.fillText(text, CW / 2, CH / 2 + 2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: true,
+  }));
+  sprite.scale.set(46, 12.9, 1);
+  sprite.position.set(0, 30, 0);
+  sprite.renderOrder = 3;
+  return sprite;
 }

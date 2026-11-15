@@ -14,7 +14,7 @@ import { BotController } from './bots.js';
 import { Round } from './round.js';
 import { HUD } from './hud.js';
 import { ViewModel } from './viewmodel.js';
-import { buildWeaponProp, setWeaponStyle as setWeaponModelStyle } from './models.js';
+import { buildWeaponProp, buildWeaponLabel, setWeaponStyle as setWeaponModelStyle } from './models.js';
 import { fx } from './fx.js';
 import { tracePlayers } from './weapons.js';
 import * as Sfx from './audio.js';
@@ -114,6 +114,8 @@ class Game {
 
     this.map = new GameMap(this.scene, getMap(this.settings.map || DEFAULT_MAP));
     this.setupEnvironment();
+    // 注入遮挡判定：audio.js 每次空间化一个声音时会问一次
+    Sfx.setOccluder((pos, listener) => this.audioOccluded(pos, listener));
     const rl = document.querySelector('.radar-label');
     if (rl) rl.textContent = this.map.label;
     fx.init(this.scene, this.camera, this);
@@ -754,6 +756,11 @@ class Game {
       }
       if (steps >= 6) this.acc = 0;      // 追不上就丢弃，别让累加器雪崩
       this.updateVisuals(raw);
+    } else if (this.started) {
+      // 暂停时世界不跑，但 HUD 必须继续刷新。
+      // 购买菜单本身就会暂停游戏，如果这里不更新，买完东西左下角的钱和
+      // 菜单里的余额都会停在开菜单那一刻 —— 看起来像"买了但没扣钱"。
+      this.hud.update(raw);
     }
     this.renderer.clear(true, true, true);
     this.renderer.render(this.scene, this.camera);
@@ -817,6 +824,19 @@ class Game {
   }
 
   // ---------- 掉落武器 ----------
+  // 声音遮挡：从听者耳朵到声源连一条线，中间碰到碰撞体就算被挡住。
+  // audio.js 自己没有地图，所以由这里注入。
+  audioOccluded(pos, listener) {
+    if (!this.map || !pos || !listener) return false;
+    const ox = listener.x, oy = (listener.y || 0) + 20, oz = listener.z;
+    const dx = pos.x - ox, dy = ((pos.y || 0) + 20) - oy, dz = pos.z - oz;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist < 60) return false;              // 贴脸的声源不值得遮挡
+    const dir = new THREE.Vector3(dx / dist, dy / dist, dz / dist);
+    const hit = this.map.raycast(new THREE.Vector3(ox, oy, oz), dir, dist - 30);
+    return !!hit;
+  }
+
   // 阴影相机跟着玩家走：一张固定覆盖全图的阴影图会糊到 1 像素/单位，
   // 所以用 SHADOW_HALF 见方的跟随框。位置按纹素对齐，避免阴影边缘随移动抖动。
   updateSunShadow() {
@@ -836,6 +856,18 @@ class Game {
     sun.updateMatrixWorld();
   }
 
+  // 移除地上的枪：只释放名牌自己的贴图，
+  // 枪身材质是共享缓存（第一人称也在用），绝不能 dispose。
+  removeDropped(mesh) {
+    this.scene.remove(mesh);
+    mesh.traverse((o) => {
+      if (o.isSprite && o.material) {
+        if (o.material.map) o.material.map.dispose();
+        o.material.dispose();
+      }
+    });
+  }
+
   dropWeapon(player, slot) {
     if (slot !== 'primary' && slot !== 'secondary') return;
     const w = player.slots[slot];
@@ -848,19 +880,23 @@ class Game {
       player.curSlot = player.slots.primary ? 'primary' : player.slots.secondary ? 'secondary' : 'melee';
     }
     const mesh = buildWeaponProp(w.id);
-    mesh.position.set(player.pos.x, 10, player.pos.z);
+    mesh.position.set(player.pos.x, player.pos.y, player.pos.z);
     mesh.rotation.y = Math.random() * Math.PI * 2;
+    // 名牌：一眼看出地上躺着的是什么枪
+    mesh.add(buildWeaponLabel(def.name || w.id));
     mesh.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(mesh);
     this.dropped.push({ id: w.id, ammo: w.ammo, reserve: w.reserve, mesh, x: player.pos.x, z: player.pos.z });
-    if (this.dropped.length > 24) {
+    // 上限从 24 收到 12：掉落物现在是完整的武器模型（13–33 个网格），
+    // 不再是三个方块，太多会明显增加绘制批次。
+    if (this.dropped.length > 12) {
       const old = this.dropped.shift();
-      this.scene.remove(old.mesh);
+      this.removeDropped(old.mesh);
     }
   }
 
   clearDropped() {
-    for (const d of this.dropped) this.scene.remove(d.mesh);
+    for (const d of this.dropped) this.removeDropped(d.mesh);
     this.dropped = [];
   }
 
@@ -884,7 +920,7 @@ class Game {
         break;
       }
       if (taken) {
-        this.scene.remove(d.mesh);
+        this.removeDropped(d.mesh);
         this.dropped.splice(i, 1);
       }
     }

@@ -290,6 +290,42 @@ ok('打开购买菜单冻结世界', buyB.t === buyA.t && buyA.paused && buyA.bu
   JSON.stringify({ t0: buyA.t, t1: buyB.t, paused: buyA.paused }));
 ok('购买菜单不弹暂停遮罩', buyA.overlay === false);
 
+// 买完东西，两处金额都必须在菜单还开着的时候就变 ——
+// 曾经因为 HUD 只在 !paused 时刷新，钱扣了但界面上纹丝不动。
+// 注意：软件渲染下帧率只有个位数，不能写死等待时间，要轮询等 DOM 跟上。
+const buyMoney = await page.evaluate(async () => {
+  const g = window.game, p = g.localPlayer;
+  p.money = 5000; p.slots.primary = null;
+  const hudEl = document.getElementById('money');
+  const buyEl = document.getElementById('buy-money');
+  const waitFor = async (fn, ms = 9000) => {
+    const t0 = performance.now();
+    while (performance.now() - t0 < ms) {
+      if (fn()) return true;
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    return false;
+  };
+  const syncedBefore = await waitFor(() => hudEl.textContent.trim() === '$5000');
+  const before = { money: p.money, hud: hudEl.textContent.trim(), buy: buyEl.textContent.trim() };
+
+  g.hud.doBuy('ak47');
+  const syncedAfter = await waitFor(
+    () => hudEl.textContent.trim() === '$2500' && buyEl.textContent.trim() === '$2500',
+  );
+  const after = {
+    money: p.money, hud: hudEl.textContent.trim(), buy: buyEl.textContent.trim(),
+    paused: g.paused, syncedBefore, syncedAfter,
+  };
+  return { before, after };
+});
+ok('购买菜单里买东西会实时扣钱并刷新两处显示',
+  buyMoney.after.paused === true &&
+  buyMoney.after.money === 2500 &&
+  buyMoney.after.hud === '$2500' &&
+  buyMoney.after.buy === '$2500',
+  JSON.stringify(buyMoney));
+
 await page.evaluate(() => window.game.hud.toggleBuy(false));
 const buyRun = await waitClockAdvances();
 const buyAfter = await worldClock();
