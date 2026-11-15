@@ -60,7 +60,7 @@ export class BotController {
   // ---------- 主循环 ----------
   update(dt) {
     const p = this.p;
-    if (!p.alive) { p.fireHeld = false; return; }
+    if (!p.alive) { p.fireHeld = false; p.syncMesh(); return; }   // 死了也要更新倒地动画
     const cmd = { forward: 0, side: 0, jump: false, duck: false, walk: false };
     p.wantUse = false;
 

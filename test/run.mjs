@@ -37,7 +37,9 @@ const browser = await puppeteer.launch({
   headless: 'new',
   args: ['--allow-file-access-from-files', '--use-gl=angle', '--use-angle=swiftshader',
     '--enable-unsafe-swiftshader', '--mute-audio'],
-  defaultViewport: { width: 1280, height: 720 },
+  // 分辨率压低：这套测试靠 SwiftShader 软件渲染跑，PBR 材质下 1280×720 每帧很慢，
+  // 会让"世界有没有在跑"这类时间相关断言变得不稳。
+  defaultViewport: { width: 800, height: 450 },
 });
 const page = await browser.newPage();
 const pageErrors = [];
@@ -230,19 +232,28 @@ async function worldClock() {
     overlay: !document.getElementById('pause').classList.contains('hidden'),
   }));
 }
-async function waitClockAdvances(ms = 4000) {
+async function waitClockAdvances(ms = 14000) {
   const a = await worldClock();
   const started = Date.now();
   while (Date.now() - started < ms) {
     await new Promise((r) => setTimeout(r, 100));
     const b = await worldClock();
-    if (b.t > a.t + 0.001) return { advanced: true, from: a.t, to: b.t };
+    if (b.t > a.t + 0.001) return { advanced: true, from: a.t, to: b.t, ms: Date.now() - started };
   }
-  return { advanced: false, from: a.t, to: (await worldClock()).t };
+  const end = await worldClock();
+  return { advanced: false, from: a.t, to: end.t, ms: Date.now() - started, fps: await page.evaluate(() => Math.round(window.game.fps)) };
 }
 
 await page.evaluate(() => {
   const g = window.game;
+  // 无头浏览器里指针锁会自己掉，触发"被动失锁 → 自动暂停"，把世界冻住。
+  // 这一段只验证**暂停状态机**本身，所以先把指针锁整个摘掉，让状态机可控。
+  g.lockPointer = () => {};
+  g.releasePointer = () => { g.suppressPause = false; };
+  g.pauseMenuOpen = false;
+  g.menuPaused = false;
+  g.syncPaused();
+  document.getElementById('pause').classList.add('hidden');
   if (g.hud.buyOpen) g.hud.toggleBuy(false);
   g.round.phase = 'live';
 });

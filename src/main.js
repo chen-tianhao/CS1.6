@@ -116,6 +116,8 @@ class Game {
     this.hud = new HUD(this);
     this.round = new Round(this);
     this.viewModel = new ViewModel(this);
+    // 应用已保存的武器风格（默认 modern，不用再每次敲控制台）
+    this.setWeaponStyle(this.settings.weaponStyle || 'modern', true);
 
     this.createLocalPlayer();
     this.bindEvents();
@@ -377,6 +379,12 @@ class Game {
     };
     segBind('seg-diff', (v) => { this.difficulty = v; });
     segBind('seg-size', (v) => { this.enemyCount = parseInt(v, 10); });
+    segBind('seg-style', (v) => { this.setWeaponStyle(v); });
+    // 按已保存的设置点亮对应按钮（老存档没有这个字段时按 modern 处理）
+    const curStyle = this.settings.weaponStyle || 'modern';
+    document.querySelectorAll('#seg-style button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.v === curStyle);
+    });
 
     const sens = document.getElementById('set-sens');
     const vol = document.getElementById('set-vol');
@@ -485,14 +493,18 @@ class Game {
     Sfx.playUIClick();
   }
 
-  // 对照实验用：切换第一人称武器的"材质工艺"
-  //   'classic' —— 1.6 低模味（Lambert + 调色板 + 最近邻采样 + 平面着色）
-  //   'modern'  —— 现代 PBR（标准材质 + 法线/粗糙度 + 环境反射）
-  // 控制台直接调：game.setWeaponStyle('modern')
-  setWeaponStyle(style) {
+  // 切换第一人称武器的"材质工艺"并持久化
+  //   'modern'  —— 现代 PBR（当前项目方向，默认值）
+  //   'classic' —— 1.6 经典（Lambert + 调色板 + 最近邻 + 平面着色），留作对照
+  // 主菜单「武器风格」可切；控制台 game.setWeaponStyle('classic') 也行。
+  setWeaponStyle(style, silent = false) {
     const s = setWeaponModelStyle(style);
+    this.settings.weaponStyle = s;
+    this.saveSettings();
     if (this.viewModel) this.viewModel.invalidate();
-    if (this.hud) this.hud.toast(s === 'modern' ? '武器模型：现代 PBR' : '武器模型：1.6 经典');
+    if (this.hud && !silent) {
+      this.hud.toast(s === 'modern' ? '武器模型：现代 PBR' : '武器模型：1.6 经典');
+    }
     return s;
   }
 
@@ -673,7 +685,8 @@ class Game {
 
   onPlayerKilled(victim, attacker, weaponId, headshot) {
     this.round.onKill(victim, attacker, weaponId, headshot);
-    if (victim.mesh) victim.mesh.visible = false;
+    // 尸体留在原地（倒地动画由 syncMesh 驱动），直到下一回合重生。
+    // 以前这里直接 mesh.visible = false —— 人死了凭空消失，既出戏也看不出击倒位置。
     if (victim === this.localPlayer) {
       this.camera.fov = this.settings.fov;
       this.camera.updateProjectionMatrix();

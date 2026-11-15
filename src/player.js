@@ -97,6 +97,8 @@ export class Player {
     this.mesh = null;
     this.viewModel = null;
     this.muzzleLight = null;
+    this.deathAt = null;      // 死亡时刻（驱动倒地动画 + 尸体留存）
+    this._prevMeshT = null;
   }
 
   // ---------- 生成 / 重生 ----------
@@ -114,6 +116,10 @@ export class Player {
     this.priming = false;
     this.primeT = 0;
     this.onLadder = false;
+    // 重生时清掉倒地状态：上一回合的尸体就此消失
+    this.deathAt = null;
+    this._prevMeshT = null;
+    this._strideT = 0;
     this.ducking = false;
     this.duckAmount = 0;
     this.zoom = 0;
@@ -682,6 +688,8 @@ export class Player {
     if (this.health <= 0) {
       this.health = 0;
       this.alive = false;
+      // 记下死亡时刻，用来驱动倒地动画（尸体留在原地，不再凭空消失）
+      this.deathAt = this.game.time;
       this.game.onPlayerKilled(this, attacker, weaponId, group === 'head');
     }
     return d;
@@ -693,6 +701,10 @@ export class Player {
     this.mesh = built.group;
     this._helmetMesh = built.helmet;
     this._gunMesh = built.gun;
+    this._torso = built.torso;
+    this._head = built.head;
+    this._hipY = built.hipY;
+    this._strideT = 0;
     // 四级关节：髋/膝/肩/肘
     this._legL = built.legL;
     this._kneeL = built.kneeL;
@@ -724,17 +736,29 @@ export class Player {
     this.syncMesh();
   }
 
+  // ---------- 第三人称姿态 ----------
+  // 全部基于关节旋转。之前是"一条 sin(时间)"+ 整体 scale.y 压扁，
+  // 结果是脚在地面上滑、蹲下时连头盔都被压扁、死了直接消失。
   syncMesh() {
     if (!this.mesh) return;
-    this.mesh.visible = this.alive && !this.isLocal;
+
+    const now = this.game.time;
+    const dt = this._prevMeshT == null ? 0 : Math.max(0, Math.min(0.12, now - this._prevMeshT));
+    this._prevMeshT = now;
+
+    const dying = !this.alive;
+    const deathT = dying && this.deathAt != null ? Math.max(0, now - this.deathAt) : 0;
+    // 尸体留在原地，直到下一回合重生
+    const bodyVisible = this.alive || this.deathAt != null;
+
+    this.mesh.visible = !this.isLocal && bodyVisible;
     this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z);
-    this.mesh.rotation.y = this.yaw;
-    const crouch = this.duckAmount;
-    this.mesh.scale.y = 1 - crouch * 0.34;
+    this.mesh.rotation.set(0, this.yaw, 0);
+    this.mesh.scale.setScalar(1);
 
     // 阴影跟随：贴在脚下的支撑面上，离地越高越小越淡
     if (this._shadow) {
-      const vis = this.alive && !this.isLocal;
+      const vis = !this.isLocal && bodyVisible;
       this._shadow.visible = vis;
       if (vis) {
         const groundY = this.groundY || 0;
@@ -743,27 +767,68 @@ export class Player {
         this._shadow.position.set(this.pos.x, groundY + 1.2, this.pos.z);
         this._shadow.scale.setScalar(48 * k);
         this._shadow.material.opacity = 0.5 * k;
+        this._shadow.visible = this.alive;   // 尸体下面不再留一个圆
       }
     }
     // 头盔/头巾属于阵营外观，与是否购买护甲无关，始终显示
-    if (this._gunMesh) this._gunMesh.visible = this.curSlot !== 'melee';
+    if (this._gunMesh) this._gunMesh.visible = this.alive && this.curSlot !== 'melee';
 
-    // 行走：髋部摆动 + 后摆腿屈膝 + 手臂在持枪姿态上反向叠加
+    if (!this.alive) {
+      // ---- 倒地：向前扑，ease-out，然后躺地上 ----
+      const k = Math.min(1, deathT / 0.55);
+      const ease = 1 - Math.pow(1 - k, 3);
+      this.mesh.rotation.x = -ease * 1.5;
+      this.mesh.position.y -= ease * 5;
+      if (this._torso) this._torso.rotation.x = 0.12;
+      if (this._legL) {
+        this._legL.rotation.x = 0.3 * ease;
+        this._legR.rotation.x = -0.2 * ease;
+        this._kneeL.rotation.x = -0.8 * ease;
+        this._kneeR.rotation.x = -0.45 * ease;
+      }
+      return;
+    }
+
     const spd = Math.hypot(this.vel.x, this.vel.z);
-    const moving = this.alive && spd > 30 && this.onGround;
-    let sw = 0;
-    if (moving) {
-      sw = Math.sin(this.game.time * (7 + spd * 0.016)) * Math.min(0.62, spd / 380);
-    }
+    const moving = spd > 20 && this.onGround;
+    const crouch = this.duckAmount;
+    const amp = Math.min(1, spd / 250);
+
+    // 步频跟"实际位移"绑定，而不是跟时间绑定 —— 否则速度一变，脚就滑
+    this._strideT = (this._strideT || 0) + (moving ? spd * dt * 0.072 : 0);
+    const stride = this._strideT;
+    const swing = Math.sin(stride);
+
     if (this._legL) {
-      this._legL.rotation.x = sw;
-      this._legR.rotation.x = -sw;
-      // 膝盖只能向后弯，所以取后摆那一侧的幅度
-      this._kneeL.rotation.x = -Math.max(0, -sw) * 1.25;
-      this._kneeR.rotation.x = -Math.max(0, sw) * 1.25;
-      this._armL.rotation.x = this._idleArmL - sw * 0.3;
-      this._armR.rotation.x = this._idleArmR + sw * 0.22;
+      // 髋摆 + 膝只能向后弯；蹲下时两腿一起屈
+      const hipL = swing * 0.62 * amp;
+      const hipR = -swing * 0.62 * amp;
+      const crouchHip = crouch * 0.85;
+      const crouchKnee = crouch * 1.55;
+      this._legL.rotation.x = hipL + crouchHip;
+      this._legR.rotation.x = hipR + crouchHip;
+      this._kneeL.rotation.x = -Math.max(0, -swing) * 1.15 * amp - crouchKnee;
+      this._kneeR.rotation.x = -Math.max(0, swing) * 1.15 * amp - crouchKnee;
+
+      // 手臂在持枪姿态上反向叠加（左臂跟着右腿）
+      this._armL.rotation.x = this._idleArmL - swing * 0.26 * amp;
+      this._armR.rotation.x = this._idleArmR + swing * 0.16 * amp;
     }
+
+    // 躯干：跑动前倾 + 下蹲降低 + 跟着俯仰瞄准
+    const pitch = Math.max(-1.2, Math.min(1.2, this.pitch || 0));
+    if (this._torso) {
+      this._torso.position.y = (this._hipY || 28) - crouch * 22;
+      this._torso.rotation.x = -amp * 0.16 + pitch * 0.20 + crouch * 0.22;
+      // 跑动时躯干轻微反向扭转，步伐才有重量
+      this._torso.rotation.y = -swing * 0.10 * amp;
+    }
+    if (this._head) {
+      this._head.rotation.x = pitch * 0.35 - crouch * 0.10;
+    }
+
+    // 跑动起伏：一个步幅两次落地下沉
+    this.mesh.position.y -= Math.abs(Math.cos(stride)) * 1.6 * amp;
   }
 
   hitboxes() {

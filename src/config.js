@@ -326,6 +326,8 @@ export const SETTINGS_DEFAULT = {
   showFps: true,
   invertY: false,
   autoReload: true,
+  // 武器模型风格：项目已定 B 路线（现代 PBR），这里只是可选项
+  weaponStyle: 'modern',
   keymap: { ...KEYMAP_DEFAULT },
 };
 

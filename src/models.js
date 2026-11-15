@@ -37,7 +37,9 @@ const W = {
 //  这是这次对照实验的核心 —— 同一把枪、同一个姿态，只换"材质工艺"，
 //  看观感差距到底来自几何还是来自材质。
 // ============================================================
-let STYLE = 'classic';
+// 项目方向已定 B 路线（现代 PBR）。'classic' 只作为对照实验保留，
+// 可以在主菜单的「武器风格」里切回去看差别。
+let STYLE = 'modern';
 export function getWeaponStyle() { return STYLE; }
 export function setWeaponStyle(s) {
   if (s !== 'classic' && s !== 'modern') return STYLE;
@@ -210,51 +212,67 @@ export function buildCharacterMesh(team) {
   const M = charMats(team);
   const g = new THREE.Group();
 
+  // 躯干挂在髋部枢轴上（y = 28）。这样前倾、下蹲、俯仰都绕髋关节转，
+  // 而不是像以前那样整体 scale.y 压扁 —— 后者会把头盔和脑袋一起压扁。
+  const HIP_Y = 28;
+  const torso = new THREE.Group();
+  torso.position.y = HIP_Y;
+  g.add(torso);
+  const T = (y) => y - HIP_Y;
+
   // ---- 躯干 ----
-  g.add(b(19, 9, 12, M.cloth, 0, 29.5, 0));          // 髋
-  g.add(b(20, 2.8, 13, M.belt, 0, 33.8, 0));         // 腰带
-  g.add(b(17.5, 9, 11, M.cloth, 0, 38.6, 0));        // 腹
-  g.add(b(21, 14, 12.5, M.vest, 0, 47, 0));          // 胸（战术背心）
-  g.add(b(6, 3.2, 8.5, M.vest, -10, 53.5, 0));       // 左肩垫
-  g.add(b(6, 3.2, 8.5, M.vest, 10, 53.5, 0));        // 右肩垫
+  torso.add(b(19, 9, 12, M.cloth, 0, T(29.5), 0));          // 髋
+  torso.add(b(20, 2.8, 13, M.belt, 0, T(33.8), 0));         // 腰带
+  torso.add(b(17.5, 9, 11, M.cloth, 0, T(38.6), 0));        // 腹
+  torso.add(b(21, 14, 12.5, M.vest, 0, T(47), 0));          // 胸（战术背心）
+  torso.add(b(6, 3.2, 8.5, M.vest, -10, T(53.5), 0));       // 左肩垫
+  torso.add(b(6, 3.2, 8.5, M.vest, 10, T(53.5), 0));        // 右肩垫
   // 胸前弹匣袋
-  g.add(b(5.4, 5, 2.6, M.pouch, -6.2, 45.6, -6.6));
-  g.add(b(5.4, 5, 2.6, M.pouch, 0, 45.6, -6.6));
-  g.add(b(5.4, 5, 2.6, M.pouch, 6.2, 45.6, -6.6));
-  g.add(b(15, 15.5, 6, M.pack, 0, 45.5, 9.2));       // 背包
+  torso.add(b(5.4, 5, 2.6, M.pouch, -6.2, T(45.6), -6.6));
+  torso.add(b(5.4, 5, 2.6, M.pouch, 0, T(45.6), -6.6));
+  torso.add(b(5.4, 5, 2.6, M.pouch, 6.2, T(45.6), -6.6));
+  torso.add(b(15, 15.5, 6, M.pack, 0, T(45.5), 9.2));       // 背包
+  // 侧腰水壶 / 刀鞘，让轮廓不那么"方"
+  torso.add(b(4.2, 6.5, 5, M.pouch, -10.4, T(34.2), 1.2));
+  torso.add(b(3.2, 9, 3, M.belt, 10.2, T(35.5), 2.4, 0.1));
 
   // ---- 颈与头 ----
-  g.add(b(9.8, 4.2, 9.8, M.cloth, 0, 57, 0));       // 衣领，遮住脖子根部
+  torso.add(b(9.8, 4.2, 9.8, M.cloth, 0, T(57), 0));        // 衣领
   const neck = new THREE.Mesh(CG.neck, M.skin);
-  neck.position.set(0, 57.4, 0);
-  g.add(neck);
+  neck.position.set(0, T(57.4), 0);
+  torso.add(neck);
+
+  // 头部枢轴在颈根，抬头低头绕这里转
+  const head = new THREE.Group();
+  head.position.set(0, T(57.4), 0);
+  torso.add(head);
 
   // BoxGeometry 材质顺序 +X,-X,+Y,-Y,+Z,-Z；模型朝 -Z，脸贴在 -Z
   const headMats = [M.skin, M.skin, M.hat, M.skin, M.skin, M.face];
-  const head = new THREE.Mesh(CG.head, headMats);
-  head.position.set(0, 63.4, 0);
-  g.add(head);
+  const headMesh = new THREE.Mesh(CG.head, headMats);
+  headMesh.position.set(0, 6.0, 0);
+  head.add(headMesh);
 
   // 头盔只给 CT；T 用头巾
   let helmet = null;
   if (team === 'CT') {
     helmet = new THREE.Mesh(CG.helm, M.hat);
-    helmet.position.set(0, 65.6, 0);
-    g.add(helmet);
+    helmet.position.set(0, 8.2, 0);
+    head.add(helmet);
   } else {
-    const wrap = b(10.1, 4.4, 10.3, M.hat, 0, 67.4, 0);
-    g.add(wrap);
-    const tail = b(4.2, 6.5, 3, M.hat, 0, 63, 5.4, 0.3);
-    g.add(tail);
+    head.add(b(10.1, 4.4, 10.3, M.hat, 0, 10.0, 0));
+    head.add(b(4.2, 6.5, 3, M.hat, 0, 5.6, 5.4, 0.3));
   }
 
-  // ---- 腿：髋 → 膝 → 靴 ----
+  // ---- 腿：髋 → 膝 → 靴（挂在根节点上，不随躯干转） ----
   const makeLeg = (side) => {
     const hip = new THREE.Group();
-    hip.position.set(side * 5.6, 28, 0);
+    hip.position.set(side * 5.6, HIP_Y, 0);
     const thigh = new THREE.Mesh(CG.thigh, M.cloth);
     thigh.position.y = -6.5;
     hip.add(thigh);
+    // 护膝
+    hip.add(b(6.4, 3.2, 6.6, M.vest, 0, -12.2, -0.6));
 
     const knee = new THREE.Group();
     knee.position.y = -13;
@@ -264,23 +282,22 @@ export function buildCharacterMesh(team) {
     const boot = new THREE.Mesh(CG.boot, M.boot);
     boot.position.set(0, -12.4, -1.4);
     knee.add(boot);
+    knee.add(b(6.6, 1.6, 11.4, M.belt, 0, -14.6, -1.4));   // 鞋底
     hip.add(knee);
     g.add(hip);
-    return { hip, knee, base: 0 };
+    return { hip, knee };
   };
   const legL = makeLeg(-1);
   const legR = makeLeg(1);
 
-  // ---- 臂：肩 → 肘 → 手，持枪姿态 ----
+  // ---- 臂：肩 → 肘 → 手，持枪姿态（挂在躯干上，跟着身体转） ----
   const makeArm = (side) => {
     const shoulder = new THREE.Group();
-    shoulder.position.set(side * 10.4, 52.6, 0);
+    shoulder.position.set(side * 10.4, T(52.6), 0);
     const upper = new THREE.Mesh(CG.upperArm, M.cloth);
     upper.position.y = -6;
     shoulder.add(upper);
-    // 护肘
-    const pad = b(6.2, 3, 6.4, M.vest, 0, -11, 0);
-    shoulder.add(pad);
+    shoulder.add(b(6.2, 3, 6.4, M.vest, 0, -11, 0));       // 护肘
 
     const elbow = new THREE.Group();
     elbow.position.y = -11.8;
@@ -291,24 +308,24 @@ export function buildCharacterMesh(team) {
     hand.position.set(0, -11.4, 0);
     elbow.add(hand);
     shoulder.add(elbow);
-    g.add(shoulder);
+    torso.add(shoulder);
     return { shoulder, elbow };
   };
   const armL = makeArm(-1);
   const armR = makeArm(1);
 
-  // 持枪姿态：右臂下垂略前、屈肘握把；左臂横过胸前托护木
-  armR.shoulder.rotation.set(0.3, 0, -0.2);
-  armR.elbow.rotation.set(1.0, 0, 0);
-  armL.shoulder.rotation.set(0.7, 0, 0.6);
-  armL.elbow.rotation.set(0.65, 0, 0);
+  // 持枪姿态：右臂屈肘握把、左臂横过胸前托护木。
+  // 之前 z 轴给了 0.6，手臂几乎平举成 T 字，看起来像在滑翔而不是持枪。
+  armR.shoulder.rotation.set(0.55, 0, -0.10);
+  armR.elbow.rotation.set(1.35, 0, 0);
+  armL.shoulder.rotation.set(0.75, 0, 0.34);
+  armL.elbow.rotation.set(1.15, 0, 0);
   const idleL = armL.shoulder.rotation.x;
   const idleR = armR.shoulder.rotation.x;
 
-  // ---- 第三人称简化武器 ----
+  // ---- 第三人称简化武器（挂在躯干上，跟着身体俯仰） ----
   const gun = new THREE.Group();
-  const body = new THREE.Mesh(CG.gunBody, W.black);
-  gun.add(body);
+  gun.add(new THREE.Mesh(CG.gunBody, W.black));
   const barrel = new THREE.Mesh(CG.gunBarrel, W.steelDark);
   barrel.position.set(0, 0.6, -19);
   gun.add(barrel);
@@ -316,13 +333,15 @@ export function buildCharacterMesh(team) {
   mag.position.set(0, -4.8, 1.2);
   mag.rotation.x = 0.25;
   gun.add(mag);
-  gun.position.set(6.2, 40.6, -7);
+  gun.position.set(6.2, T(40.6), -7);
   gun.rotation.set(-0.04, 0.06, 0);
-  g.add(gun);
+  torso.add(gun);
 
   return {
     group: g,
+    torso,
     head,
+    hipY: HIP_Y,
     helmet,
     gun,
     legL: legL.hip,
