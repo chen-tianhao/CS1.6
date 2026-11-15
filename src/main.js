@@ -58,6 +58,9 @@ class Game {
     this.paused = false;
     this.started = false;
     this.spectating = null;
+    // 每队人数（含玩家自己）。createTeams 会生成 enemyCount-1 个队友 BOT
+    // 和 enemyCount 个敌人 BOT，加上玩家正好是 N vs N。
+    // 菜单上因此显示 2v2 / 3v3 / 5v5，而不是只数 BOT 的 1v2 / 2v3 / 4v5。
     this.enemyCount = 3;
     this.difficulty = 'normal';
     this.keys = {};
@@ -217,7 +220,7 @@ class Game {
       return `Bot${Math.floor(Math.random() * 900 + 100)}`;
     };
 
-    // 队友（T）：enemyCount - 1
+    // 队友（T）：enemyCount - 1 个 BOT，加上玩家自己正好 enemyCount 人
     for (let i = 0; i < this.enemyCount - 1; i++) {
       const b = new Player(this, { name: pickName(), team: 'T', isBot: true, id: i + 1 });
       b.buildMesh(this.scene);
