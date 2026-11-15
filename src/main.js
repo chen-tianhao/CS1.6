@@ -6,7 +6,7 @@ import {
   PHYS, RULES, WEAPONS, GEAR, SETTINGS_DEFAULT, BOT_NAMES, TILE, GRID, WORLD_HALF,
   KEYMAP_DEFAULT, keyLabel,
 } from './config.js';
-import { GameMap } from './map.js';
+import { GameMap, SUN_DIR, SHADOW_HALF, SHADOW_LIGHT_DIST } from './map.js';
 import { getMap, DEFAULT_MAP } from './maps/index.js';
 import { setAnisotropy } from './textures.js';
 import { Player } from './player.js';
@@ -95,6 +95,10 @@ class Game {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.02;
     this.renderer.autoClear = false;
+    // 动态阴影：只有角色与掉落物投影（世界靠烘焙的顶点阴影），
+    // PCFSoft 在低分辨率阴影图上更耐看。
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(this.settings.fov, window.innerWidth / window.innerHeight, 1, 9000);
@@ -797,6 +801,7 @@ class Game {
     const p = this.localPlayer;
     fx.update(dt);
     this.updateCamera(dt);
+    this.updateSunShadow();
     this.viewModel.update(dt, p);
     this.hud.update(dt);
     Sfx.setListener(this.listenerPos());
@@ -812,6 +817,25 @@ class Game {
   }
 
   // ---------- 掉落武器 ----------
+  // 阴影相机跟着玩家走：一张固定覆盖全图的阴影图会糊到 1 像素/单位，
+  // 所以用 SHADOW_HALF 见方的跟随框。位置按纹素对齐，避免阴影边缘随移动抖动。
+  updateSunShadow() {
+    const sun = this.map && this.map.sun;
+    const p = this.localPlayer;
+    if (!sun || !sun.castShadow || !p) return;
+    const texel = (SHADOW_HALF * 2) / sun.shadow.mapSize.x;
+    const fx = Math.round(p.pos.x / texel) * texel;
+    const fz = Math.round(p.pos.z / texel) * texel;
+    sun.target.position.set(fx, 0, fz);
+    sun.position.set(
+      fx + SUN_DIR.x * SHADOW_LIGHT_DIST,
+      SUN_DIR.y * SHADOW_LIGHT_DIST,
+      fz + SUN_DIR.z * SHADOW_LIGHT_DIST,
+    );
+    sun.target.updateMatrixWorld();
+    sun.updateMatrixWorld();
+  }
+
   dropWeapon(player, slot) {
     if (slot !== 'primary' && slot !== 'secondary') return;
     const w = player.slots[slot];
@@ -826,6 +850,7 @@ class Game {
     const mesh = buildWeaponProp(w.id);
     mesh.position.set(player.pos.x, 10, player.pos.z);
     mesh.rotation.y = Math.random() * Math.PI * 2;
+    mesh.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(mesh);
     this.dropped.push({ id: w.id, ammo: w.ammo, reserve: w.reserve, mesh, x: player.pos.x, z: player.pos.z });
     if (this.dropped.length > 24) {

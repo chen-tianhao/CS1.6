@@ -716,22 +716,16 @@ export class Player {
     this._elbowR = built.elbowR;
     this._idleArmL = built.idleArmL;
     this._idleArmR = built.idleArmR;
+    // 角色参与动态阴影：投影 + 接收（人与人之间也要能互相投影）。
+    // 以前这里是一张圆形贴花假阴影，现在交给真正的 shadow map。
+    this.mesh.traverse((o) => {
+      if (o.isMesh && o.material && o.material.isMeshStandardMaterial) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      }
+    });
     scene.add(this.mesh);
-
-    // 贴地阴影：用一张跟随位置的圆形贴花，而不是 shadowMap ——
-    // 开阴影会让所有 Lambert 材质重新编译，实战中反而掉帧。
-    const shadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(1, 1),
-      new THREE.MeshBasicMaterial({
-        map: blobTexture(), transparent: true, depthWrite: false, opacity: 0.5,
-        polygonOffset: true, polygonOffsetFactor: -2,
-      }),
-    );
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = 1.2;
-    shadow.renderOrder = 2;
-    scene.add(shadow);
-    this._shadow = shadow;
+    this._shadow = null;
 
     this.syncMesh();
   }
@@ -756,21 +750,7 @@ export class Player {
     this.mesh.rotation.set(0, this.yaw, 0);
     this.mesh.scale.setScalar(1);
 
-    // 阴影跟随：贴在脚下的支撑面上，离地越高越小越淡
-    if (this._shadow) {
-      const vis = !this.isLocal && bodyVisible;
-      this._shadow.visible = vis;
-      if (vis) {
-        const groundY = this.groundY || 0;
-        const h = Math.max(0, this.pos.y - groundY);
-        const k = Math.max(0.3, 1 - h / 240);
-        this._shadow.position.set(this.pos.x, groundY + 1.2, this.pos.z);
-        this._shadow.scale.setScalar(48 * k);
-        this._shadow.material.opacity = 0.5 * k;
-        this._shadow.visible = this.alive;   // 尸体下面不再留一个圆
-      }
-    }
-    // 头盔/头巾属于阵营外观，与是否购买护甲无关，始终显示
+    // 头顶/头巾属于阵营外观，与是否购买护甲无关，始终显示
     if (this._gunMesh) this._gunMesh.visible = this.alive && this.curSlot !== 'melee';
 
     if (!this.alive) {

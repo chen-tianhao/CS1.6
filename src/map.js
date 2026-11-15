@@ -12,9 +12,16 @@ const WALL_T = 24;
 
 // 太阳方向（指向太阳），与 _buildAtmosphere 里那盏 DirectionalLight 保持一致：
 // (-900, 1500, 700) 归一化。顶点烘焙和实时光必须同向，否则会出现"两个太阳"。
-const SUN_DIR = { x: -0.478, y: 0.796, z: 0.372 };
+export const SUN_DIR = { x: -0.478, y: 0.796, z: 0.372 };
 const SUN_GAIN = 0.45;
 const HEMI_GAIN = 0.20;
+
+// 动态阴影参数：阴影相机是一块跟着玩家走的方形区域。
+// 整个世界（约 2600 单位见方）用一张固定阴影图会糊成 1 像素/单位，
+// 所以改成跟随 + 小范围。
+export const SHADOW_MAP = 1024;
+export const SHADOW_HALF = 520;   // 1024/1040 ≈ 1 单位/纹素；再大就糊成一团
+export const SHADOW_LIGHT_DIST = 1600;
 const SHADE_BASE = 0.62;
 
 export class GameMap {
@@ -35,6 +42,11 @@ export class GameMap {
     this.ladders = [];         // 攀爬区 {x0,x1,z0,z1,y0,y1}
     this.label = def.label || def.id || '';
     this._build();
+    // 世界几何统一接收动态阴影（角色/掉落物的投影要落在地面和墙上）。
+    // 注意：它们自己**不投影** —— 太阳阴影已经烘焙在顶点色里，再投一次会双重叠加。
+    this.scene.traverse((o) => {
+      if (o.isMesh && o.material && o.material.isMeshStandardMaterial) o.receiveShadow = true;
+    });
   }
 
   // ---------- 坐标换算 ----------
@@ -195,7 +207,25 @@ export class GameMap {
 
     const sun = new THREE.DirectionalLight(0xfff3d6, 1.22);
     sun.position.set(-900, 1500, 700);
+
+    // ---- 动态阴影 ----
+    // 只有角色和掉落物投影；世界几何**不投影**，因为它的太阳阴影已经烘在顶点色里了，
+    // 再投一次就会和烘焙结果叠成双重阴影。
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
+    const sc = sun.shadow.camera;
+    sc.left = -SHADOW_HALF; sc.right = SHADOW_HALF;
+    sc.top = SHADOW_HALF; sc.bottom = -SHADOW_HALF;
+    sc.near = 200; sc.far = 3400;
+    sc.updateProjectionMatrix();
+    // 我们的单位很大（角色高 72 ≈ 1.8m），bias 必须按世界尺度给，
+    // 用默认的 -0.0005/0 会满屏阴影痤疮。
+    sun.shadow.bias = -0.0009;
+    sun.shadow.normalBias = 1.6;
+    sun.target.position.set(0, 0, 0);
     scene.add(sun);
+    scene.add(sun.target);
+    this.sun = sun;
 
     const fill = new THREE.DirectionalLight(0x8fa8c8, 0.22);
     fill.position.set(1200, 600, -1400);
