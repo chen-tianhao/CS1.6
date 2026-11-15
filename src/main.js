@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import {
   PHYS, RULES, WEAPONS, GEAR, SETTINGS_DEFAULT, BOT_NAMES, TILE, GRID, WORLD_HALF,
-  KEYMAP_DEFAULT, KEY_LABEL,
+  KEYMAP_DEFAULT, keyLabel,
 } from './config.js';
 import { GameMap } from './map.js';
 import { getMap, DEFAULT_MAP } from './maps/index.js';
@@ -52,6 +52,9 @@ class Game {
     this.fps = 60;
     this.stats = { jumps: 0 };
     this.fx = fx;
+    // 世界冻结有两个来源：暂停菜单、购买菜单。两个都关掉才真的继续跑。
+    this.pauseMenuOpen = false;
+    this.menuPaused = false;
     this.paused = false;
     this.started = false;
     this.spectating = null;
@@ -63,6 +66,11 @@ class Game {
     this.dragLook = false;
     this.dragging = false;
     this.pointerLockFailures = 0;
+    // 'idle' | 'requesting' | 'locked' | 'releasing'
+    // 用来区分"我们自己放开的锁"和"被动失去锁" —— 只看事件本身区分不了，
+    // 而购买菜单会在同一个 tick 里先 exit 再 request，事件又是异步到达的。
+    this.lockState = 'idle';
+    this.lastLockedAt = 0;
     this.dropped = [];        // 地上掉落的武器
     this.acc = 0;             // 固定步长累加器
     this.flashlightOn = false;
@@ -202,6 +210,8 @@ class Game {
     this.createTeams();
     this.round.startMatch();
     this.started = true;
+    this.pauseMenuOpen = false;
+    this.menuPaused = false;
     this.paused = false;
     document.getElementById('mainmenu').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
@@ -302,17 +312,25 @@ class Game {
       const locked = document.pointerLockElement === this.canvas;
       if (locked) {
         // 锁回来了：退出拖拽兜底，恢复"只要移动鼠标就转视角"
+        this.lockState = 'locked';
+        this.lastLockedAt = (typeof performance !== 'undefined' ? performance.now() : 0);
         this.dragLook = false;
         this.dragging = false;
         this.pointerLockFailures = 0;
         return;
       }
+      const wasReleasing = this.lockState === 'releasing';
+      const wasLocked = this.lockState === 'locked';
+      this.lockState = 'idle';
+      // 自己放开的锁（购买菜单 / 暂停菜单）不是"玩家切走了"
+      if (wasReleasing) return;
+      if (!wasLocked) return;
+      // 刚拿回锁就被"解锁"，多半是同一批 exit/request 的迟到回执
+      const now = (typeof performance !== 'undefined' ? performance.now() : 0);
+      if (now - this.lastLockedAt < 500) return;
       if (this.started && !this.hud.buyOpen && !this.suppressPause &&
-          this.round.phase !== 'matchend' && !this.paused) {
-        this.paused = true;
-        document.getElementById('pause').classList.remove('hidden');
-        const p = this.localPlayer;
-        if (p) p.fireHeld = false;
+          this.round.phase !== 'matchend' && !this.pauseMenuOpen) {
+        this.pauseGame();
       }
     });
 
@@ -320,12 +338,7 @@ class Game {
       Sfx.initAudio();
       this.startGame();
     });
-    document.getElementById('btn-resume').addEventListener('click', () => {
-      this.hud.closeKeybinds();
-      document.getElementById('pause').classList.add('hidden');
-      this.paused = false;
-      this.lockPointer();
-    });
+    document.getElementById('btn-resume').addEventListener('click', () => this.resumeGame());
     document.getElementById('btn-keys').addEventListener('click', () => this.hud.openKeybinds());
     document.getElementById('btn-restart').addEventListener('click', () => this.restartMatch());
 
@@ -394,7 +407,11 @@ class Game {
       return;
     }
     if (e.code === 'Escape') {
+      // 购买菜单开着时优先关菜单
       if (this.hud.buyOpen) { this.hud.toggleBuy(false); return; }
+      // 再按一次 Esc = 继续游戏（原来只能去点按钮）
+      if (this.pauseMenuOpen) { this.resumeGame(); return; }
+      this.pauseGame();
       return;
     }
     if (this.hud.buyOpen) {
@@ -447,13 +464,63 @@ class Game {
     Sfx.playUIClick();
   }
 
+  // ---------- 暂停 ----------
+  // 暂停有两个独立来源：暂停菜单（Esc）和购买菜单（B）。
+  // 任意一个开着世界就冻结，两个都关掉才继续跑 ——
+  // 否则"开着购买菜单按 Esc"会把世界意外解冻。
+  syncPaused() {
+    this.paused = this.pauseMenuOpen || this.menuPaused;
+  }
+
+  pauseGame() {
+    if (!this.started || this.pauseMenuOpen) return;
+    this.pauseMenuOpen = true;
+    this.syncPaused();
+    document.getElementById('pause').classList.remove('hidden');
+    const p = this.localPlayer;
+    if (p) p.fireHeld = false;
+    // 放开鼠标才能点暂停菜单里的按钮
+    if (document.pointerLockElement === this.canvas) this.releasePointer();
+  }
+
+  resumeGame() {
+    this.hud.closeKeybinds();
+    this.pauseMenuOpen = false;
+    this.syncPaused();
+    document.getElementById('pause').classList.add('hidden');
+    this.lockPointer();
+  }
+
+  // 购买菜单：不弹暂停遮罩（菜单本身就是那层 UI），但世界要冻住
+  enterMenuPause() {
+    if (!this.started) return;
+    this.menuPaused = true;
+    this.syncPaused();
+    const p = this.localPlayer;
+    if (p) p.fireHeld = false;
+    if (document.pointerLockElement === this.canvas) this.releasePointer();
+  }
+
+  exitMenuPause() {
+    this.menuPaused = false;
+    this.syncPaused();
+    this.lockPointer();
+  }
+
   lockPointer() {
-    if (document.pointerLockElement === this.canvas) return;
+    if (document.pointerLockElement === this.canvas) { this.lockState = 'locked'; return; }
     if (!this.canvas.requestPointerLock) { this.enableDragLook(); return; }
+    this.lockState = 'requesting';
     try {
       const r = this.canvas.requestPointerLock();
-      if (r && r.catch) r.catch(() => this.onPointerLockFailed());
+      if (r && r.catch) {
+        r.catch(() => {
+          if (this.lockState === 'requesting') this.lockState = 'idle';
+          this.onPointerLockFailed();
+        });
+      }
     } catch (err) {
+      if (this.lockState === 'requesting') this.lockState = 'idle';
       this.onPointerLockFailed();
     }
   }
@@ -479,6 +546,7 @@ class Game {
 
   releasePointer() {
     this.suppressPause = true;
+    this.lockState = 'releasing';
     document.exitPointerLock();
     setTimeout(() => { this.suppressPause = false; }, 100);
   }
@@ -689,7 +757,7 @@ class Game {
     Sfx.setListener(this.listenerPos());
 
     if (p) {
-      const buyKey = KEY_LABEL[this.km().buy] || this.km().buy;
+      const buyKey = keyLabel(this.km().buy);
       if (this.inBuyZone() && !this.hud.buyOpen) this.hud.hint(`按 ${buyKey} 打开购买菜单`);
       else if (p.hasBomb && this.map.siteAt(p.pos.x, p.pos.z) && this.round.bomb.state === 'carried') this.hud.hint('按住 E 安放 C4');
       else if (p.team === 'CT' && this.round.bomb.state === 'planted' &&

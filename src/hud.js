@@ -1,7 +1,7 @@
 // ============================================================
 //  hud.js — HUD / 雷达 / 购买菜单 / 计分板
 // ============================================================
-import { WEAPONS, GEAR, BUY_MENU, TEAM_WEAPONS, TILE, GRID, WORLD_HALF, RULES, KEY_ACTIONS, KEY_LABEL } from './config.js';
+import { WEAPONS, GEAR, BUY_MENU, TEAM_WEAPONS, TILE, GRID, WORLD_HALF, RULES, KEY_ACTIONS, keyLabel } from './config.js';
 import { buyItem } from './round.js';
 import * as Sfx from './audio.js';
 
@@ -318,7 +318,7 @@ export class HUD {
     this.el.kbList.innerHTML = KEY_ACTIONS.map(([a, label]) => {
       const waiting = this.captureKey === a;
       const code = km[a];
-      const shown = waiting ? '按下新键…' : (code ? (KEY_LABEL[code] || code) : '未绑定');
+      const shown = waiting ? '按下新键…' : keyLabel(code);
       return `<div class="kb-row${waiting ? ' waiting' : ''}" data-a="${a}">
         <span class="kb-name">${label}</span>
         <span class="kb-key">${shown}</span>
@@ -555,9 +555,10 @@ export class HUD {
     if (open) {
       Sfx.playUIClick();
       this.renderBuy();
-      this.game.releasePointer();
+      // 买东西的时候世界冻结，关掉菜单自动恢复
+      this.game.enterMenuPause();
     } else {
-      this.game.lockPointer();
+      this.game.exitMenuPause();
     }
   }
 

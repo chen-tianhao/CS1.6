@@ -304,6 +304,17 @@ export const KEY_LABEL = {
   MouseLeft: '鼠标左键', MouseRight: '鼠标右键', MouseMiddle: '滚轮',
 };
 
+// 把 KeyboardEvent.code 转成人看的标签。
+// KEY_LABEL 只列了特殊键；字母/数字要剥前缀，否则界面上会直接写 "KeyB"。
+export function keyLabel(code) {
+  if (!code) return '未绑定';
+  if (KEY_LABEL[code]) return KEY_LABEL[code];
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  if (code.startsWith('Numpad')) return `小键盘 ${code.slice(6)}`;
+  return code;
+}
+
 export const SETTINGS_DEFAULT = {
   // 1.6 的默认 sensitivity 就是 3（m_yaw 0.022 × 3 ≈ 0.066°/计数）
   sensitivity: 3.0,

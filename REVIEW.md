@@ -701,6 +701,39 @@ if (o.material) { ... }   // Group 没有 material
 **诚实说明**：这是方块几何能到的上限。再往上需要指节倒角、手掌曲率、握把凹槽 —— 也就是真正的
 蒙皮模型，那会破坏"零外部资源、双击 index.html 就能跑"的约定。
 
+---
+
+## 附录 G · 暂停语义（2026-11-15）
+
+**需求**：购买时自动暂停并自动恢复；游戏中 Esc 暂停、再按 Esc 恢复。
+
+**实现**：`Game` 里把"暂停"拆成两个独立来源，任一个开着世界就冻结：
+
+```js
+syncPaused() { this.paused = this.pauseMenuOpen || this.menuPaused; }
+```
+
+- `pauseMenuOpen` —— Esc 暂停菜单，弹遮罩、放开鼠标
+- `menuPaused` —— 购买菜单，**不弹遮罩**（菜单自己就是那层 UI），但也冻结世界
+- Esc 在有购买菜单时优先关菜单；否则在"暂停↔恢复"之间切换
+- 暂停界面提示改为「按 Esc 或点击「继续游戏」恢复」
+
+**顺带修掉一个真 bug**（做这个功能时才暴露）：
+
+购买菜单会在同一个 tick 里先 `exitPointerLock()` 再 `requestPointerLock()`，
+而浏览器的 `pointerlockchange` 是异步的。晚到的"已解锁"回执被当成"玩家切走了"，
+于是又暂停一次 —— 结果是**关掉购买菜单后世界再也不动**（测试里 `game.time` 卡在 0.1875 秒）。
+
+修法：用显式状态机 `lockState`（`idle / requesting / locked / releasing`）区分
+"我们自己放开的锁"和"被动失去锁"，再加 500 ms 的迟到回执兜底。
+
+**顺带修**：`KEY_LABEL` 只列了特殊键，底部提示会显示"按 **KeyB** 打开购买菜单"。
+新增 `keyLabel(code)` 剥掉 `Key` / `Digit` 前缀，现在显示"按 B 打开购买菜单"。
+
+**验证**：`npm test` 33 项全通过（新增 6 条暂停断言，用 `game.time` 轮询判断世界是否在跑，
+不依赖固定等待时间，避免软件渲染下抖动）。
+
+
 
 
 

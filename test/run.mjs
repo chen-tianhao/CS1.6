@@ -216,6 +216,75 @@ const buy = await page.evaluate(() => {
 ok('购买菜单出现霰弹枪分类', buy.items.includes('xm1014'), JSON.stringify(buy.items));
 eq('购买分类数量', buy.cats, 8);
 
+// ---------------------------------------------------------------- 暂停
+section('暂停与购买菜单');
+
+// 判断"世界有没有在跑"用 game.time（只会单调递增），不要用 round.time ——
+// 后者会在回合切换时被重置，断言会假失败。
+async function worldClock() {
+  return page.evaluate(() => ({
+    t: window.game.time,
+    paused: window.game.paused,
+    menuOpen: window.game.pauseMenuOpen,
+    buyOpen: window.game.hud.buyOpen,
+    overlay: !document.getElementById('pause').classList.contains('hidden'),
+  }));
+}
+async function waitClockAdvances(ms = 4000) {
+  const a = await worldClock();
+  const started = Date.now();
+  while (Date.now() - started < ms) {
+    await new Promise((r) => setTimeout(r, 100));
+    const b = await worldClock();
+    if (b.t > a.t + 0.001) return { advanced: true, from: a.t, to: b.t };
+  }
+  return { advanced: false, from: a.t, to: (await worldClock()).t };
+}
+
+await page.evaluate(() => {
+  const g = window.game;
+  if (g.hud.buyOpen) g.hud.toggleBuy(false);
+  g.round.phase = 'live';
+});
+await new Promise((r) => setTimeout(r, 600));   // 先确认世界本来在跑
+
+await page.evaluate(() => window.game.pauseGame());
+await new Promise((r) => setTimeout(r, 300));
+const pausedA = await worldClock();
+await new Promise((r) => setTimeout(r, 700));
+const pausedB = await worldClock();
+
+ok('Esc 暂停弹出遮罩', pausedA.menuOpen && pausedA.overlay,
+  JSON.stringify({ menuOpen: pausedA.menuOpen, overlay: pausedA.overlay }));
+ok('Esc 暂停冻结世界', pausedB.t === pausedA.t && pausedA.paused,
+  JSON.stringify({ t0: pausedA.t, t1: pausedB.t, paused: pausedA.paused }));
+
+await page.evaluate(() => window.game.resumeGame());
+const resumeRun = await waitClockAdvances();
+ok('再次 Esc 恢复并继续推进', resumeRun.advanced && !(await worldClock()).paused,
+  JSON.stringify(resumeRun));
+
+// 购买菜单：打开冻结、关闭恢复
+await page.evaluate(() => {
+  const g = window.game, p = g.localPlayer;
+  g.round.phase = 'freeze'; g.round.time = 18;
+  p.alive = true; p.team = 'T'; p.money = 16000; p.pos.set(0, 0, 1550);
+  g.hud.toggleBuy(true);
+});
+await new Promise((r) => setTimeout(r, 300));
+const buyA = await worldClock();
+await new Promise((r) => setTimeout(r, 700));
+const buyB = await worldClock();
+ok('打开购买菜单冻结世界', buyB.t === buyA.t && buyA.paused && buyA.buyOpen,
+  JSON.stringify({ t0: buyA.t, t1: buyB.t, paused: buyA.paused }));
+ok('购买菜单不弹暂停遮罩', buyA.overlay === false);
+
+await page.evaluate(() => window.game.hud.toggleBuy(false));
+const buyRun = await waitClockAdvances();
+const buyAfter = await worldClock();
+ok('关闭购买菜单自动恢复', buyRun.advanced && !buyAfter.paused,
+  JSON.stringify({ ...buyRun, paused: buyAfter.paused }));
+
 // ---------------------------------------------------------------- 键位
 section('可配键位');
 const keys = await page.evaluate(() => {
