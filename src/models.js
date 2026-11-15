@@ -10,7 +10,7 @@
 //  四级关节，行走时做二级摆动而不是整条腿刚性旋转。
 // ============================================================
 import * as THREE from 'three';
-import { getWeaponTextures } from './textures.js';
+import { getWeaponTextures, getWeaponTexturesClassic, getWeaponTexturesModern } from './textures.js';
 
 const WT = getWeaponTextures();
 
@@ -31,6 +31,60 @@ const W = {
   skin: new THREE.MeshLambertMaterial({ color: 0xb8825a }),
   skinDark: new THREE.MeshLambertMaterial({ color: 0x8f6242 }),
 };
+
+// ============================================================
+//  两套武器材质：经典 / 现代
+//  这是这次对照实验的核心 —— 同一把枪、同一个姿态，只换"材质工艺"，
+//  看观感差距到底来自几何还是来自材质。
+// ============================================================
+let STYLE = 'classic';
+export function getWeaponStyle() { return STYLE; }
+export function setWeaponStyle(s) {
+  if (s !== 'classic' && s !== 'modern') return STYLE;
+  if (s === STYLE) return STYLE;
+  STYLE = s;
+  // 缓存里的模型是按旧风格建的，换风格必须整体丢弃
+  for (const k of Object.keys(WEAPON_CACHE)) delete WEAPON_CACHE[k];
+  return STYLE;
+}
+
+let CLASSIC = null;
+function classicMats() {
+  if (CLASSIC) return CLASSIC;
+  const T = getWeaponTexturesClassic();
+  const L = (map, color) => new THREE.MeshLambertMaterial({ map, color, flatShading: true });
+  CLASSIC = {
+    steel: L(T.metal, 0xa6acb6),
+    steelDark: L(T.metal, 0x646972),
+    accent: new THREE.MeshLambertMaterial({ color: 0x8d8b80, flatShading: true }),
+    wood: L(T.wood, 0xd2ac82),
+    woodDark: L(T.wood, 0x8a6a48),
+    poly: L(T.poly, 0x9297a0),
+    black: new THREE.MeshLambertMaterial({ color: 0x141518, flatShading: true }),
+  };
+  return CLASSIC;
+}
+
+let MODERN = null;
+function modernMats() {
+  if (MODERN) return MODERN;
+  const T = getWeaponTexturesModern();
+  const S = (set, opts) => new THREE.MeshStandardMaterial({
+    map: set.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap,
+    envMapIntensity: 0.55,   // 环境反射别给满，否则木头会被照成塑料
+    ...opts,
+  });
+  MODERN = {
+    steel: S(T.metal, { color: 0xb9bec7, metalness: 0.86, roughness: 0.44 }),
+    steelDark: S(T.metal, { color: 0x7e848d, metalness: 0.90, roughness: 0.52 }),
+    accent: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.90, roughness: 0.38, envMapIntensity: 0.55 }),
+    wood: S(T.wood, { color: 0xa07a52, metalness: 0.0, roughness: 0.66 }),
+    woodDark: S(T.wood, { color: 0x77572f, metalness: 0.0, roughness: 0.72 }),
+    poly: S(T.poly, { color: 0x8d939b, metalness: 0.0, roughness: 0.74 }),
+    black: new THREE.MeshStandardMaterial({ color: 0x1a1d22, metalness: 0.55, roughness: 0.48, envMapIntensity: 0.55 }),
+  };
+  return MODERN;
+}
 
 // ---------- 几何体缓存 ----------
 function boxGeo(w, h, d) { return new THREE.BoxGeometry(w, h, d); }
@@ -105,6 +159,12 @@ function faceTexture(team) {
   return t;
 }
 
+// 角色材质统一到 PBR：高粗糙度、零金属度（布料/皮肤/皮革都是这种响应）。
+// 这样角色和场景、武器处在同一套光照模型里，不会显得"平涂"。
+const CHAR_PBR = (opts) => new THREE.MeshStandardMaterial({
+  roughness: 0.92, metalness: 0.0, envMapIntensity: 0.16, ...opts,
+});
+
 const charMatCache = {};
 function charMats(team) {
   if (charMatCache[team]) return charMatCache[team];
@@ -112,16 +172,16 @@ function charMats(team) {
   const clothC = team === 'T' ? 0x8a7148 : 0x5d6b7a;
   const vestC = team === 'T' ? 0x54452c : 0x39434f;
   const M = {
-    skin: new THREE.MeshLambertMaterial({ color: skinC }),
-    cloth: new THREE.MeshLambertMaterial({ color: clothC }),
-    vest: new THREE.MeshLambertMaterial({ color: vestC }),
-    belt: new THREE.MeshLambertMaterial({ color: 0x2b2823 }),
-    pouch: new THREE.MeshLambertMaterial({ color: team === 'T' ? 0x3f3626 : 0x2c343d }),
-    boot: new THREE.MeshLambertMaterial({ color: 0x241f1a }),
-    pack: new THREE.MeshLambertMaterial({ color: team === 'T' ? 0x4a4030 : 0x323b45 }),
-    hat: new THREE.MeshLambertMaterial({ color: team === 'T' ? 0x1f1d1a : 0x2b3540 }),
-    glove: new THREE.MeshLambertMaterial({ color: 0x2e2c25 }),
-    face: new THREE.MeshLambertMaterial({ map: faceTexture(team) }),
+    skin: CHAR_PBR({ color: skinC, roughness: 0.78 }),
+    cloth: CHAR_PBR({ color: clothC }),
+    vest: CHAR_PBR({ color: vestC, roughness: 0.86 }),
+    belt: CHAR_PBR({ color: 0x2b2823, roughness: 0.72 }),
+    pouch: CHAR_PBR({ color: team === 'T' ? 0x3f3626 : 0x2c343d }),
+    boot: CHAR_PBR({ color: 0x241f1a, roughness: 0.70 }),
+    pack: CHAR_PBR({ color: team === 'T' ? 0x4a4030 : 0x323b45 }),
+    hat: CHAR_PBR({ color: team === 'T' ? 0x1f1d1a : 0x2b3540, roughness: 0.88 }),
+    glove: CHAR_PBR({ color: 0x2e2c25, roughness: 0.80 }),
+    face: CHAR_PBR({ map: faceTexture(team), roughness: 0.76 }),
   };
   charMatCache[team] = M;
   return M;
@@ -328,35 +388,102 @@ function glovedHand(side = 1, scale = 1) {
   return g;
 }
 
-function buildAK47() {
+function buildAK47(M = W) {
   const g = new THREE.Group();
   // 机匣
-  g.add(b(3.5, 3.6, 20, W.steel, 0, 0, -2));
-  g.add(b(3.2, 1.3, 13, W.steelDark, 0, 2.6, -3.2));       // 上盖
-  g.add(b(3.7, 1.0, 4.2, W.accent, 0, -1.9, -8.5));        // 下护木座
+  g.add(b(3.5, 3.6, 20, M.steel, 0, 0, -2));
+  g.add(b(3.2, 1.3, 13, M.steelDark, 0, 2.6, -3.2));       // 上盖
+  g.add(b(3.7, 1.0, 4.2, M.accent, 0, -1.9, -8.5));        // 下护木座
   // 木质护木 + 导气管
-  g.add(b(3.3, 3.1, 11.5, W.wood, 0, -0.9, -14.6));
-  g.add(b(2.3, 2.0, 11.5, W.steelDark, 0, 2.1, -14.6));
-  g.add(b(2.0, 0.9, 11.5, W.accent, 0, 3.2, -14.6));       // 导气管上棱
+  g.add(b(3.3, 3.1, 11.5, M.wood, 0, -0.9, -14.6));
+  g.add(b(2.3, 2.0, 11.5, M.steelDark, 0, 2.1, -14.6));
+  g.add(b(2.0, 0.9, 11.5, M.accent, 0, 3.2, -14.6));       // 导气管上棱
   // 枪管与消焰器
-  g.add(tube(0.85, 0.85, 12, W.steelDark, 0, 1.2, -23));
-  g.add(tube(1.15, 1.15, 3.4, W.steel, 0, 1.2, -29.4));
+  g.add(tube(0.85, 0.85, 12, M.steelDark, 0, 1.2, -23));
+  g.add(tube(1.15, 1.15, 3.4, M.steel, 0, 1.2, -29.4));
   // 准星座（斜切柱 + 护环）
-  g.add(b(1.1, 3.0, 1.4, W.steel, 0, 2.9, -26.2));
-  g.add(b(0.7, 1.4, 0.7, W.accent, 0, 4.3, -26.2));
+  g.add(b(1.1, 3.0, 1.4, M.steel, 0, 2.9, -26.2));
+  g.add(b(0.7, 1.4, 0.7, M.accent, 0, 4.3, -26.2));
   // 照门
-  g.add(b(1.7, 1.3, 1.2, W.steel, 0, 3.3, -8.6));
-  g.add(b(0.6, 1.0, 0.5, W.black, 0, 3.6, -8.9));
+  g.add(b(1.7, 1.3, 1.2, M.steel, 0, 3.3, -8.6));
+  g.add(b(0.6, 1.0, 0.5, M.black, 0, 3.6, -8.9));
   // 弯弹匣
-  g.add(curvedMag(W.black, { segs: 4, y: -2.2, z: -4.4, curve: 0.22 }));
+  g.add(curvedMag(M.black, { segs: 4, y: -2.2, z: -4.4, curve: 0.22 }));
   // 握把
-  g.add(b(2.9, 7.2, 4.4, W.poly, 0, -5.4, 3.4, 0.3));
+  g.add(b(2.9, 7.2, 4.4, M.poly, 0, -5.4, 3.4, 0.3));
   // 枪托（木质，下折）
-  g.add(b(2.7, 3.2, 13.0, W.wood, 0, -1.2, 13.8, 0.1));
-  g.add(b(3.0, 4.4, 2.0, W.woodDark, 0, -2.0, 20.2, 0.1)); // 托底板
+  g.add(b(2.7, 3.2, 13.0, M.wood, 0, -1.2, 13.8, 0.1));
+  g.add(b(3.0, 4.4, 2.0, M.woodDark, 0, -2.0, 20.2, 0.1)); // 托底板
   // 拉机柄
-  g.add(b(0.9, 0.9, 3.4, W.steel, 2.0, 1.5, -3.2));
+  g.add(b(0.9, 0.9, 3.4, M.steel, 2.0, 1.5, -3.2));
   // 手
+  const rh = glovedHand(1);
+  rh.position.set(0.2, -4.6, 3.6);
+  g.add(rh);
+  const lh = glovedHand(-1);
+  lh.position.set(-0.4, -2.0, -11.4);
+  g.add(lh);
+  return g;
+}
+
+// ============================================================
+//  同一把 AK 的"现代"版本：用来和经典版做观感对照
+//
+//  造型语言上的差别（这才是两条路线的真正分界）：
+//    · 圆截面优先：枪管、导气管、护木、防尘盖都用圆柱，而不是方盒
+//    · 增加分段与倒角：机匣分上下两段、弹匣带弧度、托腮板独立
+//    · 材质换 PBR：金属有各向异性高光，木头有微表面粗糙度
+//  比例刻意和经典版对齐，这样对比的是"风格"而不是"造型"。
+// ============================================================
+function buildAK47Modern() {
+  const M = modernMats();
+  const g = new THREE.Group();
+
+  // 下机匣：铣削台阶（两段不同宽度）
+  g.add(b(3.5, 2.4, 19.5, M.steel, 0, -1.0, -2));
+  g.add(b(3.8, 1.6, 19.5, M.steel, 0, 0.6, -2));
+  // 防尘盖：AK 最好认的那个圆弧
+  const cover = new THREE.Mesh(new THREE.CylinderGeometry(1.72, 1.72, 13.0, 20), M.steelDark);
+  cover.rotation.x = Math.PI / 2;
+  cover.position.set(0, 2.05, -3.2);
+  g.add(cover);
+  // 机匣铆钉
+  for (let i = 0; i < 3; i++) {
+    const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), M.steelDark);
+    rivet.position.set(1.78, -0.4, -7 + i * 3.2);
+    g.add(rivet);
+  }
+  // 导气管 + 木质护木（都是圆截面）
+  g.add(tube(0.95, 0.95, 12.5, M.steel, 0, 2.35, -14.2, 12));
+  g.add(tube(1.95, 1.95, 11.5, M.wood, 0, -0.55, -14.5, 16));
+  // 护木上的散热指槽
+  for (let i = 0; i < 4; i++) {
+    g.add(b(3.4, 0.45, 0.9, M.woodDark, 0, -1.6, -10.6 - i * 2.1));
+  }
+  // 枪管 + 消焰器
+  g.add(tube(0.72, 0.78, 13.0, M.steelDark, 0, 1.15, -23.5, 14));
+  g.add(tube(1.18, 1.05, 3.6, M.steel, 0, 1.15, -29.6, 14));
+  // 准星座
+  g.add(b(1.0, 2.6, 1.3, M.steel, 0, 2.75, -26.3));
+  g.add(tube(0.42, 0.30, 2.0, M.steelDark, 0, 4.2, -26.3, 10));
+  // 照门
+  g.add(b(1.9, 1.1, 1.4, M.steel, 0, 3.15, -8.6));
+  g.add(b(0.55, 0.9, 0.5, M.black, 0, 3.45, -8.9));
+  // 弯弹匣（段数更多，弧度更顺）
+  g.add(curvedMag(M.black, { segs: 6, w: 3.3, h: 2.6, d: 4.6, y: -2.0, z: -4.2, curve: 0.17 }));
+  // 握把：带指槽
+  g.add(b(2.8, 7.0, 4.2, M.poly, 0, -5.4, 3.4, 0.3));
+  for (let i = 0; i < 3; i++) {
+    g.add(b(3.0, 0.4, 4.0, M.poly, 0, -7.2 + i * 1.5, 3.4, 0.3));
+  }
+  // 木质枪托：托身 + 托腮板 + 托底板
+  g.add(b(2.8, 3.0, 13.5, M.wood, 0, -1.2, 13.6, 0.1));
+  g.add(b(3.2, 1.0, 8.0, M.wood, 0, 0.4, 14.6, 0.1));
+  g.add(b(3.1, 4.6, 2.2, M.woodDark, 0, -2.0, 20.3, 0.1));
+  // 拉机柄
+  g.add(b(0.85, 0.85, 3.2, M.steel, 2.1, 1.35, -3.2));
+  g.add(tube(0.55, 0.55, 1.6, M.steelDark, 2.1, 1.35, -1.8, 8));
+  // 手（两版共用同一双手，对比只针对枪）
   const rh = glovedHand(1);
   rh.position.set(0.2, -4.6, 3.6);
   g.add(rh);
@@ -525,7 +652,9 @@ export function buildWeaponModel(id) {
   if (WEAPON_CACHE[id]) return WEAPON_CACHE[id];
   let g;
   switch (id) {
-    case 'ak47': g = buildAK47(); break;
+    case 'ak47':
+      g = STYLE === 'modern' ? buildAK47Modern() : buildAK47(classicMats());
+      break;
     case 'm4a1': g = buildM4(); break;
     case 'aug': {
       g = buildM4();

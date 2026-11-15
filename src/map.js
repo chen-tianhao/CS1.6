@@ -90,6 +90,22 @@ export class GameMap {
     return { y: best, mat };
   }
 
+  // ---------- 现代渲染：世界材质统一到 PBR ----------
+  // roughness 接近 1、metalness 0 → 观感仍然是漫反射，和原来的 Lambert 差不多，
+  // 但它会响应 scene.environment，于是世界和 PBR 武器处在同一套光照模型里，
+  // 不会再出现"武器像贴纸浮在平涂场景上"的错配。
+  _pbr(map, opts = {}) {
+    return new THREE.MeshStandardMaterial({
+      map,
+      roughness: 0.94,
+      metalness: 0.0,
+      // 环境光只给一点点：世界本身已经有烘焙的顶点光照 + 半球光，
+      // IBL 给多了会把方向性整个冲平，墙面变成一片均匀的亮。
+      envMapIntensity: 0.11,
+      ...opts,
+    });
+  }
+
   // ---------- 构建 ----------
   _build() {
     this._rasterize();
@@ -120,7 +136,7 @@ export class GameMap {
   _buildLadders() {
     this.ladders = this.def.ladders || [];
     if (!this.ladders.length) return;
-    const mat = new THREE.MeshLambertMaterial({ map: this.tex.metalRed, color: 0xb8b0a4 });
+    const mat = this._pbr(this.tex.metalRed, { color: 0xb8b0a4, roughness: 0.52, metalness: 0.62 });
     for (const L of this.ladders) {
       const y0 = L.y0 || 0;
       const y1 = L.y1 || WALL_H;
@@ -174,14 +190,14 @@ export class GameMap {
 
     // 顶点色里已经烘了一层太阳（受光 ≈1.05 / 背光 ≈0.72），
     // 所以实时光要相应压低，否则受光面会双重叠加过曝。
-    const hemi = new THREE.HemisphereLight(0xcfe2f2, 0x9c8055, 0.82);
+    const hemi = new THREE.HemisphereLight(0xcfe2f2, 0x9c8055, 0.55);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(0xfff3d6, 1.05);
+    const sun = new THREE.DirectionalLight(0xfff3d6, 1.22);
     sun.position.set(-900, 1500, 700);
     scene.add(sun);
 
-    const fill = new THREE.DirectionalLight(0x8fa8c8, 0.30);
+    const fill = new THREE.DirectionalLight(0x8fa8c8, 0.22);
     fill.position.set(1200, 600, -1400);
     scene.add(fill);
 
@@ -191,8 +207,8 @@ export class GameMap {
     scene.background = skyTex;
 
     // 远景天际线：环形低模建筑（纯装饰，无碰撞）
-    const bmat = new THREE.MeshLambertMaterial({ map: this.tex.concrete });
-    const bmat2 = new THREE.MeshLambertMaterial({ map: this.tex.sand });
+    const bmat = this._pbr(this.tex.concrete, { envMapIntensity: 0.26 });
+    const bmat2 = this._pbr(this.tex.sand, { envMapIntensity: 0.26 });
     for (let i = 0; i < 44; i++) {
       const ang = (i / 44) * Math.PI * 2 + Math.random() * 0.05;
       const r = 3150 + Math.random() * 900;
@@ -374,7 +390,7 @@ export class GameMap {
     const merged = mergeGeometries(geos, false);
     geos.forEach((g) => g.dispose());
     this._applyLighting(merged);
-    const mat = new THREE.MeshLambertMaterial({ map: this.tex.floor, vertexColors: true });
+    const mat = this._pbr(this.tex.floor, { vertexColors: true });
     const mesh = new THREE.Mesh(merged, mat);
     mesh.position.y = 0;
     this.scene.add(mesh);
@@ -420,7 +436,7 @@ export class GameMap {
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());
       this._applyLighting(merged);
-      const mat = new THREE.MeshLambertMaterial({ map: wallTex[i], vertexColors: true });
+      const mat = this._pbr(wallTex[i], { vertexColors: true });
       const mesh = new THREE.Mesh(merged, mat);
       this.scene.add(mesh);
       this.solids.push(mesh);
@@ -473,11 +489,11 @@ export class GameMap {
 
   _buildProps() {
     const mats = {
-      crate: new THREE.MeshLambertMaterial({ map: this.tex.crate }),
-      concrete: new THREE.MeshLambertMaterial({ map: this.tex.concrete }),
-      metalRed: new THREE.MeshLambertMaterial({ map: this.tex.metalRed }),
-      metalBlue: new THREE.MeshLambertMaterial({ map: this.tex.metalBlue }),
-      metalGreen: new THREE.MeshLambertMaterial({ map: this.tex.metalGreen }),
+      crate: this._pbr(this.tex.crate, { roughness: 0.88 }),
+      concrete: this._pbr(this.tex.concrete),
+      metalRed: this._pbr(this.tex.metalRed, { roughness: 0.58, metalness: 0.55 }),
+      metalBlue: this._pbr(this.tex.metalBlue, { roughness: 0.58, metalness: 0.55 }),
+      metalGreen: this._pbr(this.tex.metalGreen, { roughness: 0.58, metalness: 0.55 }),
     };
     const pick = (name) => mats[name] || mats.concrete;
     // 弹着点/脚步要用的面材
@@ -578,9 +594,11 @@ export class GameMap {
   _buildCeilings() {
     // 隧道顶：朝下的法线只能拿到半球光里的"地面色"，纯 Lambert 会黑成一整块。
     // 所以底色提亮 + 加一点自发光，保证"暗但看得见"，再配一盏吊灯给光池。
-    const mat = new THREE.MeshLambertMaterial({
-      map: this.tex.concrete, side: THREE.DoubleSide,
-      color: 0xa39c90, emissive: 0x1b1916,
+    const mat = this._pbr(this.tex.concrete, {
+      side: THREE.DoubleSide,
+      color: 0xa39c90,
+      emissive: 0x1b1916,
+      envMapIntensity: 0.20,
     });
     const lampShadeMat = new THREE.MeshBasicMaterial({
       color: 0xffe0b0, transparent: true, opacity: 0.55, depthWrite: false,

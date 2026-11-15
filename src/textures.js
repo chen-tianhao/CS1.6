@@ -534,6 +534,129 @@ export function getWeaponTextures() {
   return wtCache;
 }
 
+// ============================================================
+//  武器贴图的两种"工艺"
+//
+//  classic : 8-bit 调色板质感 —— 通道量化 + Bayer 抖动 + 最近邻采样。
+//            色阶断层和硬像素边界是刻意保留的，那正是 2000 年前后的味道。
+//  modern  : 现代 PBR —— 从同一批贴图派生出法线图和粗糙度图，
+//            细节照旧，但换成"有高光、有微表面"的响应。
+// ============================================================
+
+// 通道量化 + 有序抖动（levels 越小色阶越硬）
+function posterize(canvas, levels = 6) {
+  const S = canvas.width;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.getImageData(0, 0, S, S);
+  const d = img.data;
+  const bayer = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  const step = 255 / (levels - 1);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4;
+      const th = (bayer[(y & 3) * 4 + (x & 3)] / 16 - 0.5) * step;
+      for (let c = 0; c < 3; c++) {
+        const v = d[i + c] + th;
+        d[i + c] = Math.max(0, Math.min(255, Math.round(v / step) * step));
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+// 由亮度图生成切线空间法线图
+function normalFromHeight(canvas, strength = 2.0) {
+  const S = canvas.width;
+  const src = canvas.getContext('2d').getImageData(0, 0, S, S).data;
+  const out = cv(S, S);
+  const octx = out.getContext('2d');
+  const img = octx.createImageData(S, S);
+  const d = img.data;
+  const lum = (x, y) => {
+    const xx = (x + S) % S, yy = (y + S) % S;
+    const i = (yy * S + xx) * 4;
+    return (src[i] * 0.299 + src[i + 1] * 0.587 + src[i + 2] * 0.114) / 255;
+  };
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const dx = (lum(x + 1, y) - lum(x - 1, y)) * strength;
+      const dy = (lum(x, y + 1) - lum(x, y - 1)) * strength;
+      const nx = -dx, ny = -dy, nz = 1;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      const i = (y * S + x) * 4;
+      d[i] = ((nx / len) * 0.5 + 0.5) * 255;
+      d[i + 1] = ((ny / len) * 0.5 + 0.5) * 255;
+      d[i + 2] = ((nz / len) * 0.5 + 0.5) * 255;
+      d[i + 3] = 255;
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  return out;
+}
+
+// 粗糙度：亮处磨光（低粗糙），暗处凹坑更粗糙
+function roughnessFromHeight(canvas, lo = 0.28, hi = 0.92) {
+  const S = canvas.width;
+  const src = canvas.getContext('2d').getImageData(0, 0, S, S).data;
+  const out = cv(S, S);
+  const octx = out.getContext('2d');
+  const img = octx.createImageData(S, S);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const l = (src[i] * 0.299 + src[i + 1] * 0.587 + src[i + 2] * 0.114) / 255;
+    const v = Math.round(255 * (hi - (hi - lo) * l));
+    d[i] = d[i + 1] = d[i + 2] = v;
+    d[i + 3] = 255;
+  }
+  octx.putImageData(img, 0, 0);
+  return out;
+}
+
+function copyCanvas(src) {
+  const c = cv(src.width, src.height);
+  c.getContext('2d').drawImage(src, 0, 0);
+  return c;
+}
+
+function texFromCanvas(canvas, { nearest = false, aniso = 1, data = false } = {}) {
+  const t = new THREE.CanvasTexture(canvas);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (!data) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = aniso;
+  if (nearest) {
+    t.magFilter = THREE.NearestFilter;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+  }
+  return t;
+}
+
+let classicTex = null;
+export function getWeaponTexturesClassic() {
+  if (classicTex) return classicTex;
+  const base = getWeaponTextures();
+  const mk = (tex) => texFromCanvas(posterize(copyCanvas(tex.image), 6), { nearest: true, aniso: 1 });
+  classicTex = { metal: mk(base.metal), wood: mk(base.wood), poly: mk(base.poly) };
+  return classicTex;
+}
+
+let modernTex = null;
+export function getWeaponTexturesModern() {
+  if (modernTex) return modernTex;
+  const base = getWeaponTextures();
+  const mk = (tex, strength) => ({
+    map: texFromCanvas(copyCanvas(tex.image), { aniso: 8 }),
+    normalMap: texFromCanvas(normalFromHeight(tex.image, strength), { aniso: 4, data: true }),
+    roughnessMap: texFromCanvas(roughnessFromHeight(tex.image), { aniso: 4, data: true }),
+  });
+  modernTex = {
+    metal: mk(base.metal, 2.2),
+    wood: mk(base.wood, 1.6),
+    poly: mk(base.poly, 1.2),
+  };
+  return modernTex;
+}
+
 // 天空：等距柱状渐变 + 分层云的椭圆堆积，直接作为 scene.background
 export function makeSkyTexture() {
   const S = 512, c = cv(S, S), x = c.getContext('2d');

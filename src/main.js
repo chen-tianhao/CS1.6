@@ -14,7 +14,7 @@ import { BotController } from './bots.js';
 import { Round } from './round.js';
 import { HUD } from './hud.js';
 import { ViewModel } from './viewmodel.js';
-import { buildWeaponProp } from './models.js';
+import { buildWeaponProp, setWeaponStyle as setWeaponModelStyle } from './models.js';
 import { fx } from './fx.js';
 import { tracePlayers } from './weapons.js';
 import * as Sfx from './audio.js';
@@ -90,6 +90,10 @@ class Game {
     setAnisotropy(this.renderer.capabilities.getMaxAnisotropy());
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // 现代渲染：ACES 让高光和暗部过渡更自然（PBR 需要这个），
+    // 曝光抬到 1.15 补偿 ACES 整体压暗。
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.02;
     this.renderer.autoClear = false;
 
     this.scene = new THREE.Scene();
@@ -105,6 +109,7 @@ class Game {
     this.camera.add(this.flashlight.target);
 
     this.map = new GameMap(this.scene, getMap(this.settings.map || DEFAULT_MAP));
+    this.setupEnvironment();
     const rl = document.querySelector('.radar-label');
     if (rl) rl.textContent = this.map.label;
     fx.init(this.scene, this.camera, this);
@@ -120,6 +125,22 @@ class Game {
     document.getElementById('loading').classList.add('hidden');
     this.lastT = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  // 用天空图生成 PMREM 环境贴图，挂到主场景上。
+  // PBR 材质必须有东西可反射，否则金属件会变成死黑，
+  // 而"世界没有环境、武器有环境"会立刻暴露成贴纸感。
+  setupEnvironment() {
+    const bg = this.scene.background;
+    if (!bg || !bg.isTexture) return;
+    try {
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      const rt = pmrem.fromEquirectangular(bg);
+      this.scene.environment = rt.texture;
+      pmrem.dispose();
+    } catch (e) {
+      console.warn('环境贴图生成失败：', e);
+    }
   }
 
   resize() {
@@ -462,6 +483,17 @@ class Game {
     this.flashlightOn = !this.flashlightOn;
     this.flashlight.intensity = this.flashlightOn ? 2.4 : 0;
     Sfx.playUIClick();
+  }
+
+  // 对照实验用：切换第一人称武器的"材质工艺"
+  //   'classic' —— 1.6 低模味（Lambert + 调色板 + 最近邻采样 + 平面着色）
+  //   'modern'  —— 现代 PBR（标准材质 + 法线/粗糙度 + 环境反射）
+  // 控制台直接调：game.setWeaponStyle('modern')
+  setWeaponStyle(style) {
+    const s = setWeaponModelStyle(style);
+    if (this.viewModel) this.viewModel.invalidate();
+    if (this.hud) this.hud.toast(s === 'modern' ? '武器模型：现代 PBR' : '武器模型：1.6 经典');
+    return s;
   }
 
   // ---------- 暂停 ----------

@@ -7,7 +7,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { WEAPONS } from './config.js';
-import { buildWeaponModel } from './models.js';
+import { buildWeaponModel, getWeaponStyle } from './models.js';
 
 // 各枪型的持枪姿态。
 // 1.6 的第一人称武器压在屏幕右下角：枪身约在右侧 25~35%、下方 25%，
@@ -63,8 +63,24 @@ export class ViewModel {
     this.camera.updateProjectionMatrix();
   }
 
-  setWeapon(id) {
-    if (id === this.curId) return;
+  // 换风格后强制重建当前武器
+  invalidate() { this.curId = null; }
+
+  // PBR 金属必须有东西可反射，否则在只有平行光的场景里会变成死黑。
+  // 环境贴图只挂给"第一人称场景" —— 世界场景保持原来的 Lambert 顶点烘焙。
+  ensureEnv() {
+    if (this.scene.environment) return;
+    const bg = this.game && this.game.scene && this.game.scene.background;
+    if (!bg || !bg.isTexture) return;
+    try {
+      const pmrem = new THREE.PMREMGenerator(this.game.renderer);
+      const rt = pmrem.fromEquirectangular(bg);
+      this.scene.environment = rt.texture;
+      pmrem.dispose();
+    } catch (e) { /* 环境反射是锦上添花，失败不影响可玩 */ }
+  }
+
+  setWeapon(id) {    if (id === this.curId) return;
     this.curId = id;
     if (this.weaponGroup) {
       this.root.remove(this.weaponGroup);
@@ -78,6 +94,7 @@ export class ViewModel {
 
   update(dt, p) {
     if (!p) return;
+    if (getWeaponStyle() === 'modern') this.ensureEnv();
     this.setWeapon(p.curSlot === 'melee' ? 'knife' : p.curSlot === 'grenade' ? null : (p.weapon ? p.weapon.id : null));
     this.root.visible = p.alive && p.zoom === 0 && p.curSlot !== 'grenade' && !!this.weaponGroup;
     if (!this.root.visible) return;
